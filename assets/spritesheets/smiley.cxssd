@@ -1,0 +1,1 @@
+{"frames":[{"x":0,"w":32,"h":32,"y":0},{"x":32,"w":32,"h":32,"y":0},{"x":64,"w":32,"h":32,"y":0},{"x":96,"w":32,"h":32,"y":0},{"x":128,"w":32,"h":32,"y":0}],"custom_states":[{"is_looped":false,"name":"Idle","start_frame":0,"end_frame":1},{"is_looped":false,"name":"Brow Movement","start_frame":2,"end_frame":4}],"time_per_frame":0.1}

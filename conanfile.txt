@@ -1,0 +1,10 @@
+[requires]
+catch2/2.11.0
+glew/2.1.0@bincrafters/stable
+eastl/3.16.05
+imgui/1.76
+nlohmann_json/3.8.0
+
+[generators]
+cmake
+

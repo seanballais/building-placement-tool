@@ -1,0 +1,9 @@
+[submodule "libs/sdl_gpu"]
+    path = libs/sdl_gpu
+    url = git@github.com:seanballais/sdl-gpu.git
+[submodule "corex/tools/aseprite-export-as-cxssd"]
+	path = corex/tools/aseprite-export-as-cxssd
+	url = git@github.com:seanballais/aseprite-export-as-cxssd.git
+[submodule "libs/sdl-gpu"]
+	path = libs/sdl-gpu
+	url = git@github.com:seanballais/sdl-gpu.git

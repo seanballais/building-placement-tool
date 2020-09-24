@@ -1,0 +1,12 @@
+#ifndef COREX_CORE_COMPONENTS_RENDERABLE_TYPE_HPP
+#define COREX_CORE_COMPONENTS_RENDERABLE_TYPE_HPP
+
+namespace corex::core
+{
+  enum class RenderableType
+  {
+    SPRITE, PRIMITIVE_RECTANGLE, PRIMITIVE_POLYGON
+  };
+}
+
+#endif
