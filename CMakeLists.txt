@@ -24,11 +24,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/sdl_gpu/include)
 
 add_subdirectory(libs/)
 add_subdirectory(corex/)
-add_subdirectory(boyet/)
+add_subdirectory(bpt/)
 
-target_link_libraries(boyet-game
+target_link_libraries(bpt
     corex-core
-    boyet-scenes
     imgui-impls
     SDL_gpu
     ${CONAN_LIBS}
