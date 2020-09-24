@@ -10,5 +10,5 @@ then
     export MANGOHUD_DLSYM=1
     mangohud ./build/bin/boyet-game
 else
-    ./build/bin/boyet-game
+    ./build/bin/bpt
 fi
