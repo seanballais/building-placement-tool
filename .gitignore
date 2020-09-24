@@ -33,3 +33,6 @@
 
 # Build directory
 build/
+
+# Ignore Python cache
+**/__pycache__/**

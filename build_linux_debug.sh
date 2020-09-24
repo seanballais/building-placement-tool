@@ -31,11 +31,39 @@ then
     cmake -DCMAKE_BUILD_TYPE=Debug .. \
         && echo "[::] CMake ran successfully. Time to compile..." \
         && make
+    cd ..
 else
     echo "[::] Performing a casual build."
     make
+    if [ $? -ne 0 ]
+    then
+        echo "[::] Performing a casual build failed. Maybe run a full build" \
+             "first?"
+        cd ..
+    else
+        cd ..
+
+        echo "[::] Copying assets and the settings file to the build assets" \
+             "folder, if any were updated or new assets are added."
+
+        # Copy the settings file to the bin folder if changes were made.
+        if [ settings/settings.cxstg -nt build/bin/settings/settings.cxstg ]
+        then
+            cp settings/settings.cxstg build/bin/settings/
+        fi
+
+        # Copy assets to the bin folder if changes were made.
+        for file in `find assets -type f -not -path "assets/raw/**"`
+        do
+            if [[ ( -f "build/bin/${file}" && $file -nt "build/bin/${file}" ) \
+               || ( ! -f "build/bin/${file}" ) ]]
+            then
+                echo "---- Copied ${file} to build/bin/assets/."
+                cp $file "build/bin/${file}"
+            fi
+        done
+    fi
 fi
 
 # Go back to the main directory.
 echo "[::] Done with stuff. Switching back to project root..."
-cd ..
