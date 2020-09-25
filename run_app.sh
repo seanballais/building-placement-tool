@@ -8,7 +8,7 @@ if [ -n $1 ] && [ "$1" = "--run-mangohud" ]
 then
     RUN_MANGOHUD=true
     export MANGOHUD_DLSYM=1
-    mangohud ./build/bin/boyet-game
+    mangohud ./build/bin/bpt
 else
     ./build/bin/bpt
 fi
