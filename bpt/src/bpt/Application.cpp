@@ -7,6 +7,7 @@
 #include <corex/core/Scene.hpp>
 
 #include <bpt/Application.hpp>
+#include <bpt/MainScene.hpp>
 
 namespace bpt
 {
@@ -16,6 +17,8 @@ namespace bpt
   void Application::init()
   {
     std::cout << "Initializing BPT... Bleep, bloop, bleep." << std::endl;
+    auto& mainScene = this->sceneManager->addScene<bpt::MainScene>();
+    this->sceneManager->setRootScene(mainScene);
   }
 
   void Application::dispose()

@@ -16,6 +16,7 @@ add_library(corex-core SHARED
     ds/Vec2.cpp
     systems/BaseSystem.cpp
     systems/KeyboardHandler.cpp
+    systems/MouseHandler.cpp
     systems/SpritesheetAnimation.cpp
     systems/SysEventDispatcher.cpp
     main.cpp

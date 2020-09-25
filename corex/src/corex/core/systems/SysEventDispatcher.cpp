@@ -31,6 +31,15 @@ namespace corex::core
         case SDL_KEYUP:
           this->eventDispatcher.trigger<KeyUpEvent>(event);
           break;
+        case SDL_MOUSEBUTTONDOWN:
+          this->eventDispatcher.trigger<MouseButtonDownEvent>(event);
+          break;
+        case SDL_MOUSEBUTTONUP:
+          this->eventDispatcher.trigger<MouseButtonUpEvent>(event);
+          break;
+        case SDL_MOUSEMOTION:
+          this->eventDispatcher.trigger<MouseMotionEvent>(event);
+          break;
         case SDL_MOUSEWHEEL:
           this->eventDispatcher.trigger<MouseWheelEvent>(event);
           break;

@@ -32,6 +32,7 @@
 #include <corex/core/events/scene_manager_events.hpp>
 #include <corex/core/events/sys_events.hpp>
 #include <corex/core/systems/KeyboardHandler.hpp>
+#include <corex/core/systems/MouseHandler.hpp>
 #include <corex/core/systems/SpritesheetAnimation.hpp>
 #include <corex/core/systems/SysEventDispatcher.hpp>
 
@@ -47,6 +48,7 @@ namespace corex::core
     , settings()
     , sysEventDispatcher(eventDispatcher)
     , keyboardHandler(eventDispatcher)
+    , mouseHandler(eventDispatcher)
     , spritesheetAnimation(eventDispatcher, registry)
     , debugUI(eventDispatcher, camera)
     , windowManager(windowTitle, eventDispatcher, settings)
@@ -172,6 +174,7 @@ namespace corex::core
   {
     this->sysEventDispatcher.update();
     this->keyboardHandler.update();
+    this->mouseHandler.update();
     this->spritesheetAnimation.update();
     this->dispatchSceneManagerEvents();
     this->debugUI.update();

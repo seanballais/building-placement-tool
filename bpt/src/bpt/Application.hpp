@@ -1,5 +1,5 @@
-#ifndef BPT_APPLICATION_CPP
-#define BPT_APPLICATION_CPP
+#ifndef BPT_APPLICATION_HPP
+#define BPT_APPLICATION_HPP
 
 #include <EASTL/string.h>
 

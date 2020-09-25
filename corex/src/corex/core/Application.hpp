@@ -17,6 +17,7 @@
 #include <corex/core/events/game_events.hpp>
 #include <corex/core/events/sys_events.hpp>
 #include <corex/core/systems/KeyboardHandler.hpp>
+#include <corex/core/systems/MouseHandler.hpp>
 #include <corex/core/systems/SpritesheetAnimation.hpp>
 #include <corex/core/systems/SysEventDispatcher.hpp>
 
@@ -49,6 +50,7 @@ namespace corex::core
     entt::dispatcher eventDispatcher;
     SysEventDispatcher sysEventDispatcher;
     KeyboardHandler keyboardHandler;
+    MouseHandler mouseHandler;
     SpritesheetAnimation spritesheetAnimation;
     Camera camera;
     DebugUI debugUI;

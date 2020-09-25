@@ -164,6 +164,16 @@ namespace corex::core
     ImGui::End();
   }
 
+  void buildMouseDebugWindow()
+  {
+    ImGui::Begin("Mouse Debug Window");
+
+    ImGui::Text("Mouse X: ");
+    ImGui::Text("Mouse Y: ");
+
+    ImGui::End();
+  }
+
   void DebugUI::dispatchTimeWarpEvents()
   {
     this->eventDispatcher.enqueue<GameTimeWarpEvent>(this->gameTimeWarpFactor);

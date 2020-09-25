@@ -27,6 +27,7 @@ namespace corex::core
     void buildPerformanceMetrics();
     void buildCameraControls();
     void buildTimeControls();
+    void buildMouseDebugWindow();
     void dispatchTimeWarpEvents();
     void dispatchGameTimerStatusEvents();
     void handleFrameDataEvents(const FrameDataEvent& e);
