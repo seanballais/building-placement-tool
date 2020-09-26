@@ -13,6 +13,9 @@
 
 namespace corex::core
 {
+  // Forward declare SceneManager so that we can make it a friend.
+  class SceneManager;
+
   class Scene
   {
   public:
@@ -70,6 +73,12 @@ namespace corex::core
 
   private:
     float ppmRatio;
+
+    // Since SceneManager is defined in another header file and includes this
+    // header file, we can't make SceneManager's update function a friend of
+    // Scene. Doing so would require re-defining SceneManager, which is illegal
+    // and will raise a redefinition error.
+    friend class SceneManager;
   };
 }
 

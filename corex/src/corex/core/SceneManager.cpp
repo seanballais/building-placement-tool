@@ -46,6 +46,7 @@ namespace corex::core
   {
     if (!(this->isCurrentSceneInitialized)) {
       this->currentScene->init();
+      this->currentScene->setSceneStatus(SceneStatus::RUNNING);
       this->isCurrentSceneInitialized = true;
     }
 

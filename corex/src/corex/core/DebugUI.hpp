@@ -68,6 +68,7 @@ namespace corex::core
     int32_t mouseXScrollAmount;
     int32_t mouseYScrollAmount;
     eastl::array<MouseButtonState, 3> mouseButtonStates;
+    eastl::array<int32_t, 3> mouseButtonNumRepeats;
   };
 }
 

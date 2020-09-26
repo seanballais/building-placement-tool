@@ -12,6 +12,9 @@ namespace corex::core
   {
     MouseButtonType buttonType;
     MouseButtonState buttonState;
+    int32_t x;
+    int32_t y;
+    int32_t numRepeats;
   };
 }
 

@@ -5,7 +5,7 @@ namespace corex::core
 {
   enum class RenderableType
   {
-    SPRITE, PRIMITIVE_RECTANGLE, PRIMITIVE_POLYGON
+    SPRITE, PRIMITIVE_RECTANGLE, PRIMITIVE_POLYGON, LINE_SEGMENTS
   };
 }
 

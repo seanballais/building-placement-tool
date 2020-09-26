@@ -212,6 +212,18 @@ namespace corex::core
       ImGui::TextUnformatted(mouseButtonStateTexts[i].c_str());
     }
 
+    eastl::array<eastl::string, 3> mouseButtonNumRepeatsTexts;
+    mouseButtonNumRepeatsTexts[0] = "Left Mouse Button Num Repeats: ";
+    mouseButtonNumRepeatsTexts[1] = "Middle Mouse Button Num Repeats: ";
+    mouseButtonNumRepeatsTexts[2] = "Right Mouse Button Num Repeats: ";
+
+    for (int32_t i = 0; i < this->mouseButtonNumRepeats.size(); i++) {
+      ImGui::Text(
+        "%s: %d",
+        mouseButtonNumRepeatsTexts[i].c_str(),
+        this->mouseButtonNumRepeats[i]);
+    }
+
     ImGui::Text("Mouse X Scroll Amount: %d", this->mouseXScrollAmount);
     ImGui::Text("Mouse Y Scroll Amount: %d", this->mouseYScrollAmount);
 
@@ -320,6 +332,7 @@ namespace corex::core
     }
 
     this->mouseButtonStates[buttonIndex] = e.buttonState;
+    this->mouseButtonNumRepeats[buttonIndex] = e.numRepeats;
   }
 
   void DebugUI::handlePPMRatioChangeEvents(const PPMRatioChange& e)

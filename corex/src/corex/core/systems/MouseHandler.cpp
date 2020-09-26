@@ -12,6 +12,8 @@
 #include <corex/core/systems/MouseButtonType.hpp>
 #include <corex/core/systems/MouseHandler.hpp>
 
+#include <iostream>
+
 namespace corex::core
 {
   MouseHandler::MouseHandler(entt::dispatcher& eventDispatcher)
@@ -21,6 +23,7 @@ namespace corex::core
         MouseButtonState::MOUSE_BUTTON_UP,
         MouseButtonState::MOUSE_BUTTON_UP
       })
+    , mouseButtonNumRepeats({ 0, 0, 0 })
   {
     this->eventDispatcher.sink<MouseButtonDownEvent>()
                          .connect<&MouseHandler::handleMouseButtonDowns>(this);
@@ -47,6 +50,11 @@ namespace corex::core
         break;
     }
 
+    if (this->mouseButtonStates[buttonIndex]
+        == MouseButtonState::MOUSE_BUTTON_UP) {
+      this->mouseButtonNumRepeats[buttonIndex] = 0;
+    }
+
     this->mouseButtonStates[buttonIndex] = MouseButtonState::MOUSE_BUTTON_DOWN;
   }
 
@@ -63,6 +71,13 @@ namespace corex::core
       case SDL_BUTTON_RIGHT:
         buttonIndex = 2;
         break;
+    }
+
+    if (this->mouseButtonStates[buttonIndex]
+        == MouseButtonState::MOUSE_BUTTON_DOWN) {
+      this->mouseButtonNumRepeats[buttonIndex] = 0;
+    } else {
+      this->mouseButtonNumRepeats[buttonIndex]++;
     }
 
     this->mouseButtonStates[buttonIndex] = MouseButtonState::MOUSE_BUTTON_UP;
@@ -86,13 +101,22 @@ namespace corex::core
   {
     this->eventDispatcher.enqueue<MouseButtonEvent>(
       MouseButtonType::MOUSE_BUTTON_LEFT,
-      this->mouseButtonStates[0]);
+      this->mouseButtonStates[0],
+      this->x,
+      this->y,
+      this->mouseButtonNumRepeats[0]);
     this->eventDispatcher.enqueue<MouseButtonEvent>(
       MouseButtonType::MOUSE_BUTTON_MIDDLE,
-      this->mouseButtonStates[1]);
+      this->mouseButtonStates[1],
+      this->x,
+      this->y,
+      this->mouseButtonNumRepeats[1]);
     this->eventDispatcher.enqueue<MouseButtonEvent>(
       MouseButtonType::MOUSE_BUTTON_RIGHT,
-      this->mouseButtonStates[2]);
+      this->mouseButtonStates[2],
+      this->x,
+      this->y,
+      this->mouseButtonNumRepeats[2]);
     this->eventDispatcher.enqueue<MouseMovementEvent>(this->x,
                                                       this->y,
                                                       this->xMovementDelta,
@@ -106,5 +130,11 @@ namespace corex::core
     this->yMovementDelta = 0;
     this->xScrollAmount = 0;
     this->yScrollAmount = 0;
+
+    // Increment number of mouse button repeats. If the state changes, the
+    // number will just be reset to zero.
+    for (int32_t i = 0; i < this->mouseButtonNumRepeats.size(); i++) {
+      this->mouseButtonNumRepeats[i]++;
+    }
   }
 }

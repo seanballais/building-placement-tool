@@ -23,6 +23,7 @@
 #include <corex/core/components/Position.hpp>
 #include <corex/core/components/Renderable.hpp>
 #include <corex/core/components/RenderableType.hpp>
+#include <corex/core/components/RenderLineSegments.hpp>
 #include <corex/core/components/RenderPolygon.hpp>
 #include <corex/core/components/RenderRectangle.hpp>
 #include <corex/core/components/Sprite.hpp>
@@ -134,7 +135,7 @@ namespace corex::core
       this->runEventSystems();
 
       // We prep the rendering before the scene updates, because the scene
-      // might be draw something.
+      // might draw something.
       this->renderPrep();
       this->sceneManager->update(metrics.timeDelta);
 
@@ -344,6 +345,24 @@ namespace corex::core
                         numVertices,
                         vertices,
                         poly.colour);
+          }
+        } break;
+        case RenderableType::LINE_SEGMENTS: {
+          const RenderLineSegments& segments = this->registry
+                                                    .get<RenderLineSegments>(e);
+
+          if (segments.vertices.size() <= 1) {
+            // Not enough vertices to form a line. 
+            continue;
+          }
+
+          for (int32_t i = 0; i < segments.vertices.size() - 1; i++) {
+            GPU_Line(this->windowManager.getRenderTarget(),
+                     segments.vertices[i].x,
+                     segments.vertices[i].y,
+                     segments.vertices[i + 1].x,
+                     segments.vertices[i + 1].y,
+                     segments.colour);
           }
         } break;
       }
