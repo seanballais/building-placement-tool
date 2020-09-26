@@ -10,8 +10,12 @@
 #include <corex/core/events/game_events.hpp>
 #include <corex/core/events/KeyboardEvent.hpp>
 #include <corex/core/events/metric_events.hpp>
+#include <corex/core/events/MouseButtonEvent.hpp>
+#include <corex/core/events/MouseMovementEvent.hpp>
+#include <corex/core/events/MouseScrollEvent.hpp>
 #include <corex/core/events/scene_manager_events.hpp>
-#include <corex/core/events/sys_events.hpp>
+#include <corex/core/systems/MouseButtonState.hpp>
+#include <corex/core/systems/MouseButtonType.hpp>
 
 #include <iostream>
 
@@ -26,6 +30,7 @@ namespace corex::core
     , isCameraControlsDisplayed(false)
     , isPerformanceMetricsDisplayed(false)
     , isTimeControlsDisplayed(false)
+    , isMouseDebugDisplayed(false)
     , isGamePlaying(true)
     , cameraZoomXDelta(0.15f)
     , cameraZoomYDelta(0.15f)
@@ -33,13 +38,19 @@ namespace corex::core
     , cameraAngle(0.0f)
     , ppmRatio(0.0f)
     , gameTimeWarpFactor(1.0f)
+    , mouseX(0)
+    , mouseY(0)
   {
     this->eventDispatcher.sink<FrameDataEvent>()
                          .connect<&DebugUI::handleFrameDataEvents>(this);
     this->eventDispatcher.sink<KeyboardEvent>()
                          .connect<&DebugUI::handleKeyboardEvents>(this);
-    this->eventDispatcher.sink<MouseWheelEvent>()
-                         .connect<&DebugUI::handleMouseWheelEvents>(this);
+    this->eventDispatcher.sink<MouseScrollEvent>()
+                         .connect<&DebugUI::handleMouseScrollEvents>(this);
+    this->eventDispatcher.sink<MouseMovementEvent>()
+                         .connect<&DebugUI::handleMouseMovementEvents>(this);
+    this->eventDispatcher.sink<MouseButtonEvent>()
+                         .connect<&DebugUI::handleMouseButtonEvents>(this);
     this->eventDispatcher.sink<PPMRatioChange>()
                          .connect<&DebugUI::handlePPMRatioChangeEvents>(this);
     this->eventDispatcher.sink<GameTimeWarpEvent>()
@@ -68,6 +79,10 @@ namespace corex::core
       if (this->isTimeControlsDisplayed) {
         this->buildTimeControls();
       }
+
+      if (this->isMouseDebugDisplayed) {
+        this->buildMouseDebugWindow();
+      }
     }
   }
 
@@ -90,6 +105,11 @@ namespace corex::core
           timeControlsText.insert(0, "/ ");
         }
 
+        eastl::string mouseDebugText("Show Mouse Debug");
+        if (this->isMouseDebugDisplayed) {
+          mouseDebugText.insert(0, "/ ");
+        }
+
         if (ImGui::MenuItem(camControlsText.c_str())) {
           this->isCameraControlsDisplayed = !this->isCameraControlsDisplayed;
         }
@@ -101,6 +121,10 @@ namespace corex::core
 
         if (ImGui::MenuItem(timeControlsText.c_str())) {
           this->isTimeControlsDisplayed = !this->isTimeControlsDisplayed;
+        }
+
+        if (ImGui::MenuItem(mouseDebugText.c_str())) {
+          this->isMouseDebugDisplayed = !this->isMouseDebugDisplayed;
         }
 
         ImGui::EndMenu();
@@ -164,12 +188,32 @@ namespace corex::core
     ImGui::End();
   }
 
-  void buildMouseDebugWindow()
+  void DebugUI::buildMouseDebugWindow()
   {
     ImGui::Begin("Mouse Debug Window");
 
-    ImGui::Text("Mouse X: ");
-    ImGui::Text("Mouse Y: ");
+    ImGui::Text("Mouse X: %d", this->mouseX);
+    ImGui::Text("Mouse Y: %d", this->mouseY);
+
+    eastl::array<eastl::string, 3> mouseButtonStateTexts;
+    mouseButtonStateTexts[0] = "Left Mouse Button: ";
+    mouseButtonStateTexts[1] = "Middle Mouse Button: ";
+    mouseButtonStateTexts[2] = "Right Mouse Button: ";
+
+    for (int32_t i = 0; i < this->mouseButtonStates.size(); i++) {
+      if (this->mouseButtonStates[i] == MouseButtonState::MOUSE_BUTTON_DOWN) {
+        mouseButtonStateTexts[i] += "Down";
+      } else {
+        mouseButtonStateTexts[i] += "Up";
+      }
+
+      // Clang raises a warning if we use ImGui::Text() and pass str.c_str() as
+      // an argument.
+      ImGui::TextUnformatted(mouseButtonStateTexts[i].c_str());
+    }
+
+    ImGui::Text("Mouse X Scroll Amount: %d", this->mouseXScrollAmount);
+    ImGui::Text("Mouse Y Scroll Amount: %d", this->mouseYScrollAmount);
 
     ImGui::End();
   }
@@ -238,17 +282,44 @@ namespace corex::core
     }
   }
 
-  void DebugUI::handleMouseWheelEvents(const MouseWheelEvent& e)
+  void DebugUI::handleMouseScrollEvents(const MouseScrollEvent& e)
   {
+    this->mouseXScrollAmount = e.xScrollAmount;
+    this->mouseYScrollAmount = e.yScrollAmount;
+
     if (this->isFreeFlyEnabled) {
-      if (e.event.wheel.y > 0) {
+      if (e.yScrollAmount > 0) {
         // Scroll up.
         this->camera.zoom(CameraZoomState::IN);
-      } else if (e.event.wheel.y < 0) {
+      } else if (e.yScrollAmount < 0) {
         // Scroll down.
         this->camera.zoom(CameraZoomState::OUT);
       }
     }
+  }
+
+  void DebugUI::handleMouseMovementEvents(const MouseMovementEvent& e)
+  {
+    this->mouseX = e.x;
+    this->mouseY = e.y;
+  }
+
+  void DebugUI::handleMouseButtonEvents(const MouseButtonEvent& e)
+  {
+    int32_t buttonIndex = 0;
+    switch (e.buttonType) {
+      case MouseButtonType::MOUSE_BUTTON_LEFT:
+        buttonIndex = 0;
+        break;
+      case MouseButtonType::MOUSE_BUTTON_MIDDLE:
+        buttonIndex = 1;
+        break;
+      case MouseButtonType::MOUSE_BUTTON_RIGHT:
+        buttonIndex = 2;
+        break;
+    }
+
+    this->mouseButtonStates[buttonIndex] = e.buttonState;
   }
 
   void DebugUI::handlePPMRatioChangeEvents(const PPMRatioChange& e)

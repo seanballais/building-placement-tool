@@ -16,7 +16,11 @@ namespace corex::core
 {
   MouseHandler::MouseHandler(entt::dispatcher& eventDispatcher)
     : BaseSystem(eventDispatcher)
-    , mouseButtonStates()
+    , mouseButtonStates({
+        MouseButtonState::MOUSE_BUTTON_UP,
+        MouseButtonState::MOUSE_BUTTON_UP,
+        MouseButtonState::MOUSE_BUTTON_UP
+      })
   {
     this->eventDispatcher.sink<MouseButtonDownEvent>()
                          .connect<&MouseHandler::handleMouseButtonDowns>(this);
@@ -66,6 +70,8 @@ namespace corex::core
 
   void MouseHandler::handleMouseMovements(const MouseMotionEvent& e)
   {
+    this->x = e.event.motion.x;
+    this->y = e.event.motion.y;
     this->xMovementDelta = e.event.motion.xrel;
     this->yMovementDelta = e.event.motion.yrel;
   }
@@ -87,7 +93,9 @@ namespace corex::core
     this->eventDispatcher.enqueue<MouseButtonEvent>(
       MouseButtonType::MOUSE_BUTTON_RIGHT,
       this->mouseButtonStates[2]);
-    this->eventDispatcher.enqueue<MouseMovementEvent>(this->xMovementDelta,
+    this->eventDispatcher.enqueue<MouseMovementEvent>(this->x,
+                                                      this->y,
+                                                      this->xMovementDelta,
                                                       this->yMovementDelta);
     this->eventDispatcher.enqueue<MouseScrollEvent>(this->xScrollAmount,
                                                     this->yScrollAmount);

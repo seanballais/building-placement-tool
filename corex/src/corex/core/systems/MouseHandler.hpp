@@ -27,6 +27,8 @@ namespace corex::core
 
   private:
     eastl::array<MouseButtonState, 3> mouseButtonStates;
+    int32_t x;
+    int32_t y;
     int32_t xMovementDelta;
     int32_t yMovementDelta;
     int32_t xScrollAmount;

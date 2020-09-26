@@ -1,6 +1,10 @@
 #ifndef COREX_CORE_DEBUG_UI_HPP
 #define COREX_CORE_DEBUG_UI_HPP
 
+#include <cstdlib>
+
+#include <EASTL/array.h>
+
 #include <entt/entt.hpp>
 #include <imgui.h>
 
@@ -9,8 +13,12 @@
 #include <corex/core/events/game_events.hpp>
 #include <corex/core/events/KeyboardEvent.hpp>
 #include <corex/core/events/metric_events.hpp>
+#include <corex/core/events/MouseButtonEvent.hpp>
+#include <corex/core/events/MouseMovementEvent.hpp>
+#include <corex/core/events/MouseScrollEvent.hpp>
 #include <corex/core/events/scene_manager_events.hpp>
 #include <corex/core/events/sys_events.hpp>
+#include <corex/core/systems/MouseButtonState.hpp>
 
 namespace corex::core
 {
@@ -32,7 +40,9 @@ namespace corex::core
     void dispatchGameTimerStatusEvents();
     void handleFrameDataEvents(const FrameDataEvent& e);
     void handleKeyboardEvents(const KeyboardEvent& e);
-    void handleMouseWheelEvents(const MouseWheelEvent& e);
+    void handleMouseScrollEvents(const MouseScrollEvent& e);
+    void handleMouseMovementEvents(const MouseMovementEvent& e);
+    void handleMouseButtonEvents(const MouseButtonEvent& e);
     void handlePPMRatioChangeEvents(const PPMRatioChange& e);
     void handleGameTimeWarpEvents(const GameTimeWarpEvent& e);
 
@@ -44,6 +54,7 @@ namespace corex::core
     bool isCameraControlsDisplayed;
     bool isPerformanceMetricsDisplayed;
     bool isTimeControlsDisplayed;
+    bool isMouseDebugDisplayed;
     bool isGamePlaying;
     float cameraZoomXDelta;
     float cameraZoomYDelta;
@@ -51,6 +62,12 @@ namespace corex::core
     float cameraAngle;
     float ppmRatio;
     float gameTimeWarpFactor;
+
+    int32_t mouseX;
+    int32_t mouseY;
+    int32_t mouseXScrollAmount;
+    int32_t mouseYScrollAmount;
+    eastl::array<MouseButtonState, 3> mouseButtonStates;
   };
 }
 
