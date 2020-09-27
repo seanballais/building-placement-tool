@@ -9,6 +9,7 @@
 #include <corex/core/AssetManager.hpp>
 #include <corex/core/Scene.hpp>
 #include <corex/core/math_functions.hpp>
+#include <corex/core/utils.hpp>
 #include <corex/core/components/Position.hpp>
 #include <corex/core/components/Renderable.hpp>
 #include <corex/core/components/RenderableType.hpp>
@@ -30,7 +31,8 @@ namespace bpt
 {
   MainScene::MainScene(entt::registry& registry,
                        entt::dispatcher& eventDispatcher,
-                       corex::core::AssetManager& assetManager)
+                       corex::core::AssetManager& assetManager,
+                       corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
     , isCloseAreaTriggerEnabled(false)
     , closeAreaTriggerCircle(corex::core::Circle{
@@ -41,7 +43,7 @@ namespace bpt
     , wipBoundingAreaEntity(entt::null)
     , boundingAreaEntity(entt::null)
     , closeAreaTriggerEntity(entt::null)
-    , corex::core::Scene(registry, eventDispatcher, assetManager) {}
+    , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
 
   void MainScene::init()
   {
@@ -57,8 +59,6 @@ namespace bpt
 
   void MainScene::update(float timeDelta)
   {
-    this->buildConstructBoundingAreaWindow();
-
     switch (this->currentContext) {
       case Context::NO_ACTION: {
         if (!this->registry.valid(this->boundingAreaEntity)) {
@@ -67,7 +67,7 @@ namespace bpt
             this->boundingAreaEntity,
             0.f,
             0.f,
-            32.f,
+            1.f,
             static_cast<int8_t>(1));
           this->registry.emplace<corex::core::Renderable>(
             this->boundingAreaEntity,
@@ -169,6 +169,8 @@ namespace bpt
         }
       } break;
     }
+
+    this->buildConstructBoundingAreaWindow();
   }
 
   void MainScene::dispose()
@@ -188,6 +190,19 @@ namespace bpt
           // Just doing this to make sure we don't get unneeded vertices.
           this->wipBoundingArea.vertices.clear();
           this->wipBoundingArea.vertices.push_back(corex::core::Point{});
+        }
+
+        if (!this->boundingArea.vertices.empty()) {
+          if (ImGui::Button("Toggle/Untoggle Bounding Area Fill")) {
+            this->registry.patch<corex::core::RenderPolygon>(
+              this->boundingAreaEntity,
+              [this](corex::core::RenderPolygon& poly) {
+                // NOTE: SDL_gpu expects a convex polygon when drawing a filled
+                //       polygon.
+                poly.isFilled = !poly.isFilled;
+              }
+            );
+          }
         }
         break;
       case Context::DRAW_AREA_BOUND:
@@ -245,11 +260,6 @@ namespace bpt
                   this->wipBoundingArea.vertices[i]);
               }
 
-              // The polygon must be closed, so the first and last vertices
-              // must be the same point.
-              this->boundingArea.vertices.push_back(
-                this->boundingArea.vertices[0]);
-
               this->currentContext = Context::NO_ACTION;
               this->isCloseAreaTriggerEnabled = false;
               this->closeAreaTriggerCircle.position = corex::core
@@ -262,16 +272,26 @@ namespace bpt
           // Once the number of vertices the WIP bounding area has becomes two,
           // the Point instance we're pushing will hold the current position
           // of the mouse cursor, while we're drawing the bounding area.
-          this->wipBoundingArea.vertices.push_back(corex::core::Point{
-            static_cast<float>(e.x),
-            static_cast<float>(e.y)
-          });
+          this->wipBoundingArea.vertices.push_back(
+            corex::core::screenToWorldCoordinates(
+              corex::core::Point{
+                static_cast<float>(e.x),
+                static_cast<float>(e.y)
+              },
+              this->camera
+            )
+          );
 
           if (this->wipBoundingArea.vertices.size() == 1) {
-            this->wipBoundingArea.vertices.push_back(corex::core::Point{
-              static_cast<float>(e.x),
-              static_cast<float>(e.y)
-            });
+            this->wipBoundingArea.vertices.push_back(
+              corex::core::screenToWorldCoordinates(
+                corex::core::Point{
+                  static_cast<float>(e.x),
+                  static_cast<float>(e.y)
+                },
+                this->camera
+              )
+            );
           }
 
           if (this->wipBoundingArea.vertices.size() == 4) {
@@ -303,10 +323,15 @@ namespace bpt
       case Context::DRAW_AREA_BOUND:
         if (!this->wipBoundingArea.vertices.empty()) {
           int32_t lastElementIndex = this->wipBoundingArea.vertices.size() - 1;
-          this->wipBoundingArea.vertices[lastElementIndex] = corex::core::Point{
-            static_cast<float>(e.x),
-            static_cast<float>(e.y)
-          };
+          this->wipBoundingArea
+               .vertices[lastElementIndex] = corex::core
+                                                  ::screenToWorldCoordinates(
+            corex::core::Point{
+              static_cast<float>(e.x),
+              static_cast<float>(e.y)
+            },
+            this->camera
+          );
         }
 
         break;

@@ -9,6 +9,7 @@
 #include <entt/entt.hpp>
 
 #include <corex/core/AssetManager.hpp>
+#include <corex/core/Camera.hpp>
 #include <corex/core/SceneStatus.hpp>
 
 namespace corex::core
@@ -32,6 +33,7 @@ namespace corex::core
     Scene(entt::registry& registry,
           entt::dispatcher& eventDispatcher,
           AssetManager& assetManager,
+          Camera& camera,
           float ppmRatio = 32);
 
     virtual void init() = 0;
@@ -63,6 +65,7 @@ namespace corex::core
     entt::registry& registry;
     entt::dispatcher& eventDispatcher;
     AssetManager& assetManager;
+    Camera& camera;
     eastl::vector<Entity> entities;
     eastl::array<bool, kNumLayers> layerAvailabilityStatuses;
     eastl::array<bool, kNumSortingLayers> sortingLayerAvailabilityStatuses;

@@ -9,7 +9,9 @@
 
 #include <EASTL/string.h>
 
+#include <corex/core/Camera.hpp>
 #include <corex/core/utils.hpp>
+#include <corex/core/ds/Point.hpp>
 
 namespace corex::core
 {
@@ -46,5 +48,13 @@ namespace corex::core
   float metersToPixels(float meters, float ppmRatio)
   {
     return meters * ppmRatio;
+  }
+
+  Point screenToWorldCoordinates(const Point&& point, Camera& camera)
+  {
+    return Point{
+      point.x + camera.getX(),
+      point.y + camera.getY()
+    };
   }
 }

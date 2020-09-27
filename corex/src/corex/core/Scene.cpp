@@ -3,6 +3,7 @@
 #include <entt/entt.hpp>
 
 #include <corex/core/AssetManager.hpp>
+#include <corex/core/Camera.hpp>
 #include <corex/core/Scene.hpp>
 
 namespace corex::core
@@ -10,10 +11,12 @@ namespace corex::core
   Scene::Scene(entt::registry& registry,
                entt::dispatcher& eventDispatcher,
                AssetManager& assetManager,
+               Camera& camera,
                float ppmRatio)
     : registry(registry)
     , eventDispatcher(eventDispatcher)
     , assetManager(assetManager)
+    , camera(camera)
     , entities({})
     , ppmRatio(ppmRatio)
   {

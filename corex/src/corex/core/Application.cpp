@@ -101,7 +101,10 @@ namespace corex::core
     // Set up the managers.
     this->assetManager = eastl::make_unique<AssetManager>();
     this->sceneManager = eastl::make_unique<SceneManager>(
-      this->registry, this->eventDispatcher, *(this->assetManager));
+      this->registry,
+      this->eventDispatcher,
+      *(this->assetManager),
+      this->camera);
 
     this->eventDispatcher.sink<GameTimeWarpEvent>()
                          .connect<&Application::handleGameTimeWarpEvents>(this);
@@ -328,12 +331,12 @@ namespace corex::core
           const RenderPolygon& poly = this->registry.get<RenderPolygon>(e);
 
           int32_t numVertices = poly.vertices.size();
-          float vertices[numVertices];
+          float vertices[numVertices * 2];
           for (int32_t i = 0; i < numVertices; i++) {
-            int32_t vertStart = i * 2;
-            int32_t vertEnd = vertStart + 1;
-            vertices[vertStart] = poly.vertices[i].x;
-            vertices[vertEnd] = poly.vertices[i].y;
+            int32_t vertXIndex = i * 2;
+            int32_t vertYIndex = vertXIndex + 1;
+            vertices[vertXIndex] = poly.vertices[i].x;
+            vertices[vertYIndex] = poly.vertices[i].y;
           }
 
           if (poly.isFilled) {

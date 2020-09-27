@@ -4,6 +4,7 @@
 #include <entt/entt.hpp>
 
 #include <corex/core/AssetManager.hpp>
+#include <corex/core/Camera.hpp>
 #include <corex/core/Scene.hpp>
 #include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/LineSegments.hpp>
@@ -21,7 +22,8 @@ namespace bpt
   public:
     MainScene(entt::registry& registry,
               entt::dispatcher& eventDispatcher,
-              corex::core::AssetManager& assetManager);
+              corex::core::AssetManager& assetManager,
+              corex::core::Camera& camera);
 
     void init() override;
     void update(float timeDelta) override;

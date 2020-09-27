@@ -9,6 +9,7 @@
 #include <entt/entt.hpp>
 
 #include <corex/core/AssetManager.hpp>
+#include <corex/core/Camera.hpp>
 #include <corex/core/Scene.hpp>
 #include <corex/core/SceneManagerStatus.hpp>
 #include <corex/core/SceneStatus.hpp>
@@ -20,7 +21,8 @@ namespace corex::core
   public:
     SceneManager(entt::registry& registry,
                  entt::dispatcher& eventDispatcher,
-                 AssetManager& assetManager);
+                 AssetManager& assetManager,
+                 Camera& camera);
 
     template <class T>
     Scene& addScene()
@@ -29,7 +31,8 @@ namespace corex::core
 
       auto scene = eastl::make_unique<T>(this->registry,
                                          this->eventDispatcher,
-                                         this->assetManager);
+                                         this->assetManager,
+                                         this->camera);
       auto* scenePtr = scene.get();
       this->scenes.push_back(eastl::move(scene));
 
@@ -48,6 +51,7 @@ namespace corex::core
     entt::registry& registry;
     entt::dispatcher& eventDispatcher;
     AssetManager& assetManager;
+    Camera& camera;
 
     eastl::vector<eastl::unique_ptr<Scene>> scenes;
     eastl::unordered_map<Scene*, eastl::unordered_map<SceneStatus, Scene*>>

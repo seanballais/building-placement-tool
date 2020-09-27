@@ -8,6 +8,9 @@
 #include <EASTL/string.h>
 #include <nlohmann/json.hpp>
 
+#include <corex/core/Camera.hpp>
+#include <corex/core/ds/Point.hpp>
+
 // Stubbed function based on Ryan Gordon's implementation here:
 //   http://icculus.org/SteamDevDays/SteamDevDays2014-LinuxPorting.pdf
 #define STUBBED(msg)                                          \
@@ -30,6 +33,7 @@ namespace corex::core
   eastl::string stdStrToEAStr(const std::string& str);
 
   float metersToPixels(float meters, float ppmRatio);
+  Point screenToWorldCoordinates(const Point&& point, Camera& camera);
 }
 
 #endif

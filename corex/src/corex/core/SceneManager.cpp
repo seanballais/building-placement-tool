@@ -1,6 +1,7 @@
 #include <EASTL/unordered_map.h>
 
 #include <corex/core/AssetManager.hpp>
+#include <corex/core/Camera.hpp>
 #include <corex/core/SceneManager.hpp>
 #include <corex/core/SceneManagerStatus.hpp>
 #include <corex/core/SceneStatus.hpp>
@@ -11,10 +12,12 @@ namespace corex::core
   SceneManager::SceneManager(
         entt::registry& registry,
         entt::dispatcher& eventDispatcher,
-        AssetManager& assetManager)
+        AssetManager& assetManager,
+        Camera& camera)
     : registry(registry)
     , eventDispatcher(eventDispatcher)
     , assetManager(assetManager)
+    , camera(camera)
     , scenes() // Can't initialize scenes with an initializer list, since it is
                // a vector of unique pointers to Scene instances, but keeping it
                // here for sake of consistency.
