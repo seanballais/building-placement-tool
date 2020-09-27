@@ -22,6 +22,7 @@
 #include <corex/core/utils.hpp>
 #include <corex/core/components/Position.hpp>
 #include <corex/core/components/Renderable.hpp>
+#include <corex/core/components/RenderCircle.hpp>
 #include <corex/core/components/RenderableType.hpp>
 #include <corex/core/components/RenderLineSegments.hpp>
 #include <corex/core/components/RenderPolygon.hpp>
@@ -363,6 +364,23 @@ namespace corex::core
                      segments.vertices[i + 1].x,
                      segments.vertices[i + 1].y,
                      segments.colour);
+          }
+        } break;
+        case RenderableType::PRIMITIVE_CIRCLE: {
+          const RenderCircle& circle = this->registry.get<RenderCircle>(e);
+
+          if (circle.isFilled) {
+            GPU_CircleFilled(this->windowManager.getRenderTarget(),
+                             pos.x,
+                             pos.y,
+                             circle.radius,
+                             circle.colour);
+          } else {
+            GPU_Circle(this->windowManager.getRenderTarget(),
+                       pos.x,
+                       pos.y,
+                       circle.radius,
+                       circle.colour);
           }
         } break;
       }

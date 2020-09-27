@@ -5,7 +5,9 @@
 
 #include <corex/core/AssetManager.hpp>
 #include <corex/core/Scene.hpp>
+#include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/LineSegments.hpp>
+#include <corex/core/ds/NPolygon.hpp>
 #include <corex/core/events/MouseButtonEvent.hpp>
 #include <corex/core/events/MouseMovementEvent.hpp>
 #include <corex/core/events/sys_events.hpp>
@@ -32,8 +34,13 @@ namespace bpt
     void handleMouseMovementEvents(const corex::core::MouseMovementEvent& e);
 
     Context currentContext;
+    bool isCloseAreaTriggerEnabled;
+    corex::core::Circle closeAreaTriggerCircle;
     corex::core::LineSegments wipBoundingArea;
+    corex::core::NPolygon boundingArea;
     entt::entity wipBoundingAreaEntity;
+    entt::entity boundingAreaEntity;
+    entt::entity closeAreaTriggerEntity;
   };
 }
 
