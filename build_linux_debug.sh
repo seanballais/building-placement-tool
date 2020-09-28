@@ -52,14 +52,25 @@ else
             cp settings/settings.cxstg build/bin/settings/
         fi
 
+        # Copy the data folder to the bin folder if changes were made.
+        for file in `find data -type f`
+        do
+            if [[ ( -f "build/bin/${file}" && $file -nt "build/bin/${file}" ) \
+               || ( ! -f "build/bin/${file}" ) ]]
+            then
+                cp $file "build/bin/${file}"
+                echo "---- Copied ${file} to build/bin/data/."
+            fi
+        done
+
         # Copy assets to the bin folder if changes were made.
         for file in `find assets -type f -not -path "assets/raw/**"`
         do
             if [[ ( -f "build/bin/${file}" && $file -nt "build/bin/${file}" ) \
                || ( ! -f "build/bin/${file}" ) ]]
             then
-                echo "---- Copied ${file} to build/bin/assets/."
                 cp $file "build/bin/${file}"
+                echo "---- Copied ${file} to build/bin/assets/."
             fi
         done
     fi

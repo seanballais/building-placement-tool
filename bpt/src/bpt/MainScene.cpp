@@ -1,10 +1,14 @@
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include <EASTL/vector.h>
 #include <entt/entt.hpp>
 #include <imgui.h>
 #include <imgui_impls/imgui_impl_opengl3.h>
 #include <imgui_impls/imgui_impl_sdl.h>
+#include <nlohmann/json.hpp>
 
 #include <corex/core/AssetManager.hpp>
 #include <corex/core/Scene.hpp>
@@ -34,6 +38,8 @@ namespace bpt
                        corex::core::AssetManager& assetManager,
                        corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
+    , doesInputDataExist(false)
+    , doesInputBoundingAreaFieldExist(false)
     , isCloseAreaTriggerEnabled(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
@@ -43,6 +49,7 @@ namespace bpt
     , wipBoundingAreaEntity(entt::null)
     , boundingAreaEntity(entt::null)
     , closeAreaTriggerEntity(entt::null)
+    , inputData()
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
 
   void MainScene::init()
@@ -55,6 +62,32 @@ namespace bpt
                          .connect<&MainScene::handleMouseButtonEvents>(this);
     this->eventDispatcher.sink<corex::core::MouseMovementEvent>()
                          .connect<&MainScene::handleMouseMovementEvents>(this);
+
+    // Parse the input file.
+    std::filesystem::path inputFilePath = corex::core::getBinFolder()
+                                          / "data/input_data.bptdat";
+    if (std::filesystem::exists(inputFilePath)) {
+      std::ifstream inputFile(inputFilePath);
+      if (inputFile) {
+        std::ostringstream fileStrStream;
+        fileStrStream << inputFile.rdbuf();
+        if (nlohmann::json::accept(fileStrStream.str())) {
+          this->doesInputDataExist = true;
+          this->inputData = nlohmann::json::parse(fileStrStream.str());
+
+          if (this->inputData.contains("boundingAreaVertices")) {
+            for (auto& vertex : this->inputData["boundingAreaVertices"]) {
+              this->boundingArea.vertices.push_back(corex::core::Point{
+                vertex[0].get<float>(), vertex[1].get<float>()
+              });
+            }
+            this->doesInputBoundingAreaFieldExist = true;
+          } else {
+            this->doesInputBoundingAreaFieldExist = false;
+          }
+        }
+      }
+    }
   }
 
   void MainScene::update(float timeDelta)
@@ -76,7 +109,7 @@ namespace bpt
             this->boundingAreaEntity,
             eastl::vector<corex::core::Point>{},
             SDL_Color{ 64, 64, 64, 255},
-            true);
+            false);
         } else {
           this->registry.patch<corex::core::RenderPolygon>(
             this->boundingAreaEntity,
@@ -171,11 +204,28 @@ namespace bpt
     }
 
     this->buildConstructBoundingAreaWindow();
+    this->buildWarningWindow();
   }
 
   void MainScene::dispose()
   {
     std::cout << "Disposing MainScene. Bleep, bloop, zzzz." << std::endl;
+
+    if (this->doesInputDataExist) {
+      // Store the bounding area in the input data file.
+      this->inputData["boundingAreaVertices"] = nlohmann::json::array();
+      for (corex::core::Point& vertex : this->boundingArea.vertices) {
+        std::cout << "Storing vertex: (" << vertex.x << ", " << vertex.y << std::endl;
+        this->inputData["boundingAreaVertices"].push_back(
+          nlohmann::json::array({ vertex.x, vertex.y })
+        );
+      }
+
+      std::filesystem::path inputFilePath = corex::core::getBinFolder()
+                                            / "data/input_data.bptdat";
+      std::ofstream dataFile(inputFilePath, std::ios::trunc);
+      dataFile << this->inputData;
+    }
   }
 
   void MainScene::buildConstructBoundingAreaWindow()
@@ -192,18 +242,6 @@ namespace bpt
           this->wipBoundingArea.vertices.push_back(corex::core::Point{});
         }
 
-        if (!this->boundingArea.vertices.empty()) {
-          if (ImGui::Button("Toggle/Untoggle Bounding Area Fill")) {
-            this->registry.patch<corex::core::RenderPolygon>(
-              this->boundingAreaEntity,
-              [this](corex::core::RenderPolygon& poly) {
-                // NOTE: SDL_gpu expects a convex polygon when drawing a filled
-                //       polygon.
-                poly.isFilled = !poly.isFilled;
-              }
-            );
-          }
-        }
         break;
       case Context::DRAW_AREA_BOUND:
         ImGui::Text("Press the Right Mouse Button to Cancel.");
@@ -221,6 +259,32 @@ namespace bpt
       }
     }
     ImGui::EndChild();
+
+    ImGui::End();
+  }
+
+  void MainScene::buildWarningWindow()
+  {
+    ImGui::Begin("Warnings");
+
+    ImGui::BeginChild("Warnings List");
+
+    int32_t numWarnings = 0;
+
+    if (!this->doesInputDataExist) {
+      ImGui::Text("WARNING: Input data does not exist.");
+      numWarnings++;
+    }
+
+    if (!this->doesInputBoundingAreaFieldExist) {
+      ImGui::Text("WARNING: Bounding area field in input data "
+                  "does not exist.");
+      numWarnings++;
+    }
+
+    ImGui::EndChild();
+
+    ImGui::Text("Total No. of Warnings: %d", numWarnings);
 
     ImGui::End();
   }

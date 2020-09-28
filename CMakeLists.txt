@@ -40,8 +40,14 @@ file(
     PATTERN assets/raw EXCLUDE 
 )
 
+# Copy data folder to the bin folder.
+file(
+    COPY data
+    DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+
 # Copy settings folder to the bin folder.
-file (
+file(
     COPY settings
     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )

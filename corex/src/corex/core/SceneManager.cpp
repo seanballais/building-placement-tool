@@ -59,11 +59,12 @@ namespace corex::core
         this->currentScene->update(timeDelta);
         break;
       case SceneStatus::DONE:
+        this->currentScene->dispose();
+
         if (this->currentScene == this->rootScene) {
           // Okay, time to exit the game.
           this->status = SceneManagerStatus::DONE;
         } else {
-          this->currentScene->dispose();
           this->currentScene = this->getNextScene(*(this->currentScene),
                                                   SceneStatus::DONE);
           this->isCurrentSceneInitialized = false;
