@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include <corex/core/AssetManager.hpp>
+#include <corex/core/CameraZoomState.hpp>
 #include <corex/core/Scene.hpp>
 #include <corex/core/math_functions.hpp>
 #include <corex/core/utils.hpp>
@@ -23,9 +24,12 @@
 #include <corex/core/components/RenderPolygon.hpp>
 #include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/Point.hpp>
+#include <corex/core/events/KeyboardEvent.hpp>
 #include <corex/core/events/MouseButtonEvent.hpp>
 #include <corex/core/events/MouseMovementEvent.hpp>
+#include <corex/core/events/MouseScrollEvent.hpp>
 #include <corex/core/events/sys_events.hpp>
+#include <corex/core/systems/KeyState.hpp>
 #include <corex/core/systems/MouseButtonState.hpp>
 #include <corex/core/systems/MouseButtonType.hpp>
 
@@ -47,6 +51,8 @@ namespace bpt
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
+    , cameraMovementSpeed(15.f)
+    , timeDelta(0.f)
     , wipBoundingArea()
     , boundingArea()
     , wipBoundingAreaEntity(entt::null)
@@ -62,10 +68,14 @@ namespace bpt
 
     this->eventDispatcher.sink<corex::core::WindowEvent>()
                          .connect<&MainScene::handleWindowEvents>(this);
+    this->eventDispatcher.sink<corex::core::KeyboardEvent>()
+                         .connect<&MainScene::handleKeyboardEvents>(this);
     this->eventDispatcher.sink<corex::core::MouseButtonEvent>()
                          .connect<&MainScene::handleMouseButtonEvents>(this);
     this->eventDispatcher.sink<corex::core::MouseMovementEvent>()
                          .connect<&MainScene::handleMouseMovementEvents>(this);
+    this->eventDispatcher.sink<corex::core::MouseScrollEvent>()
+                         .connect<&MainScene::handleMouseScrollEvents>(this);
 
     // Parse the input file.
     std::filesystem::path inputFilePath = corex::core::getBinFolder()
@@ -105,6 +115,8 @@ namespace bpt
 
   void MainScene::update(float timeDelta)
   {
+    this->timeDelta = timeDelta;
+
     switch (this->currentContext) {
       case Context::NO_ACTION: {
         if (!this->registry.valid(this->boundingAreaEntity)) {
@@ -219,6 +231,7 @@ namespace bpt
     this->buildConstructBoundingAreaWindow();
     this->buildWarningWindow();
     this->buildInputBuildingsWindow();
+    this->buildCameraResetWindow();
   }
 
   void MainScene::dispose()
@@ -360,10 +373,60 @@ namespace bpt
     ImGui::End();
   }
 
+  void MainScene::buildCameraResetWindow()
+  {
+    // Workaround, since we don't have time to properly convert screen
+    // coordinates to world coordinates when the camera is zoomed in or out.
+    ImGui::Begin("Camera Reset");
+
+    if (ImGui::Button("Reset Camera")) {
+      this->camera.setZoomX(1.f);
+      this->camera.setZoomY(1.f);
+    }
+
+    ImGui::End();
+  }
+
   void MainScene::handleWindowEvents(const corex::core::WindowEvent& e)
   {
     if (e.event.window.event == SDL_WINDOWEVENT_CLOSE) {
       this->setSceneStatus(corex::core::SceneStatus::DONE);
+    }
+  }
+
+  void MainScene::handleKeyboardEvents(const corex::core::KeyboardEvent& e)
+  {
+    if (e.keyState == corex::core::KeyState::KEY_DOWN) {
+      switch (e.keyCode) {
+        case SDLK_w:
+          this->camera.moveY(
+            -corex::core::metersToPixels(this->cameraMovementSpeed,
+                                         this->getPPMRatio())
+            * this->timeDelta
+          );          
+          break;
+        case SDLK_a:
+          this->camera.moveX(
+            -corex::core::metersToPixels(this->cameraMovementSpeed,
+                                         this->getPPMRatio())
+            * this->timeDelta
+          );
+          break;
+        case SDLK_s:
+          this->camera.moveY(
+            corex::core::metersToPixels(this->cameraMovementSpeed,
+                                        this->getPPMRatio())
+            * this->timeDelta
+          );
+          break;
+        case SDLK_d:
+          this->camera.moveX(
+            corex::core::metersToPixels(this->cameraMovementSpeed,
+                                        this->getPPMRatio())
+            * this->timeDelta
+          );
+          break;
+      }
     }
   }
 
@@ -470,6 +533,18 @@ namespace bpt
         }
 
         break;
+    }
+  }
+
+  void
+  MainScene::handleMouseScrollEvents(const corex::core::MouseScrollEvent& e)
+  {
+    if (e.yScrollAmount > 0) {
+      // Scroll up.
+      this->camera.zoom(corex::core::CameraZoomState::IN);
+    } else if (e.yScrollAmount < 0) {
+      // Scroll down.
+      this->camera.zoom(corex::core::CameraZoomState::OUT);
     }
   }
 }
