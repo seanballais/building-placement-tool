@@ -215,7 +215,6 @@ namespace bpt
       // Store the bounding area in the input data file.
       this->inputData["boundingAreaVertices"] = nlohmann::json::array();
       for (corex::core::Point& vertex : this->boundingArea.vertices) {
-        std::cout << "Storing vertex: (" << vertex.x << ", " << vertex.y << std::endl;
         this->inputData["boundingAreaVertices"].push_back(
           nlohmann::json::array({ vertex.x, vertex.y })
         );
@@ -265,28 +264,29 @@ namespace bpt
 
   void MainScene::buildWarningWindow()
   {
-    ImGui::Begin("Warnings");
+    if (!this->doesInputDataExist || !this->doesInputBoundingAreaFieldExist) {
+      ImGui::Begin("Warnings");
+      ImGui::BeginChild("Warnings List");
 
-    ImGui::BeginChild("Warnings List");
+      int32_t numWarnings = 0;
 
-    int32_t numWarnings = 0;
+      if (!this->doesInputDataExist) {
+        ImGui::Text("WARNING: Input data does not exist.");
+        numWarnings++;
+      }
 
-    if (!this->doesInputDataExist) {
-      ImGui::Text("WARNING: Input data does not exist.");
-      numWarnings++;
+      if (!this->doesInputBoundingAreaFieldExist) {
+        ImGui::Text("WARNING: Bounding area field in input data "
+                    "does not exist.");
+        numWarnings++;
+      }
+
+      ImGui::EndChild();
+
+      ImGui::Text("Total No. of Warnings: %d", numWarnings);
+
+      ImGui::End();
     }
-
-    if (!this->doesInputBoundingAreaFieldExist) {
-      ImGui::Text("WARNING: Bounding area field in input data "
-                  "does not exist.");
-      numWarnings++;
-    }
-
-    ImGui::EndChild();
-
-    ImGui::Text("Total No. of Warnings: %d", numWarnings);
-
-    ImGui::End();
   }
 
   void MainScene::handleWindowEvents(const corex::core::WindowEvent& e)
