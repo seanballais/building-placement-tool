@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -30,6 +31,7 @@
 
 #include <bpt/Context.hpp>
 #include <bpt/MainScene.hpp>
+#include <bpt/ds/InputBuilding.hpp>
 
 namespace bpt
 {
@@ -40,6 +42,7 @@ namespace bpt
     : currentContext(Context::NO_ACTION)
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
+    , doesInputBuildingsExist(false)
     , isCloseAreaTriggerEnabled(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
@@ -49,6 +52,7 @@ namespace bpt
     , wipBoundingAreaEntity(entt::null)
     , boundingAreaEntity(entt::null)
     , closeAreaTriggerEntity(entt::null)
+    , inputBuildings()
     , inputData()
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
 
@@ -77,13 +81,22 @@ namespace bpt
 
           if (this->inputData.contains("boundingAreaVertices")) {
             for (auto& vertex : this->inputData["boundingAreaVertices"]) {
+              // Sigh. Shoud have used a JSON object here.
               this->boundingArea.vertices.push_back(corex::core::Point{
                 vertex[0].get<float>(), vertex[1].get<float>()
               });
             }
             this->doesInputBoundingAreaFieldExist = true;
-          } else {
-            this->doesInputBoundingAreaFieldExist = false;
+          }
+
+          if (this->inputData.contains("inputBuildings")) {
+            for (auto& building : this->inputData["inputBuildings"]) {
+              // Sigh. Shoud have used a JSON object here.
+              this->inputBuildings.push_back(InputBuilding{
+                building[0].get<float>(), building[1].get<float>()
+              });
+            }
+            this->doesInputBuildingsExist = true;
           }
         }
       }
@@ -205,6 +218,7 @@ namespace bpt
 
     this->buildConstructBoundingAreaWindow();
     this->buildWarningWindow();
+    this->buildInputBuildingsWindow();
   }
 
   void MainScene::dispose()
@@ -217,6 +231,13 @@ namespace bpt
       for (corex::core::Point& vertex : this->boundingArea.vertices) {
         this->inputData["boundingAreaVertices"].push_back(
           nlohmann::json::array({ vertex.x, vertex.y })
+        );
+      }
+
+      this->inputData["inputBuildings"] = nlohmann::json::array();
+      for (InputBuilding& building : this->inputBuildings) {
+        this->inputData["inputBuildings"].push_back(
+          nlohmann::json::array({ building.length, building.width })
         );
       }
 
@@ -264,7 +285,9 @@ namespace bpt
 
   void MainScene::buildWarningWindow()
   {
-    if (!this->doesInputDataExist || !this->doesInputBoundingAreaFieldExist) {
+    if (!this->doesInputDataExist
+        || !this->doesInputBoundingAreaFieldExist
+        || !this->doesInputBuildingsExist) {
       ImGui::Begin("Warnings");
       ImGui::BeginChild("Warnings List");
 
@@ -281,12 +304,60 @@ namespace bpt
         numWarnings++;
       }
 
+      if (!this->doesInputBuildingsExist) {
+        ImGui::Text("WARNING: Input buildings field in input data "
+                    "does not exist.");
+        numWarnings++;
+      }
+
       ImGui::EndChild();
 
       ImGui::Text("Total No. of Warnings: %d", numWarnings);
 
       ImGui::End();
     }
+  }
+
+  void MainScene::buildInputBuildingsWindow()
+  {
+    static int32_t removedBuildingIndex;
+    removedBuildingIndex = -1;
+
+    ImGui::Begin("Input Buildings");
+    ImGui::BeginChild("Input Buildings List");
+
+    for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
+      ImGui::Separator();
+
+      // Should be good enough for 9,999 input buildings.
+      char lengthText[12];
+      char widthText[11];
+      char removeBuildingBtnText[21];
+
+      sprintf(lengthText, "Length##%d", i);
+      sprintf(widthText, "Width##%d", i);
+      sprintf(removeBuildingBtnText, "Remove Building##%d", i);
+
+      ImGui::InputFloat(lengthText, &(this->inputBuildings[i].length));
+      ImGui::InputFloat(widthText, &(this->inputBuildings[i].width));
+
+      if (ImGui::Button(removeBuildingBtnText)) {
+        removedBuildingIndex = i;
+      }
+    }
+
+    if (removedBuildingIndex != -1) {
+      this->inputBuildings
+           .erase(this->inputBuildings.begin() + removedBuildingIndex);
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button("Add another building")) {
+      this->inputBuildings.push_back(InputBuilding{});
+    }
+
+    ImGui::EndChild();
+    ImGui::End();
   }
 
   void MainScene::handleWindowEvents(const corex::core::WindowEvent& e)
