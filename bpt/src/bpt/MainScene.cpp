@@ -232,6 +232,7 @@ namespace bpt
     this->buildWarningWindow();
     this->buildInputBuildingsWindow();
     this->buildCameraResetWindow();
+    this->buildGAControlsWindow();
   }
 
   void MainScene::dispose()
@@ -383,6 +384,16 @@ namespace bpt
       this->camera.setZoomX(1.f);
       this->camera.setZoomY(1.f);
     }
+
+    ImGui::End();
+  }
+
+  void MainScene::buildGAControlsWindow()
+  {
+    ImGui::Begin("GA Controls");
+
+    // TODO: Add GA parameter fields here.
+    ImGui::Button("Generate Solution");
 
     ImGui::End();
   }

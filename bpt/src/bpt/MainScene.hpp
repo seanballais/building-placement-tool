@@ -41,6 +41,7 @@ namespace bpt
     void buildWarningWindow();
     void buildInputBuildingsWindow();
     void buildCameraResetWindow();
+    void buildGAControlsWindow();
     void handleWindowEvents(const corex::core::WindowEvent& e);
     void handleKeyboardEvents(const corex::core::KeyboardEvent& e);
     void handleMouseButtonEvents(const corex::core::MouseButtonEvent& e);
