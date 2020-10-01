@@ -24,8 +24,8 @@ namespace bpt
                                 int32_t populationSize,
                                 int32_t numGenerations)
   {
-    eastl::array<Solution, populationSize> population;
-    eastl::array<double, populationSize> populationFitnessValues;
+    eastl::vector<Solution> population(populationSize);
+    eastl::vector<double> populationFitnessValues(populationSize);
 
     for (int32_t i = 0; i < populationSize; i++) {
       population[i] = this->generateRandomSolution(inputBuildings,
@@ -37,64 +37,124 @@ namespace bpt
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
       0, populationSize - 1
     };
+    std::uniform_real_distribution<float> mutationChanceDistribution{
+      0.f, 1.f
+    };
 
     for (int32_t i = 0; i < numGenerations; i++) {
       // Selection
       int32_t numOffsprings = 0;
-      eastl::array<Solution, populationSize> newPopulation;
+      eastl::vector<Solution> newPopulation(populationSize);
       while (numOffsprings < populationSize) {
         int32_t parentAIndex = chromosomeDistribution(randGenerator);
         int32_t parentBIndex = 0;
         do {
           parentBIndex = chromosomeDistribution(randGenerator);
         } while (parentBIndex == parentAIndex);
+
+        // Crossover
+        auto children = population[parentAIndex].crossover(
+          population[parentBIndex]);
+
+        newPopulation[numOffsprings] = children[0];
+        
+        float mutationProbability = mutationChanceDistribution(randGenerator);
+        if (mutationProbability < mutationRate) {
+          newPopulation[numOffsprings].mutate();
+        }
+
+        numOffsprings++;
+
+        // In cases where the population size is not an even number, a child
+        // will have to be dropped. As such, we'll only add the second
+        // generated child if it has a fitness better than the worst solution
+        // in the new generation.
+        if (numOffsprings == populationSize) {
+          Solution weakestSolution = *std::min_element(
+            newPopulation.begin(),
+            newPopulation.end(),
+            [this](Solution solutionA, Solution solutionB) -> bool {
+              return this->getSolutionFitness(solutionA)
+                < this->getSolutionFitness(solutionB);
+            }
+          );
+
+          if (this->getSolutionFitness(children[1])
+              < this->getSolutionFitness(weakestSolution)) {
+            newPopulation[numOffsprings] = children[1];
+
+            float mutationProbability = mutationChanceDistribution(
+              randGenerator);
+            if (mutationProbability < mutationRate) {
+              newPopulation[numOffsprings].mutate();
+            }
+
+            numOffsprings++;
+          }
+        } else {
+          newPopulation[numOffsprings] = children[1];
+          
+          float mutationProbability = mutationChanceDistribution(randGenerator);
+          if (mutationProbability < mutationRate) {
+            newPopulation[numOffsprings].mutate();
+          }
+
+          numOffsprings++;
+        }
       }
 
-      // Crossover
-
-      // Mutation
+      population = newPopulation;
     }
+
+    return *std::max_element(
+      population.begin(),
+      population.end(),
+      [this](Solution solutionA, Solution solutionB) {
+        return this->getSolutionFitness(solutionA)
+                > this->getSolutionFitness(solutionB);
+      }
+    );
   }
 
   Solution
   GA::generateRandomSolution(eastl::vector<InputBuilding>& inputBuildings,
                              corex::core::NPolygon& boundingArea)
   {
-    float minX = *std::min_element(
+    float minX = std::min_element(
       boundingArea.vertices.begin(),
       boundingArea.vertices.end(),
       [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
         return ptA.x < ptB.x;
       }
-    );
-    float maxX = *std::max_element(
+    )->x;
+    float maxX = std::max_element(
       boundingArea.vertices.begin(),
       boundingArea.vertices.end(),
       [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
         return ptA.x > ptB.x;
       }
-    );
-    float minY = *std::min_element(
+    )->x;
+    float minY = std::min_element(
       boundingArea.vertices.begin(),
       boundingArea.vertices.end(),
       [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
         return ptA.y < ptB.y;
       }
-    );
-    float maxY = *std::max_element(
+    )->y;
+    float maxY = std::max_element(
       boundingArea.vertices.begin(),
       boundingArea.vertices.end(),
       [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
         return ptA.y > ptB.y;
       }
-    );
+    )->y;
 
     std::default_random_engine randGenerator;
     std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
-    Solution solution{ inputBuildings.size() };
+    Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
     for (int32_t i = 0; i < inputBuildings.size(); i++) {
       solution.setBuildingXPos(i, xPosDistribution(randGenerator));
       solution.setBuildingYPos(i, yPosDistribution(randGenerator));
@@ -128,5 +188,3 @@ namespace bpt
     return fitness;
   }
 }
-
-#endif

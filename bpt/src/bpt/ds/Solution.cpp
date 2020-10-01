@@ -8,6 +8,10 @@
 
 namespace bpt
 {
+  Solution::Solution()
+    : genes()
+    , numBuildings(0) {}
+
   Solution::Solution(const Solution& other)
     : genes(other.genes)
     , numBuildings(other.numBuildings) {}
@@ -46,24 +50,24 @@ namespace bpt
     return this->genes[buildingIndex + 2];
   }
 
-  int32_t getNumBuildings()
+  int32_t Solution::getNumBuildings()
   {
     return this->numBuildings;
   }
 
-  eastl::array<Solution, 2> crossover(Solution& other)
+  eastl::array<Solution, 2> Solution::crossover(Solution& other)
   {
     // Assume one-point crossover for now.
     std::default_random_engine randGenerator;
-    std::uniform_int_distribution<int32_t> chromosomeDistribution{
+    std::uniform_int_distribution<int32_t> geneDistribution{
       0, this->getNumBuildings() - 1
     };
 
-    int32_t pointA = chromosomeDistribution(randGenerator);
+    int32_t pointA = geneDistribution(randGenerator);
     int32_t pointB = 0;
     do {
-      pointB = chromosomeDistribution(randGenerator);
-    } while (pointBs == pointA);
+      pointB = geneDistribution(randGenerator);
+    } while (pointB == pointA);
 
     if (pointB < pointA) {
       std::swap(pointA, pointB);
@@ -78,5 +82,21 @@ namespace bpt
     }
 
     return eastl::array<Solution, 2>{ childA, childB };
+  }
+
+  void Solution::mutate()
+  {
+    // Let's mutate the rotation only for now.
+    std::default_random_engine randGenerator;
+    std::uniform_int_distribution<int32_t> geneDistribution{
+      0, this->getNumBuildings() - 1
+    };
+
+    int32_t targetGeneIndex = geneDistribution(randGenerator);
+
+    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
+    float newRotation = rotationDistribution(randGenerator);
+
+    this->genes[targetGeneIndex + 2] = newRotation;
   }
 }

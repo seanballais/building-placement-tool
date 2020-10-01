@@ -13,6 +13,7 @@ namespace bpt
     // Solution representation:
     //   [ xPos of building 0, yPos of building 0, rotation of building 0, ... ]
   public:
+    Solution();
     Solution(const Solution& other);
     Solution(int32_t numBuildings);
 
@@ -24,7 +25,8 @@ namespace bpt
     float getBuildingRotation(int32_t buildingIndex);
     int32_t getNumBuildings();
 
-    eastl::array<Solution, 2> crossOver(Solution& other);
+    eastl::array<Solution, 2> crossover(Solution& other);
+    void mutate();
   private:
     eastl::vector<float> genes;
     int32_t numBuildings;
