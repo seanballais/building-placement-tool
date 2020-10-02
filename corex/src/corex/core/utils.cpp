@@ -50,6 +50,11 @@ namespace corex::core
     return meters * ppmRatio;
   }
 
+  float pixelsToMeters(float pixels, float ppmRatio)
+  {
+    return pixels / ppmRatio;
+  }
+
   Point screenToWorldCoordinates(const Point&& point, Camera& camera)
   {
     return Point{

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdlib>
+#include <iostream>
 #include <random>
 
 #include <EASTL/array.h>
@@ -22,32 +23,32 @@ namespace bpt
 
   void Solution::setBuildingXPos(int32_t buildingIndex, float xPos)
   {
-    this->genes[buildingIndex] = xPos;
+    this->genes[(buildingIndex * 3)] = xPos;
   }
 
   void Solution::setBuildingYPos(int32_t buildingIndex, float yPos)
   {
-    this->genes[buildingIndex + 1] = yPos;
+    this->genes[(buildingIndex * 3) + 1] = yPos;
   }
 
   void Solution::setBuildingRotation(int32_t buildingIndex, float rotation)
   {
-    this->genes[buildingIndex + 2] = rotation;
+    this->genes[(buildingIndex * 3) + 2] = rotation;
   }
 
   float Solution::getBuildingXPos(int32_t buildingIndex)
   {
-    return this->genes[buildingIndex];
+    return this->genes[(buildingIndex * 3)];
   }
 
   float Solution::getBuildingYPos(int32_t buildingIndex)
   {
-    return this->genes[buildingIndex + 1];
+    return this->genes[(buildingIndex * 3) + 1];
   }
 
   float Solution::getBuildingRotation(int32_t buildingIndex)
   {
-    return this->genes[buildingIndex + 2];
+    return this->genes[(buildingIndex * 3) + 2];
   }
 
   int32_t Solution::getNumBuildings()
@@ -76,9 +77,10 @@ namespace bpt
     Solution childA = *this;
     Solution childB = other;
     for (int32_t currPoint = pointA; currPoint <= pointB; currPoint++) {
-      std::swap(childA.genes[currPoint], childB.genes[currPoint]);
-      std::swap(childA.genes[currPoint + 1], childB.genes[currPoint + 1]);
-      std::swap(childA.genes[currPoint + 2], childB.genes[currPoint + 2]);
+      int32_t currPointIdx = currPoint * 3;
+      std::swap(childA.genes[currPointIdx], childB.genes[currPointIdx]);
+      std::swap(childA.genes[currPointIdx + 1], childB.genes[currPointIdx + 1]);
+      std::swap(childA.genes[currPointIdx + 2], childB.genes[currPointIdx + 2]);
     }
 
     return eastl::array<Solution, 2>{ childA, childB };

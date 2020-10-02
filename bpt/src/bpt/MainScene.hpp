@@ -1,6 +1,7 @@
 #ifndef BPT_MAIN_SCENE_HPP
 #define BPT_MAIN_SCENE_HPP
 
+#include <atomic>
 #include <fstream>
 
 #include <EASTL/vector.h>
@@ -20,6 +21,8 @@
 #include <corex/core/events/sys_events.hpp>
 
 #include <bpt/Context.hpp>
+#include <bpt/GA.hpp>
+#include <bpt/ds/GASettings.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 
 namespace bpt
@@ -49,6 +52,9 @@ namespace bpt
     void handleMouseScrollEvents(const corex::core::MouseScrollEvent& e);
 
     Context currentContext;
+    GA geneticAlgo;
+    GASettings gaSettings;
+    std::atomic<bool> isGAThreadRunning;
     bool doesInputDataExist;
     bool doesInputBoundingAreaFieldExist;
     bool doesInputBuildingsExist;
@@ -62,6 +68,7 @@ namespace bpt
     entt::entity boundingAreaEntity;
     entt::entity closeAreaTriggerEntity;
     eastl::vector<InputBuilding> inputBuildings;
+    eastl::vector<entt::entity> buildingEntities;
     nlohmann::json inputData;
   };
 }

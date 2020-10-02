@@ -33,6 +33,7 @@ namespace corex::core
   eastl::string stdStrToEAStr(const std::string& str);
 
   float metersToPixels(float meters, float ppmRatio);
+  float pixelsToMeters(float pixels, float ppmRatio);
   Point screenToWorldCoordinates(const Point&& point, Camera& camera);
 }
 

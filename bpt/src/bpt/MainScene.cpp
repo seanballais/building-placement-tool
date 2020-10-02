@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 #include <EASTL/vector.h>
 #include <entt/entt.hpp>
@@ -21,6 +22,7 @@
 #include <corex/core/components/RenderableType.hpp>
 #include <corex/core/components/RenderCircle.hpp>
 #include <corex/core/components/RenderLineSegments.hpp>
+#include <corex/core/components/RenderRectangle.hpp>
 #include <corex/core/components/RenderPolygon.hpp>
 #include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/Point.hpp>
@@ -35,6 +37,7 @@
 
 #include <bpt/Context.hpp>
 #include <bpt/MainScene.hpp>
+#include <bpt/ds/Solution.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 
 namespace bpt
@@ -44,6 +47,9 @@ namespace bpt
                        corex::core::AssetManager& assetManager,
                        corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
+    , geneticAlgo()
+    , gaSettings({ 0.25f, 25, 1000 })
+    , isGAThreadRunning(false)
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
     , doesInputBuildingsExist(false)
@@ -59,6 +65,7 @@ namespace bpt
     , boundingAreaEntity(entt::null)
     , closeAreaTriggerEntity(entt::null)
     , inputBuildings()
+    , buildingEntities()
     , inputData()
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
 
@@ -338,6 +345,12 @@ namespace bpt
     removedBuildingIndex = -1;
 
     ImGui::Begin("Input Buildings");
+
+    if (ImGui::Button("Add another building")) {
+      this->inputBuildings.push_back(InputBuilding{});
+    }
+    ImGui::Separator();
+
     ImGui::BeginChild("Input Buildings List");
 
     for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
@@ -365,11 +378,6 @@ namespace bpt
            .erase(this->inputBuildings.begin() + removedBuildingIndex);
     }
 
-    ImGui::Separator();
-    if (ImGui::Button("Add another building")) {
-      this->inputBuildings.push_back(InputBuilding{});
-    }
-
     ImGui::EndChild();
     ImGui::End();
   }
@@ -392,8 +400,69 @@ namespace bpt
   {
     ImGui::Begin("GA Controls");
 
-    // TODO: Add GA parameter fields here.
-    ImGui::Button("Generate Solution");
+    // TODO: Save ga setting to a file.
+    ImGui::InputFloat("Mutation Rate", &(this->gaSettings.mutationRate));
+    ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
+    ImGui::InputInt("No. of Generations", &(this->gaSettings.numGenerations));
+
+    if (this->isGAThreadRunning) {
+      ImGui::Text("Running GA...");
+    } else {
+      if (ImGui::Button("Generate Solution")) {
+        this->isGAThreadRunning = true;
+
+        for (entt::entity& e : this->buildingEntities) {
+          this->registry.destroy(e);
+        }
+
+        this->buildingEntities.clear();
+
+        std::thread gaThread{
+          [this]() {
+            Solution solution = this->geneticAlgo.generateSolution(
+              this->inputBuildings,
+              this->boundingArea,
+              this->gaSettings.mutationRate,
+              this->gaSettings.populationSize,
+              this->gaSettings.numGenerations
+            );
+
+            for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+              entt::entity e = this->registry.create();
+              this->registry.emplace<corex::core::Position>(
+                e,
+                solution.getBuildingXPos(i),
+                solution.getBuildingYPos(i),
+                0.f,
+                static_cast<int8_t>(0));
+              this->registry.emplace<corex::core::Renderable>(
+                e,
+                corex::core::RenderableType::PRIMITIVE_RECTANGLE);
+              this->registry.emplace<corex::core::RenderRectangle>(
+                e,
+                solution.getBuildingXPos(i),
+                solution.getBuildingYPos(i),
+                this->inputBuildings[i].width,
+                this->inputBuildings[i].length,
+                solution.getBuildingRotation(i),
+                SDL_Color{ 0, 102, 51, 255 },
+                true);
+
+              std::cout << "Building #" << i << std::endl;
+              std::cout << "-- x: " << solution.getBuildingXPos(i) << std::endl;
+              std::cout << "-- y: " << solution.getBuildingYPos(i) << std::endl;
+              std::cout << "-- Rotation: " << solution.getBuildingRotation(i) << std::endl;
+            }
+
+            std::cout << "Fitness: " << this->geneticAlgo.getSolutionFitness(solution) << std::endl;
+
+            this->isGAThreadRunning = false;
+          }
+        };
+
+        gaThread.detach();
+      }
+    }
 
     ImGui::End();
   }

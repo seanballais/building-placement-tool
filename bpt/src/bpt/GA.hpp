@@ -21,11 +21,11 @@ namespace bpt
                               float mutationRate,
                               int32_t populationSize,
                               int32_t numGenerations);
+    double getSolutionFitness(Solution& solution);
   private:
     Solution
     generateRandomSolution(eastl::vector<InputBuilding>& inputBuildings,
                            corex::core::NPolygon& boundingArea);
-    double getSolutionFitness(Solution& solution);
   };
 }
 

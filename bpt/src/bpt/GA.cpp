@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdlib>
+#include <iostream>
 #include <random>
 
 #include <EASTL/array.h>
@@ -106,62 +107,14 @@ namespace bpt
       population = newPopulation;
     }
 
-    return *std::max_element(
+    return *std::min_element(
       population.begin(),
       population.end(),
       [this](Solution solutionA, Solution solutionB) {
         return this->getSolutionFitness(solutionA)
-                > this->getSolutionFitness(solutionB);
+               < this->getSolutionFitness(solutionB);
       }
     );
-  }
-
-  Solution
-  GA::generateRandomSolution(eastl::vector<InputBuilding>& inputBuildings,
-                             corex::core::NPolygon& boundingArea)
-  {
-    float minX = std::min_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.x < ptB.x;
-      }
-    )->x;
-    float maxX = std::max_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.x > ptB.x;
-      }
-    )->x;
-    float minY = std::min_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.y < ptB.y;
-      }
-    )->y;
-    float maxY = std::max_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.y > ptB.y;
-      }
-    )->y;
-
-    std::default_random_engine randGenerator;
-    std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
-    std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
-    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
-
-    Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
-    for (int32_t i = 0; i < inputBuildings.size(); i++) {
-      solution.setBuildingXPos(i, xPosDistribution(randGenerator));
-      solution.setBuildingYPos(i, yPosDistribution(randGenerator));
-      solution.setBuildingRotation(i, rotationDistribution(randGenerator));
-    }
-
-    return solution;
   }
 
   double GA::getSolutionFitness(Solution& solution)
@@ -186,5 +139,65 @@ namespace bpt
     }
 
     return fitness;
+  }
+
+  Solution
+  GA::generateRandomSolution(eastl::vector<InputBuilding>& inputBuildings,
+                             corex::core::NPolygon& boundingArea)
+  {
+    float minX = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.x < ptB.x;
+      }
+    )->x;
+    float maxX = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.x < ptB.x;
+      }
+    )->x;
+    float minY = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.y < ptB.y;
+      }
+    )->y;
+    float maxY = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.y < ptB.y;
+      }
+    )->y;
+
+    std::cout << "minX: " << minX << std::endl;
+    std::cout << "maxX: " << maxX << std::endl;
+    std::cout << "minY: " << minY << std::endl;
+    std::cout << "maxY: " << maxY << std::endl;
+
+    std::default_random_engine randGenerator;
+    std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
+    std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
+    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
+
+    Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
+    for (int32_t i = 0; i < inputBuildings.size(); i++) {
+      solution.setBuildingXPos(i, xPosDistribution(randGenerator));
+      solution.setBuildingYPos(i, yPosDistribution(randGenerator));
+      solution.setBuildingRotation(i, rotationDistribution(randGenerator));
+    }
+
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      std::cout << "Building #" << i << std::endl;
+      std::cout << "-- x: " << solution.getBuildingXPos(i) << std::endl;
+      std::cout << "-- y: " << solution.getBuildingYPos(i) << std::endl;
+      std::cout << "-- Rotation: " << solution.getBuildingRotation(i) << std::endl;
+    }
+
+    return solution;
   }
 }
