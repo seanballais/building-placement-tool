@@ -1,9 +1,11 @@
 #ifndef COREX_CORE_UTILS_HPP
 #define COREX_CORE_UTILS_HPP
 
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <random>
 
 #include <EASTL/string.h>
 #include <nlohmann/json.hpp>
@@ -31,6 +33,24 @@ namespace corex::core
 
   std::string eaStrToStdStr(const eastl::string& str);
   eastl::string stdStrToEAStr(const std::string& str);
+
+  template <class T>
+  T generateRandomInt(std::uniform_int_distribution<T> distribution)
+  {
+    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+    std::default_random_engine randGenerator(seed);
+
+    return distribution(randGenerator);
+  }
+
+  template <class T>
+  T generateRandomReal(std::uniform_real_distribution<T> distribution)
+  {
+    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+    std::default_random_engine randGenerator(seed);
+
+    return distribution(randGenerator);
+  }
 
   float metersToPixels(float meters, float ppmRatio);
   float pixelsToMeters(float pixels, float ppmRatio);

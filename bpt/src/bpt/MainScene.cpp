@@ -448,6 +448,8 @@ namespace bpt
                 SDL_Color{ 0, 102, 51, 255 },
                 true);
 
+              this->buildingEntities.push_back(e);
+
               std::cout << "Building #" << i << std::endl;
               std::cout << "-- x: " << solution.getBuildingXPos(i) << std::endl;
               std::cout << "-- y: " << solution.getBuildingYPos(i) << std::endl;

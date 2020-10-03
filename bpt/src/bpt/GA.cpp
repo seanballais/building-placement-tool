@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <random>
 
 #include <EASTL/array.h>
@@ -12,6 +13,8 @@
 
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
+
+#include <corex/core/utils.hpp>
 
 #include <bpt/GA.hpp>
 
@@ -26,7 +29,7 @@ namespace bpt
                                 int32_t numGenerations)
   {
     eastl::vector<Solution> population(populationSize);
-    eastl::vector<double> populationFitnessValues(populationSize);
+    eastl::vector<double> populationFitnessValues(populationSize, 0.0);
 
     for (int32_t i = 0; i < populationSize; i++) {
       population[i] = this->generateRandomSolution(inputBuildings,
@@ -34,7 +37,6 @@ namespace bpt
       populationFitnessValues[i] = this->getSolutionFitness(population[i]);
     }
 
-    std::default_random_engine randGenerator;
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
       0, populationSize - 1
     };
@@ -47,10 +49,11 @@ namespace bpt
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newPopulation(populationSize);
       while (numOffsprings < populationSize) {
-        int32_t parentAIndex = chromosomeDistribution(randGenerator);
+        int32_t parentAIndex = corex::core::generateRandomInt(
+          chromosomeDistribution);
         int32_t parentBIndex = 0;
         do {
-          parentBIndex = chromosomeDistribution(randGenerator);
+          parentBIndex = corex::core::generateRandomInt(chromosomeDistribution);
         } while (parentBIndex == parentAIndex);
 
         // Crossover
@@ -59,7 +62,8 @@ namespace bpt
 
         newPopulation[numOffsprings] = children[0];
         
-        float mutationProbability = mutationChanceDistribution(randGenerator);
+        float mutationProbability = corex::core::generateRandomReal(
+          mutationChanceDistribution);
         if (mutationProbability < mutationRate) {
           newPopulation[numOffsprings].mutate();
         }
@@ -71,7 +75,7 @@ namespace bpt
         // generated child if it has a fitness better than the worst solution
         // in the new generation.
         if (numOffsprings == populationSize) {
-          Solution weakestSolution = *std::min_element(
+          auto weakestSolutionIter = std::min_element(
             newPopulation.begin(),
             newPopulation.end(),
             [this](Solution solutionA, Solution solutionB) -> bool {
@@ -81,21 +85,22 @@ namespace bpt
           );
 
           if (this->getSolutionFitness(children[1])
-              < this->getSolutionFitness(weakestSolution)) {
-            newPopulation[numOffsprings] = children[1];
+              < this->getSolutionFitness(*weakestSolutionIter)) {
+            int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
+                                                         weakestSolutionIter);
+            newPopulation[weakestSolutionIndex] = children[1];
 
-            float mutationProbability = mutationChanceDistribution(
-              randGenerator);
+            float mutationProbability = corex::core::generateRandomReal(
+              mutationChanceDistribution);
             if (mutationProbability < mutationRate) {
-              newPopulation[numOffsprings].mutate();
+              newPopulation[weakestSolutionIndex].mutate();
             }
-
-            numOffsprings++;
           }
         } else {
           newPopulation[numOffsprings] = children[1];
           
-          float mutationProbability = mutationChanceDistribution(randGenerator);
+          float mutationProbability = corex::core::generateRandomReal(
+            mutationChanceDistribution);
           if (mutationProbability < mutationRate) {
             newPopulation[numOffsprings].mutate();
           }
@@ -179,16 +184,21 @@ namespace bpt
     std::cout << "minY: " << minY << std::endl;
     std::cout << "maxY: " << maxY << std::endl;
 
-    std::default_random_engine randGenerator;
     std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
     for (int32_t i = 0; i < inputBuildings.size(); i++) {
-      solution.setBuildingXPos(i, xPosDistribution(randGenerator));
-      solution.setBuildingYPos(i, yPosDistribution(randGenerator));
-      solution.setBuildingRotation(i, rotationDistribution(randGenerator));
+      solution.setBuildingXPos(
+        i,
+        corex::core::generateRandomReal(xPosDistribution));
+      solution.setBuildingYPos(
+        i,
+        corex::core::generateRandomReal(yPosDistribution));
+      solution.setBuildingRotation(
+        i,
+        corex::core::generateRandomReal(rotationDistribution));
     }
 
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {

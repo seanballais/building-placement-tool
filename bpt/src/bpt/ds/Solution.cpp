@@ -5,6 +5,8 @@
 
 #include <EASTL/array.h>
 
+#include <corex/core/utils.hpp>
+
 #include <bpt/ds/Solution.hpp>
 
 namespace bpt
@@ -59,15 +61,14 @@ namespace bpt
   eastl::array<Solution, 2> Solution::crossover(Solution& other)
   {
     // Assume one-point crossover for now.
-    std::default_random_engine randGenerator;
     std::uniform_int_distribution<int32_t> geneDistribution{
       0, this->getNumBuildings() - 1
     };
 
-    int32_t pointA = geneDistribution(randGenerator);
+    int32_t pointA = corex::core::generateRandomInt(geneDistribution);
     int32_t pointB = 0;
     do {
-      pointB = geneDistribution(randGenerator);
+      pointB = corex::core::generateRandomInt(geneDistribution);
     } while (pointB == pointA);
 
     if (pointB < pointA) {
@@ -89,15 +90,14 @@ namespace bpt
   void Solution::mutate()
   {
     // Let's mutate the rotation only for now.
-    std::default_random_engine randGenerator;
     std::uniform_int_distribution<int32_t> geneDistribution{
       0, this->getNumBuildings() - 1
     };
 
-    int32_t targetGeneIndex = geneDistribution(randGenerator);
+    int32_t targetGeneIndex = corex::core::generateRandomInt(geneDistribution);
 
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
-    float newRotation = rotationDistribution(randGenerator);
+    float newRotation = corex::core::generateRandomReal(rotationDistribution);
 
     this->genes[targetGeneIndex + 2] = newRotation;
   }
