@@ -53,6 +53,7 @@ namespace bpt
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
     , doesInputBuildingsExist(false)
+    , doesGASettingsFieldExist(false)
     , isCloseAreaTriggerEnabled(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
@@ -114,6 +115,18 @@ namespace bpt
               });
             }
             this->doesInputBuildingsExist = true;
+          }
+
+          if (this->inputData.contains("gaSettings")) {
+            nlohmann::json gaSettingsJSON = this->inputData["gaSettings"];
+            this->gaSettings.mutationRate = gaSettingsJSON["mutationRate"]
+                                              .get<float>();
+            this->gaSettings.populationSize = gaSettingsJSON["populationSize"]
+                                                .get<int32_t>();
+            this->gaSettings.numGenerations = gaSettingsJSON["numGenerations"]
+                                                .get<int32_t>();
+
+            this->doesGASettingsFieldExist = true;
           }
         }
       }
@@ -262,6 +275,14 @@ namespace bpt
         );
       }
 
+      this->inputData["gaSettings"] = nlohmann::json::object();
+      this->inputData["gaSettings"]["mutationRate"] = this->gaSettings
+                                                           .mutationRate;
+      this->inputData["gaSettings"]["populationSize"] = this->gaSettings
+                                                             .populationSize;
+      this->inputData["gaSettings"]["numGenerations"] = this->gaSettings
+                                                             .numGenerations;
+
       std::filesystem::path inputFilePath = corex::core::getBinFolder()
                                             / "data/input_data.bptdat";
       std::ofstream dataFile(inputFilePath, std::ios::trunc);
@@ -308,7 +329,8 @@ namespace bpt
   {
     if (!this->doesInputDataExist
         || !this->doesInputBoundingAreaFieldExist
-        || !this->doesInputBuildingsExist) {
+        || !this->doesInputBuildingsExist
+        || !this->doesGASettingsFieldExist) {
       ImGui::Begin("Warnings");
       ImGui::BeginChild("Warnings List");
 
@@ -327,6 +349,12 @@ namespace bpt
 
       if (!this->doesInputBuildingsExist) {
         ImGui::Text("WARNING: Input buildings field in input data "
+                    "does not exist.");
+        numWarnings++;
+      }
+
+      if (!this->doesGASettingsFieldExist) {
+        ImGui::Text("WARNING: GA settings field in input data "
                     "does not exist.");
         numWarnings++;
       }

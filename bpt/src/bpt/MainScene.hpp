@@ -58,6 +58,7 @@ namespace bpt
     bool doesInputDataExist;
     bool doesInputBoundingAreaFieldExist;
     bool doesInputBuildingsExist;
+    bool doesGASettingsFieldExist;
     bool isCloseAreaTriggerEnabled;
     float cameraMovementSpeed;
     float timeDelta;
