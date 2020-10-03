@@ -2,7 +2,6 @@
 #define BPT_MAIN_SCENE_HPP
 
 #include <atomic>
-#include <fstream>
 
 #include <EASTL/vector.h>
 #include <entt/entt.hpp>
@@ -51,6 +50,7 @@ namespace bpt
     void handleMouseButtonEvents(const corex::core::MouseButtonEvent& e);
     void handleMouseMovementEvents(const corex::core::MouseMovementEvent& e);
     void handleMouseScrollEvents(const corex::core::MouseScrollEvent& e);
+    void saveResultsToCSVFile();
 
     Context currentContext;
     GA geneticAlgo;

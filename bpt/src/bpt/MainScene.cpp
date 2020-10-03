@@ -1,8 +1,10 @@
+#include <chrono>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <thread>
 
 #include <EASTL/vector.h>
@@ -504,6 +506,8 @@ namespace bpt
                                                 ->geneticAlgo
                                                  .getRecentRunWorstFitnesses();
 
+            this->saveResultsToCSVFile();
+
             this->isGAThreadRunning = false;
           }
         };
@@ -725,5 +729,46 @@ namespace bpt
       // Scroll down.
       this->camera.zoom(corex::core::CameraZoomState::OUT);
     }
+  }
+
+  void MainScene::saveResultsToCSVFile()
+  {
+    auto time = std::chrono::system_clock::to_time_t(
+      std::chrono::system_clock::now());
+    std::stringstream resultsFileRelPath;
+    resultsFileRelPath << "data/results-"
+                       << std::to_string(time)
+                       << ".csv";
+
+    std::filesystem::path resultsFilePath = corex::core::getBinFolder()
+                                            / resultsFileRelPath.str();
+    std::ofstream resultsFile;
+    resultsFile.open(resultsFilePath.string());
+
+    // Put the header of the CSV
+    for (int32_t i = 0; i < this->gaSettings.numGenerations; i++) {
+      resultsFile << ", Gen. #" << i;
+    }
+    resultsFile << "\n";
+
+    resultsFile << "Average Fitness";
+    for (float& fitness : this->recentGARunAvgFitnesses) {
+      resultsFile << "," << fitness;
+    }
+    resultsFile << "\n";
+
+    resultsFile << "Best Fitness";
+    for (float& fitness : this->recentGARunBestFitnesses) {
+      resultsFile << "," << fitness;
+    }
+    resultsFile << "\n";
+
+    resultsFile << "Worst Fitness";
+    for (float& fitness : this->recentGARunWorstFitnesses) {
+      resultsFile << "," << fitness;
+    }
+    resultsFile << "\n";
+
+    resultsFile.close();
   }
 }
