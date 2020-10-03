@@ -10,6 +10,7 @@
 #include <imgui.h>
 #include <imgui_impls/imgui_impl_opengl3.h>
 #include <imgui_impls/imgui_impl_sdl.h>
+#include <implot/implot.h>
 #include <nlohmann/json.hpp>
 
 #include <corex/core/AssetManager.hpp>
@@ -55,6 +56,9 @@ namespace bpt
     , doesInputBuildingsExist(false)
     , doesGASettingsFieldExist(false)
     , isCloseAreaTriggerEnabled(false)
+    , showGAResultsAverage(true)
+    , showGAResultsBest(true)
+    , showGAResultsWorst(true)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
@@ -67,6 +71,9 @@ namespace bpt
     , closeAreaTriggerEntity(entt::null)
     , inputBuildings()
     , buildingEntities()
+    , recentGARunAvgFitnesses()
+    , recentGARunBestFitnesses()
+    , recentGARunWorstFitnesses()
     , inputData()
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
 
@@ -253,6 +260,7 @@ namespace bpt
     this->buildInputBuildingsWindow();
     this->buildCameraResetWindow();
     this->buildGAControlsWindow();
+    this->buildGAResultsWindow();
   }
 
   void MainScene::dispose()
@@ -486,6 +494,16 @@ namespace bpt
 
             std::cout << "Fitness: " << this->geneticAlgo.getSolutionFitness(solution) << std::endl;
 
+            this->recentGARunAvgFitnesses = this
+                                              ->geneticAlgo
+                                               .getRecentRunAverageFitnesses();
+            this->recentGARunBestFitnesses = this
+                                               ->geneticAlgo
+                                                .getRecentRunBestFitnesses();
+            this->recentGARunWorstFitnesses = this
+                                                ->geneticAlgo
+                                                 .getRecentRunWorstFitnesses();
+
             this->isGAThreadRunning = false;
           }
         };
@@ -494,6 +512,57 @@ namespace bpt
       }
     }
 
+    ImGui::End();
+  }
+
+  void MainScene::buildGAResultsWindow()
+  {
+    ImGui::Begin("GA Results");
+    ImGui::BeginChild("GA Results Content");
+
+    float avgFitnesses[this->recentGARunAvgFitnesses.size()];
+    for (int32_t i = 0; i < this->recentGARunAvgFitnesses.size(); i++) {
+      avgFitnesses[i] = this->recentGARunAvgFitnesses[i];
+    }
+
+    float bestFitnesses[this->recentGARunBestFitnesses.size()];
+    for (int32_t i = 0; i < this->recentGARunBestFitnesses.size(); i++) {
+      bestFitnesses[i] = this->recentGARunBestFitnesses[i];
+    }
+
+    float worstFitnesses[this->recentGARunWorstFitnesses.size()];
+    for (int32_t i = 0; i < this->recentGARunWorstFitnesses.size(); i++) {
+      worstFitnesses[i] = this->recentGARunWorstFitnesses[i];
+    }
+
+    ImPlot::SetNextPlotLimits(0.0, 1000, 0.0, 500.0);
+    if (ImPlot::BeginPlot("Fitness Over Gen. ID", "Generation", "Fitness")) {
+      if (this->showGAResultsAverage) {
+        ImPlot::PlotLine("Average Fitness",
+                         avgFitnesses,
+                         this->recentGARunAvgFitnesses.size());
+      }
+
+      if (this->showGAResultsBest) {
+        ImPlot::PlotLine("Best Fitness",
+                         bestFitnesses,
+                         this->recentGARunBestFitnesses.size());
+      }
+
+      if (this->showGAResultsWorst) {
+        ImPlot::PlotLine("Worst Fitness",
+                         worstFitnesses,
+                         this->recentGARunWorstFitnesses.size());
+      }
+
+      ImPlot::EndPlot();
+    }
+
+    ImGui::Checkbox("Show Average Fitness", &(this->showGAResultsAverage));
+    ImGui::Checkbox("Show Best Fitness", &(this->showGAResultsBest));
+    ImGui::Checkbox("Show Worst Fitness", &(this->showGAResultsWorst));
+
+    ImGui::EndChild();
     ImGui::End();
   }
 

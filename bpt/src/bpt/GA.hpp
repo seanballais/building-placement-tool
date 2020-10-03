@@ -22,10 +22,16 @@ namespace bpt
                               int32_t populationSize,
                               int32_t numGenerations);
     double getSolutionFitness(Solution& solution);
+    eastl::vector<float> getRecentRunAverageFitnesses();
+    eastl::vector<float> getRecentRunBestFitnesses();
+    eastl::vector<float> getRecentRunWorstFitnesses();
   private:
     Solution
     generateRandomSolution(eastl::vector<InputBuilding>& inputBuildings,
                            corex::core::NPolygon& boundingArea);
+    eastl::vector<float> recentRunAvgFitnesses;
+    eastl::vector<float> recentRunBestFitnesses;
+    eastl::vector<float> recentRunWorstFitnesses;
   };
 }
 

@@ -20,7 +20,10 @@
 
 namespace bpt
 {
-  GA::GA() {}
+  GA::GA()
+    : recentRunAvgFitnesses()
+    , recentRunBestFitnesses()
+    , recentRunWorstFitnesses() {}
 
   Solution GA::generateSolution(eastl::vector<InputBuilding>& inputBuildings,
                                 corex::core::NPolygon& boundingArea,
@@ -30,6 +33,10 @@ namespace bpt
   {
     eastl::vector<Solution> population(populationSize);
     eastl::vector<double> populationFitnessValues(populationSize, 0.0);
+
+    this->recentRunAvgFitnesses.clear();
+    this->recentRunBestFitnesses.clear();
+    this->recentRunWorstFitnesses.clear();
 
     for (int32_t i = 0; i < populationSize; i++) {
       population[i] = this->generateRandomSolution(inputBuildings,
@@ -44,6 +51,8 @@ namespace bpt
       0.f, 1.f
     };
 
+    Solution bestSolution;
+    Solution worstSolution;
     for (int32_t i = 0; i < numGenerations; i++) {
       // Selection
       int32_t numOffsprings = 0;
@@ -109,17 +118,42 @@ namespace bpt
         }
       }
 
+      double fitnessAverage = 0.0;
+      for (Solution& sol : newPopulation) {
+        fitnessAverage += this->getSolutionFitness(sol);
+      }
+
+      fitnessAverage = fitnessAverage / newPopulation.size();
+      this->recentRunAvgFitnesses.push_back(static_cast<float>(fitnessAverage));
+
+      bestSolution = *std::min_element(
+        population.begin(),
+        population.end(),
+        [this](Solution solutionA, Solution solutionB) {
+          return this->getSolutionFitness(solutionA)
+                 < this->getSolutionFitness(solutionB);
+        }
+      );
+
+      this->recentRunBestFitnesses.push_back(static_cast<float>(
+        this->getSolutionFitness(bestSolution)));
+
+      worstSolution = *std::max_element(
+        population.begin(),
+        population.end(),
+        [this](Solution solutionA, Solution solutionB) {
+          return this->getSolutionFitness(solutionA)
+                 < this->getSolutionFitness(solutionB);
+        }
+      );
+
+      this->recentRunWorstFitnesses.push_back(static_cast<float>(
+        this->getSolutionFitness(worstSolution)));
+
       population = newPopulation;
     }
 
-    return *std::min_element(
-      population.begin(),
-      population.end(),
-      [this](Solution solutionA, Solution solutionB) {
-        return this->getSolutionFitness(solutionA)
-               < this->getSolutionFitness(solutionB);
-      }
-    );
+    return bestSolution;
   }
 
   double GA::getSolutionFitness(Solution& solution)
@@ -144,6 +178,21 @@ namespace bpt
     }
 
     return fitness;
+  }
+
+  eastl::vector<float> GA::getRecentRunAverageFitnesses()
+  {
+    return this->recentRunAvgFitnesses;
+  }
+
+  eastl::vector<float> GA::getRecentRunBestFitnesses()
+  {
+    return this->recentRunBestFitnesses;
+  }
+
+  eastl::vector<float> GA::getRecentRunWorstFitnesses()
+  {
+    return this->recentRunWorstFitnesses;
   }
 
   Solution
@@ -207,6 +256,8 @@ namespace bpt
       std::cout << "-- y: " << solution.getBuildingYPos(i) << std::endl;
       std::cout << "-- Rotation: " << solution.getBuildingRotation(i) << std::endl;
     }
+
+    std::cout << "Random Solution Fitness: " << this->getSolutionFitness(solution) << std::endl;
 
     return solution;
   }

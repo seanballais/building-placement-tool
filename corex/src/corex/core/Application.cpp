@@ -9,6 +9,7 @@
 #include <imgui.h>
 #include <imgui_impls/imgui_impl_opengl3.h>
 #include <imgui_impls/imgui_impl_sdl.h>
+#include <implot/implot.h>
 #include <SDL2/SDL.h>
 #include <SDL_gpu.h>
 
@@ -78,6 +79,7 @@ namespace corex::core
     // Set up Dear ImGui context.
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(this->windowManager.getWindow(),
                                  this->windowManager.getOpenGLContext());
@@ -119,6 +121,7 @@ namespace corex::core
   {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
     SDL_Quit();

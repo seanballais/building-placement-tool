@@ -45,6 +45,7 @@ namespace bpt
     void buildInputBuildingsWindow();
     void buildCameraResetWindow();
     void buildGAControlsWindow();
+    void buildGAResultsWindow();
     void handleWindowEvents(const corex::core::WindowEvent& e);
     void handleKeyboardEvents(const corex::core::KeyboardEvent& e);
     void handleMouseButtonEvents(const corex::core::MouseButtonEvent& e);
@@ -60,6 +61,9 @@ namespace bpt
     bool doesInputBuildingsExist;
     bool doesGASettingsFieldExist;
     bool isCloseAreaTriggerEnabled;
+    bool showGAResultsAverage;
+    bool showGAResultsBest;
+    bool showGAResultsWorst;
     float cameraMovementSpeed;
     float timeDelta;
     corex::core::Circle closeAreaTriggerCircle;
@@ -70,6 +74,9 @@ namespace bpt
     entt::entity closeAreaTriggerEntity;
     eastl::vector<InputBuilding> inputBuildings;
     eastl::vector<entt::entity> buildingEntities;
+    eastl::vector<float> recentGARunAvgFitnesses;
+    eastl::vector<float> recentGARunBestFitnesses;
+    eastl::vector<float> recentGARunWorstFitnesses;
     nlohmann::json inputData;
   };
 }

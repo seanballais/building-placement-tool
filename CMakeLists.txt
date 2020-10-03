@@ -29,6 +29,7 @@ add_subdirectory(bpt/)
 target_link_libraries(bpt
     corex-core
     imgui-impls
+    implot
     SDL_gpu
     ${CONAN_LIBS}
 )
