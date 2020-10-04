@@ -84,7 +84,7 @@ namespace bpt
         // generated child if it has a fitness better than the worst solution
         // in the new generation.
         if (numOffsprings == populationSize) {
-          auto weakestSolutionIter = std::min_element(
+          auto weakestSolutionIter = std::max_element(
             newPopulation.begin(),
             newPopulation.end(),
             [this](Solution solutionA, Solution solutionB) -> bool {
@@ -118,8 +118,10 @@ namespace bpt
         }
       }
 
+      population = newPopulation;
+
       double fitnessAverage = 0.0;
-      for (Solution& sol : newPopulation) {
+      for (Solution& sol : population) {
         fitnessAverage += this->getSolutionFitness(sol);
       }
 
@@ -149,8 +151,6 @@ namespace bpt
 
       this->recentRunWorstFitnesses.push_back(static_cast<float>(
         this->getSolutionFitness(worstSolution)));
-
-      population = newPopulation;
     }
 
     return bestSolution;
