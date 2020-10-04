@@ -769,6 +769,15 @@ namespace bpt
     }
     resultsFile << "\n";
 
+    resultsFile << "\n";
+    resultsFile << "GA Parameters\n"
+                << "Mutation Rate:," << this->gaSettings.mutationRate
+                << "\n"
+                << "Population Size:," << this->gaSettings.populationSize
+                << "\n"
+                << "No. of Generations:," << this->gaSettings.numGenerations
+                << "\n";
+
     resultsFile.close();
   }
 }
