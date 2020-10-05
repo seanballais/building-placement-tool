@@ -55,6 +55,13 @@ namespace bpt
     Solution worstSolution;
     for (int32_t i = 0; i < numGenerations; i++) {
       // Selection
+      // Preprocessing for roulette wheel selection. Compute probability of each
+      // solution.
+      double totalFitness = 0.0;
+      for (Solution& solution : population) {
+        totalFitness += this->getSolutionFitness(solution);
+      }
+
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newPopulation(populationSize);
       while (numOffsprings < populationSize) {
@@ -64,6 +71,9 @@ namespace bpt
         do {
           parentBIndex = corex::core::generateRandomInt(chromosomeDistribution);
         } while (parentBIndex == parentAIndex);
+
+        // Roulette Wheel Selection.
+
 
         // Crossover
         auto children = population[parentAIndex].crossover(
