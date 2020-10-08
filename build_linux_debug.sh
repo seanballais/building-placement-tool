@@ -50,6 +50,7 @@ else
         if [ settings/settings.cxstg -nt build/bin/settings/settings.cxstg ]
         then
             cp settings/settings.cxstg build/bin/settings/
+            echo "---- Copied settings/settings.cxstg to build/bin/settings/."
         fi
 
         # Copy the data folder to the bin folder if changes were made.

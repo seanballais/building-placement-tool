@@ -5,6 +5,6 @@ add_subdirectory(imgui_impls/)
 set(OpenGL_GL_PREFERENCE "GLVND")  # Make sure we use GLVND OpenGL drivers.
 add_subdirectory(sdl_gpu/)
 
-add_library(implot STATIC
-    implot/implot.cpp
-    implot/implot_items.cpp)
+set(BUILD_IMPLOT_SHARED OFF CACHE BOOL "Build implot shared library")
+set(BUILD_IMPLOT_DEMO ON CACHE BOOL "Build implot demo")
+add_subdirectory(implot/)

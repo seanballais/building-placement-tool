@@ -20,7 +20,8 @@ namespace bpt
                               corex::core::NPolygon& boundingArea,
                               float mutationRate,
                               int32_t populationSize,
-                              int32_t numGenerations);
+                              int32_t numGenerations,
+                              int32_t tournamentSize);
     double getSolutionFitness(Solution& solution);
     eastl::vector<float> getRecentRunAverageFitnesses();
     eastl::vector<float> getRecentRunBestFitnesses();

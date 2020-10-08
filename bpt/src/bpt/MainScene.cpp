@@ -51,7 +51,7 @@ namespace bpt
                        corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
-    , gaSettings({ 0.25f, 25, 1000 })
+    , gaSettings({ 0.25f, 25, 1000, 4 })
     , isGAThreadRunning(false)
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
@@ -133,6 +133,8 @@ namespace bpt
             this->gaSettings.populationSize = gaSettingsJSON["populationSize"]
                                                 .get<int32_t>();
             this->gaSettings.numGenerations = gaSettingsJSON["numGenerations"]
+                                                .get<int32_t>();
+            this->gaSettings.tournamentSize = gaSettingsJSON["tournamentSize"]
                                                 .get<int32_t>();
 
             this->doesGASettingsFieldExist = true;
@@ -292,6 +294,8 @@ namespace bpt
                                                              .populationSize;
       this->inputData["gaSettings"]["numGenerations"] = this->gaSettings
                                                              .numGenerations;
+      this->inputData["gaSettings"]["tournamentSize"] = this->gaSettings
+                                                             .tournamentSize;
 
       std::filesystem::path inputFilePath = corex::core::getBinFolder()
                                             / "data/input_data.bptdat";
@@ -442,6 +446,7 @@ namespace bpt
     ImGui::InputFloat("Mutation Rate", &(this->gaSettings.mutationRate));
     ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
     ImGui::InputInt("No. of Generations", &(this->gaSettings.numGenerations));
+    ImGui::InputInt("Tournament Size", &(this->gaSettings.tournamentSize));
 
     if (this->isGAThreadRunning) {
       ImGui::Text("Running GA...");
@@ -462,7 +467,8 @@ namespace bpt
               this->boundingArea,
               this->gaSettings.mutationRate,
               this->gaSettings.populationSize,
-              this->gaSettings.numGenerations
+              this->gaSettings.numGenerations,
+              this->gaSettings.tournamentSize
             );
 
             for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
@@ -776,6 +782,8 @@ namespace bpt
                 << "Population Size:," << this->gaSettings.populationSize
                 << "\n"
                 << "No. of Generations:," << this->gaSettings.numGenerations
+                << "\n"
+                << "Tournament Size:," << this->gaSettings.tournamentSize
                 << "\n";
 
     resultsFile.close();

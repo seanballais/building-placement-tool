@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <iterator>
@@ -29,7 +30,8 @@ namespace bpt
                                 corex::core::NPolygon& boundingArea,
                                 float mutationRate,
                                 int32_t populationSize,
-                                int32_t numGenerations)
+                                int32_t numGenerations,
+                                int32_t tournamentSize)
   {
     eastl::vector<Solution> population(populationSize);
     eastl::vector<double> populationFitnessValues(populationSize, 0.0);
@@ -65,20 +67,31 @@ namespace bpt
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newPopulation(populationSize);
       while (numOffsprings < populationSize) {
-        int32_t parentAIndex = corex::core::generateRandomInt(
-          chromosomeDistribution);
-        int32_t parentBIndex = 0;
-        do {
-          parentBIndex = corex::core::generateRandomInt(chromosomeDistribution);
-        } while (parentBIndex == parentAIndex);
+        // Standard Tournament Selection.
+        Solution parentA;
+        Solution parentB;
+        for (int32_t j = 0; j < tournamentSize; j++) {
+          int32_t parentIndex = corex::core::generateRandomInt(
+            chromosomeDistribution);
+          if (j == 0
+              || (this->getSolutionFitness(population[parentIndex])
+                  < this->getSolutionFitness(parentA))) {
+            parentB = parentA;
+            parentA = population[parentIndex];
+          } else if ((parentB.getNumBuildings() == 0)
+                     || (this->getSolutionFitness(population[parentIndex])
+                         < this->getSolutionFitness(parentB))) {
+            parentB = population[parentIndex];
+          }
+        }
 
-        // Roulette Wheel Selection.
-
+        // Make sure we have individuals from the population, and not just
+        // empty solutions.
+        assert(parentA.getNumBuildings() != 0);
+        assert(parentB.getNumBuildings() != 0);
 
         // Crossover
-        auto children = population[parentAIndex].crossover(
-          population[parentBIndex]);
-
+        auto children = parentA.crossover(parentB);
         newPopulation[numOffsprings] = children[0];
         
         float mutationProbability = corex::core::generateRandomReal(

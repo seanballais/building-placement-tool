@@ -10,6 +10,7 @@ namespace bpt
     float mutationRate;
     int32_t populationSize;
     int32_t numGenerations;
+    int32_t tournamentSize;
   };
 }
 
