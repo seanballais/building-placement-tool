@@ -20,10 +20,10 @@ namespace bpt
     void setBuildingXPos(int32_t buildingIndex, float xPos);
     void setBuildingYPos(int32_t buildingIndex, float yPos);
     void setBuildingRotation(int32_t buildingIndex, float rotation);
-    float getBuildingXPos(int32_t buildingIndex);
-    float getBuildingYPos(int32_t buildingIndex);
-    float getBuildingRotation(int32_t buildingIndex);
-    int32_t getNumBuildings();
+    float getBuildingXPos(int32_t buildingIndex) const;
+    float getBuildingYPos(int32_t buildingIndex) const;
+    float getBuildingRotation(int32_t buildingIndex) const;
+    int32_t getNumBuildings() const;
 
     eastl::array<Solution, 2> crossover(Solution& other);
     void mutate();

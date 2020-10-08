@@ -16,20 +16,23 @@ namespace bpt
   {
   public:
     GA();
-    Solution generateSolution(eastl::vector<InputBuilding>& inputBuildings,
-                              corex::core::NPolygon& boundingArea,
-                              float mutationRate,
-                              int32_t populationSize,
-                              int32_t numGenerations,
-                              int32_t tournamentSize);
-    double getSolutionFitness(Solution& solution);
+    Solution generateSolution(
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const corex::core::NPolygon& boundingArea,
+      const float mutationRate,
+      const int32_t populationSize,
+      const int32_t numGenerations,
+      const int32_t tournamentSize);
+    double getSolutionFitness(
+      const Solution& solution,
+      const eastl::vector<InputBuilding>& inputBuildings);
     eastl::vector<float> getRecentRunAverageFitnesses();
     eastl::vector<float> getRecentRunBestFitnesses();
     eastl::vector<float> getRecentRunWorstFitnesses();
   private:
     Solution
-    generateRandomSolution(eastl::vector<InputBuilding>& inputBuildings,
-                           corex::core::NPolygon& boundingArea);
+    generateRandomSolution(const eastl::vector<InputBuilding>& inputBuildings,
+                           const corex::core::NPolygon& boundingArea);
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;
     eastl::vector<float> recentRunWorstFitnesses;

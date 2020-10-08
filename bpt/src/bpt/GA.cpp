@@ -15,7 +15,10 @@
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
+#include <corex/core/math_functions.hpp>
 #include <corex/core/utils.hpp>
+#include <corex/core/ds/NPolygon.hpp>
+#include <corex/core/ds/Rectangle.hpp>
 
 #include <bpt/GA.hpp>
 
@@ -26,12 +29,13 @@ namespace bpt
     , recentRunBestFitnesses()
     , recentRunWorstFitnesses() {}
 
-  Solution GA::generateSolution(eastl::vector<InputBuilding>& inputBuildings,
-                                corex::core::NPolygon& boundingArea,
-                                float mutationRate,
-                                int32_t populationSize,
-                                int32_t numGenerations,
-                                int32_t tournamentSize)
+  Solution GA::generateSolution(
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const corex::core::NPolygon& boundingArea,
+    const float mutationRate,
+    const int32_t populationSize,
+    const int32_t numGenerations,
+    const int32_t tournamentSize)
   {
     eastl::vector<Solution> population(populationSize);
     eastl::vector<double> populationFitnessValues(populationSize, 0.0);
@@ -43,7 +47,8 @@ namespace bpt
     for (int32_t i = 0; i < populationSize; i++) {
       population[i] = this->generateRandomSolution(inputBuildings,
                                                    boundingArea);
-      populationFitnessValues[i] = this->getSolutionFitness(population[i]);
+      populationFitnessValues[i] = this->getSolutionFitness(population[i],
+                                                            inputBuildings);
     }
 
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
@@ -56,13 +61,7 @@ namespace bpt
     Solution bestSolution;
     Solution worstSolution;
     for (int32_t i = 0; i < numGenerations; i++) {
-      // Selection
-      // Preprocessing for roulette wheel selection. Compute probability of each
-      // solution.
-      double totalFitness = 0.0;
-      for (Solution& solution : population) {
-        totalFitness += this->getSolutionFitness(solution);
-      }
+      std::cout << "Generation: " << i << std::endl;
 
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newPopulation(populationSize);
@@ -74,13 +73,17 @@ namespace bpt
           int32_t parentIndex = corex::core::generateRandomInt(
             chromosomeDistribution);
           if (j == 0
-              || (this->getSolutionFitness(population[parentIndex])
-                  < this->getSolutionFitness(parentA))) {
+              || (corex::core::floatLessThan(
+                   this->getSolutionFitness(population[parentIndex],
+                                            inputBuildings),
+                   this->getSolutionFitness(parentA, inputBuildings)))) {
             parentB = parentA;
             parentA = population[parentIndex];
           } else if ((parentB.getNumBuildings() == 0)
-                     || (this->getSolutionFitness(population[parentIndex])
-                         < this->getSolutionFitness(parentB))) {
+                     || (corex::core::floatLessThan(
+                          this->getSolutionFitness(population[parentIndex],
+                                                   inputBuildings),
+                          this->getSolutionFitness(parentB, inputBuildings)))) {
             parentB = population[parentIndex];
           }
         }
@@ -96,7 +99,7 @@ namespace bpt
         
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
-        if (mutationProbability < mutationRate) {
+        if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
           newPopulation[numOffsprings].mutate();
         }
 
@@ -110,21 +113,25 @@ namespace bpt
           auto weakestSolutionIter = std::max_element(
             newPopulation.begin(),
             newPopulation.end(),
-            [this](Solution solutionA, Solution solutionB) -> bool {
-              return this->getSolutionFitness(solutionA)
-                < this->getSolutionFitness(solutionB);
+            [this, inputBuildings](Solution solutionA, Solution solutionB)
+                                  -> bool {
+              return corex::core::floatLessThan(
+                this->getSolutionFitness(solutionA, inputBuildings),
+                this->getSolutionFitness(solutionB, inputBuildings));
             }
           );
 
-          if (this->getSolutionFitness(children[1])
-              < this->getSolutionFitness(*weakestSolutionIter)) {
+          if (corex::core::floatLessThan(
+                this->getSolutionFitness(children[1], inputBuildings),
+                this->getSolutionFitness(*weakestSolutionIter,
+                                         inputBuildings))) {
             int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
                                                          weakestSolutionIter);
             newPopulation[weakestSolutionIndex] = children[1];
 
             float mutationProbability = corex::core::generateRandomReal(
               mutationChanceDistribution);
-            if (mutationProbability < mutationRate) {
+            if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
               newPopulation[weakestSolutionIndex].mutate();
             }
           }
@@ -133,7 +140,7 @@ namespace bpt
           
           float mutationProbability = corex::core::generateRandomReal(
             mutationChanceDistribution);
-          if (mutationProbability < mutationRate) {
+          if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
             newPopulation[numOffsprings].mutate();
           }
 
@@ -141,11 +148,38 @@ namespace bpt
         }
       }
 
+      // Replace the worst solution in the new population with the best solution
+      // in the previous generation, if the previous best solution is better
+      // than the current generation worst. We should only do this in the
+      // second genetation.
+      if (i > 0) {
+        auto weakestSolutionIter = std::max_element(
+          newPopulation.begin(),
+          newPopulation.end(),
+          [this, inputBuildings](Solution solutionA, Solution solutionB)
+                                -> bool {
+            return corex::core::floatLessThan(
+              this->getSolutionFitness(solutionA, inputBuildings),
+              this->getSolutionFitness(solutionB, inputBuildings));
+            }
+          );
+
+        if (corex::core::floatLessThan(
+              this->getSolutionFitness(bestSolution, inputBuildings),
+              this->getSolutionFitness(*weakestSolutionIter,
+                                       inputBuildings))) {
+          int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
+                                                       weakestSolutionIter);
+          newPopulation[weakestSolutionIndex] = bestSolution;
+        }
+      }
+      
+
       population = newPopulation;
 
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
-        fitnessAverage += this->getSolutionFitness(sol);
+        fitnessAverage += this->getSolutionFitness(sol, inputBuildings);
       }
 
       fitnessAverage = fitnessAverage / newPopulation.size();
@@ -154,32 +188,36 @@ namespace bpt
       bestSolution = *std::min_element(
         population.begin(),
         population.end(),
-        [this](Solution solutionA, Solution solutionB) {
-          return this->getSolutionFitness(solutionA)
-                 < this->getSolutionFitness(solutionB);
+        [this, inputBuildings](Solution solutionA, Solution solutionB) {
+          return corex::core::floatLessThan(
+            this->getSolutionFitness(solutionA, inputBuildings),
+            this->getSolutionFitness(solutionB, inputBuildings));
         }
       );
 
       this->recentRunBestFitnesses.push_back(static_cast<float>(
-        this->getSolutionFitness(bestSolution)));
+        this->getSolutionFitness(bestSolution, inputBuildings)));
 
       worstSolution = *std::max_element(
         population.begin(),
         population.end(),
-        [this](Solution solutionA, Solution solutionB) {
-          return this->getSolutionFitness(solutionA)
-                 < this->getSolutionFitness(solutionB);
+        [this, inputBuildings](Solution solutionA, Solution solutionB) {
+          return corex::core::floatLessThan(
+            this->getSolutionFitness(solutionA, inputBuildings),
+            this->getSolutionFitness(solutionB, inputBuildings));
         }
       );
 
       this->recentRunWorstFitnesses.push_back(static_cast<float>(
-        this->getSolutionFitness(worstSolution)));
+        this->getSolutionFitness(worstSolution, inputBuildings)));
     }
 
     return bestSolution;
   }
 
-  double GA::getSolutionFitness(Solution& solution)
+  double GA::getSolutionFitness(
+    const Solution& solution,
+    const eastl::vector<InputBuilding>& inputBuildings)
   {
     double fitness = 0.0;
 
@@ -197,6 +235,26 @@ namespace bpt
             solution.getBuildingYPos(j)
           }
         ));
+
+        auto rectA = corex::core::Rectangle{
+          solution.getBuildingXPos(i),
+          solution.getBuildingYPos(i),
+          inputBuildings[i].width,
+          inputBuildings[i].length,
+          solution.getBuildingRotation(i)
+        };
+        auto rectB = corex::core::Rectangle{
+          solution.getBuildingXPos(j),
+          solution.getBuildingYPos(j),
+          inputBuildings[j].width,
+          inputBuildings[j].length,
+          solution.getBuildingRotation(j)
+        };
+        if (corex::core::areTwoRectsIntersecting(rectA, rectB)) {
+          auto overlapPoly = corex::core::clippedPolygonFromTwoRects(rectA,
+                                                                     rectB);
+          fitness += corex::core::polygonArea(overlapPoly);
+        }
       }
     }
 
@@ -219,8 +277,9 @@ namespace bpt
   }
 
   Solution
-  GA::generateRandomSolution(eastl::vector<InputBuilding>& inputBuildings,
-                             corex::core::NPolygon& boundingArea)
+  GA::generateRandomSolution(
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const corex::core::NPolygon& boundingArea)
   {
     float minX = std::min_element(
       boundingArea.vertices.begin(),
@@ -251,11 +310,6 @@ namespace bpt
       }
     )->y;
 
-    std::cout << "minX: " << minX << std::endl;
-    std::cout << "maxX: " << maxX << std::endl;
-    std::cout << "minY: " << minY << std::endl;
-    std::cout << "maxY: " << maxY << std::endl;
-
     std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
@@ -272,15 +326,6 @@ namespace bpt
         i,
         corex::core::generateRandomReal(rotationDistribution));
     }
-
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      std::cout << "Building #" << i << std::endl;
-      std::cout << "-- x: " << solution.getBuildingXPos(i) << std::endl;
-      std::cout << "-- y: " << solution.getBuildingYPos(i) << std::endl;
-      std::cout << "-- Rotation: " << solution.getBuildingRotation(i) << std::endl;
-    }
-
-    std::cout << "Random Solution Fitness: " << this->getSolutionFitness(solution) << std::endl;
 
     return solution;
   }

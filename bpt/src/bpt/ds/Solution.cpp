@@ -38,22 +38,22 @@ namespace bpt
     this->genes[(buildingIndex * 3) + 2] = rotation;
   }
 
-  float Solution::getBuildingXPos(int32_t buildingIndex)
+  float Solution::getBuildingXPos(int32_t buildingIndex) const
   {
     return this->genes[(buildingIndex * 3)];
   }
 
-  float Solution::getBuildingYPos(int32_t buildingIndex)
+  float Solution::getBuildingYPos(int32_t buildingIndex) const
   {
     return this->genes[(buildingIndex * 3) + 1];
   }
 
-  float Solution::getBuildingRotation(int32_t buildingIndex)
+  float Solution::getBuildingRotation(int32_t buildingIndex) const
   {
     return this->genes[(buildingIndex * 3) + 2];
   }
 
-  int32_t Solution::getNumBuildings()
+  int32_t Solution::getNumBuildings() const
   {
     return this->numBuildings;
   }

@@ -500,7 +500,7 @@ namespace bpt
               std::cout << "-- Rotation: " << solution.getBuildingRotation(i) << std::endl;
             }
 
-            std::cout << "Fitness: " << this->geneticAlgo.getSolutionFitness(solution) << std::endl;
+            std::cout << "Fitness: " << this->geneticAlgo.getSolutionFitness(solution, this->inputBuildings) << std::endl;
 
             this->recentGARunAvgFitnesses = this
                                               ->geneticAlgo
