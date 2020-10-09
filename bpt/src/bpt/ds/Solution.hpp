@@ -3,7 +3,6 @@
 
 #include <cstdlib>
 
-#include <EASTL/array.h>
 #include <EASTL/vector.h>
 
 namespace bpt
@@ -24,9 +23,6 @@ namespace bpt
     float getBuildingYPos(int32_t buildingIndex) const;
     float getBuildingRotation(int32_t buildingIndex) const;
     int32_t getNumBuildings() const;
-
-    eastl::array<Solution, 2> crossover(Solution& other);
-    void mutate();
   private:
     eastl::vector<float> genes;
     int32_t numBuildings;

@@ -94,13 +94,13 @@ namespace bpt
         assert(parentB.getNumBuildings() != 0);
 
         // Crossover
-        auto children = parentA.crossover(parentB);
+        auto children = this->crossoverSolutions(parentA, parentB);
         newPopulation[numOffsprings] = children[0];
         
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
         if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-          newPopulation[numOffsprings].mutate();
+          this->mutateSolution(newPopulation[numOffsprings], boundingArea);
         }
 
         numOffsprings++;
@@ -132,7 +132,8 @@ namespace bpt
             float mutationProbability = corex::core::generateRandomReal(
               mutationChanceDistribution);
             if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-              newPopulation[weakestSolutionIndex].mutate();
+              this->mutateSolution(newPopulation[weakestSolutionIndex],
+                                   boundingArea);
             }
           }
         } else {
@@ -141,7 +142,7 @@ namespace bpt
           float mutationProbability = corex::core::generateRandomReal(
             mutationChanceDistribution);
           if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-            newPopulation[numOffsprings].mutate();
+            this->mutateSolution(newPopulation[numOffsprings], boundingArea);
           }
 
           numOffsprings++;
@@ -173,7 +174,6 @@ namespace bpt
           newPopulation[weakestSolutionIndex] = bestSolution;
         }
       }
-      
 
       population = newPopulation;
 
@@ -328,5 +328,100 @@ namespace bpt
     }
 
     return solution;
+  }
+
+  eastl::array<Solution, 2> GA::crossoverSolutions(const Solution& solutionA,
+                                                   const Solution& solutionB)
+  {
+    // We're doing two-point crossover.
+    std::uniform_int_distribution<int32_t> geneDistribution{
+      0, solutionA.getNumBuildings() - 1
+    };
+
+    int32_t pointA = corex::core::generateRandomInt(geneDistribution);
+    int32_t pointB = 0;
+    do {
+      pointB = corex::core::generateRandomInt(geneDistribution);
+    } while (pointB == pointA);
+
+    if (pointB < pointA) {
+      std::swap(pointA, pointB);
+    }
+
+    Solution childA = solutionA;
+    Solution childB = solutionB;
+    for (int32_t currPoint = pointA; currPoint <= pointB; currPoint++) {
+      // Swap data between two offsprings.
+      float childAX = childB.getBuildingXPos(currPoint);
+      float childBX = childA.getBuildingXPos(currPoint);
+
+      float childAY = childB.getBuildingYPos(currPoint);
+      float childBY = childA.getBuildingYPos(currPoint);
+
+      float childARotation = childB.getBuildingRotation(currPoint);
+      float childBRotation = childA.getBuildingRotation(currPoint);
+
+      childA.setBuildingXPos(currPoint, childAX);
+      childB.setBuildingXPos(currPoint, childBX);
+
+      childA.setBuildingYPos(currPoint, childAY);
+      childB.setBuildingYPos(currPoint, childBY);
+
+      childA.setBuildingRotation(currPoint, childARotation);
+      childB.setBuildingRotation(currPoint, childBRotation);
+    }
+
+    return eastl::array<Solution, 2>{ childA, childB };
+  }
+
+  void GA::mutateSolution(Solution& solution,
+                          const corex::core::NPolygon& boundingArea)
+  {
+    std::uniform_int_distribution<int32_t> geneDistribution{
+      0, solution.getNumBuildings() - 1
+    };
+
+    int32_t targetGeneIndex = corex::core::generateRandomInt(geneDistribution);
+
+    float minX = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.x < ptB.x;
+      }
+    )->x;
+    float maxX = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.x < ptB.x;
+      }
+    )->x;
+    float minY = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.y < ptB.y;
+      }
+    )->y;
+    float maxY = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.y < ptB.y;
+      }
+    )->y;
+
+    std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
+    std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
+    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
+
+    float newXPos = corex::core::generateRandomReal(xPosDistribution);
+    float newYPos = corex::core::generateRandomReal(yPosDistribution);
+    float newRotation = corex::core::generateRandomReal(rotationDistribution);
+
+    solution.setBuildingXPos(targetGeneIndex, newXPos);
+    solution.setBuildingYPos(targetGeneIndex, newYPos);
+    solution.setBuildingRotation(targetGeneIndex, newRotation);
   }
 }

@@ -3,8 +3,6 @@
 #include <iostream>
 #include <random>
 
-#include <EASTL/array.h>
-
 #include <corex/core/utils.hpp>
 
 #include <bpt/ds/Solution.hpp>
@@ -56,49 +54,5 @@ namespace bpt
   int32_t Solution::getNumBuildings() const
   {
     return this->numBuildings;
-  }
-
-  eastl::array<Solution, 2> Solution::crossover(Solution& other)
-  {
-    // Assume one-point crossover for now.
-    std::uniform_int_distribution<int32_t> geneDistribution{
-      0, this->getNumBuildings() - 1
-    };
-
-    int32_t pointA = corex::core::generateRandomInt(geneDistribution);
-    int32_t pointB = 0;
-    do {
-      pointB = corex::core::generateRandomInt(geneDistribution);
-    } while (pointB == pointA);
-
-    if (pointB < pointA) {
-      std::swap(pointA, pointB);
-    }
-
-    Solution childA = *this;
-    Solution childB = other;
-    for (int32_t currPoint = pointA; currPoint <= pointB; currPoint++) {
-      int32_t currPointIdx = currPoint * 3;
-      std::swap(childA.genes[currPointIdx], childB.genes[currPointIdx]);
-      std::swap(childA.genes[currPointIdx + 1], childB.genes[currPointIdx + 1]);
-      std::swap(childA.genes[currPointIdx + 2], childB.genes[currPointIdx + 2]);
-    }
-
-    return eastl::array<Solution, 2>{ childA, childB };
-  }
-
-  void Solution::mutate()
-  {
-    // Let's mutate the rotation only for now.
-    std::uniform_int_distribution<int32_t> geneDistribution{
-      0, this->getNumBuildings() - 1
-    };
-
-    int32_t targetGeneIndex = corex::core::generateRandomInt(geneDistribution);
-
-    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
-    float newRotation = corex::core::generateRandomReal(rotationDistribution);
-
-    this->genes[targetGeneIndex + 2] = newRotation;
   }
 }

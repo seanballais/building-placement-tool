@@ -33,6 +33,10 @@ namespace bpt
     Solution
     generateRandomSolution(const eastl::vector<InputBuilding>& inputBuildings,
                            const corex::core::NPolygon& boundingArea);
+    eastl::array<Solution, 2> crossoverSolutions(const Solution& solutionA,
+                                                 const Solution& solutionB);
+    void mutateSolution(Solution& solution,
+                        const corex::core::NPolygon& boundingArea);
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;
     eastl::vector<float> recentRunWorstFitnesses;
