@@ -262,7 +262,6 @@ namespace bpt
     this->buildConstructBoundingAreaWindow();
     this->buildWarningWindow();
     this->buildInputBuildingsWindow();
-    this->buildCameraResetWindow();
     this->buildGAControlsWindow();
     this->buildGAResultsWindow();
   }
@@ -421,20 +420,6 @@ namespace bpt
     }
 
     ImGui::EndChild();
-    ImGui::End();
-  }
-
-  void MainScene::buildCameraResetWindow()
-  {
-    // Workaround, since we don't have time to properly convert screen
-    // coordinates to world coordinates when the camera is zoomed in or out.
-    ImGui::Begin("Camera Reset");
-
-    if (ImGui::Button("Reset Camera")) {
-      this->camera.setZoomX(1.f);
-      this->camera.setZoomY(1.f);
-    }
-
     ImGui::End();
   }
 
