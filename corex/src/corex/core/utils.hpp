@@ -1,7 +1,6 @@
 #ifndef COREX_CORE_UTILS_HPP
 #define COREX_CORE_UTILS_HPP
 
-#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -37,19 +36,19 @@ namespace corex::core
   template <class T>
   T generateRandomInt(std::uniform_int_distribution<T> distribution)
   {
-    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
-    std::default_random_engine randGenerator(seed);
+    std::random_device randDevice;
+    std::mt19937 mt(randDevice());
 
-    return distribution(randGenerator);
+    return distribution(mt);
   }
 
   template <class T>
   T generateRandomReal(std::uniform_real_distribution<T> distribution)
   {
-    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
-    std::default_random_engine randGenerator(seed);
+    std::random_device randDevice;
+    std::mt19937 mt(randDevice());
 
-    return distribution(randGenerator);
+    return distribution(mt);
   }
 
   float metersToPixels(float meters, float ppmRatio);

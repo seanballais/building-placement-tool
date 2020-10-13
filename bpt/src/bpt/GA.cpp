@@ -308,6 +308,9 @@ namespace bpt
       }
     )->y;
 
+    std::cout << "x: [" << minX << ", " << maxX << "]" << std::endl;
+    std::cout << "y: [" << minY << ", " << maxY << "]" << std::endl;
+
     std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
