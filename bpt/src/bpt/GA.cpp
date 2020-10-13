@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <iterator>
@@ -38,7 +39,6 @@ namespace bpt
     const int32_t tournamentSize)
   {
     eastl::vector<Solution> population(populationSize);
-    eastl::vector<double> populationFitnessValues(populationSize, 0.0);
 
     this->recentRunAvgFitnesses.clear();
     this->recentRunBestFitnesses.clear();
@@ -47,8 +47,6 @@ namespace bpt
     for (int32_t i = 0; i < populationSize; i++) {
       population[i] = this->generateRandomSolution(inputBuildings,
                                                    boundingArea);
-      populationFitnessValues[i] = this->getSolutionFitness(population[i],
-                                                            inputBuildings);
     }
 
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
@@ -333,45 +331,30 @@ namespace bpt
   eastl::array<Solution, 2> GA::crossoverSolutions(const Solution& solutionA,
                                                    const Solution& solutionB)
   {
-    // We're doing two-point crossover.
-    std::uniform_int_distribution<int32_t> geneDistribution{
-      0, solutionA.getNumBuildings() - 1
-    };
+    // We're doing uniform crossover.
+    std::uniform_int_distribution<int32_t> parentDistribution{ 0, 1 };
+    int32_t numGenes = solutionA.getNumBuildings();
 
-    int32_t pointA = corex::core::generateRandomInt(geneDistribution);
-    int32_t pointB = 0;
-    do {
-      pointB = corex::core::generateRandomInt(geneDistribution);
-    } while (pointB == pointA);
+    // Prevent unnecessary copying of the parents.
+    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
 
-    if (pointB < pointA) {
-      std::swap(pointA, pointB);
+    eastl::array<Solution, 2> children{ solutionA, solutionB };
+    for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
+      for (int32_t geneIdx = 0; geneIdx < numGenes; geneIdx++) {
+        int32_t parentIdx = corex::core::generateRandomInt(parentDistribution);
+        const Solution* const parent = parents[parentIdx];
+
+        children[childIdx].setBuildingXPos(geneIdx,
+                                           parent->getBuildingXPos(geneIdx));
+        children[childIdx].setBuildingYPos(geneIdx,
+                                           parent->getBuildingYPos(geneIdx));
+        children[childIdx].setBuildingRotation(
+          geneIdx,
+          parent->getBuildingRotation(geneIdx));
+      }
     }
 
-    Solution childA = solutionA;
-    Solution childB = solutionB;
-    for (int32_t currPoint = pointA; currPoint <= pointB; currPoint++) {
-      // Swap data between two offsprings.
-      float childAX = childB.getBuildingXPos(currPoint);
-      float childBX = childA.getBuildingXPos(currPoint);
-
-      float childAY = childB.getBuildingYPos(currPoint);
-      float childBY = childA.getBuildingYPos(currPoint);
-
-      float childARotation = childB.getBuildingRotation(currPoint);
-      float childBRotation = childA.getBuildingRotation(currPoint);
-
-      childA.setBuildingXPos(currPoint, childAX);
-      childB.setBuildingXPos(currPoint, childBX);
-
-      childA.setBuildingYPos(currPoint, childAY);
-      childB.setBuildingYPos(currPoint, childBY);
-
-      childA.setBuildingRotation(currPoint, childARotation);
-      childB.setBuildingRotation(currPoint, childBRotation);
-    }
-
-    return eastl::array<Solution, 2>{ childA, childB };
+    return children;
   }
 
   void GA::mutateSolution(Solution& solution,
