@@ -101,6 +101,8 @@ namespace bpt
           this->mutateSolution(newPopulation[numOffsprings], boundingArea);
         }
 
+        this->applySwapping(newPopulation[numOffsprings], inputBuildings);
+
         numOffsprings++;
 
         // In cases where the population size is not an even number, a child
@@ -133,6 +135,8 @@ namespace bpt
               this->mutateSolution(newPopulation[weakestSolutionIndex],
                                    boundingArea);
             }
+
+            this->applySwapping(newPopulation[numOffsprings], inputBuildings);
           }
         } else {
           newPopulation[numOffsprings] = children[1];
@@ -142,6 +146,8 @@ namespace bpt
           if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
             this->mutateSolution(newPopulation[numOffsprings], boundingArea);
           }
+
+          this->applySwapping(newPopulation[numOffsprings], inputBuildings);
 
           numOffsprings++;
         }
@@ -251,7 +257,7 @@ namespace bpt
         if (corex::core::areTwoRectsIntersecting(rectA, rectB)) {
           auto overlapPoly = corex::core::clippedPolygonFromTwoRects(rectA,
                                                                      rectB);
-          fitness += corex::core::polygonArea(overlapPoly);
+          fitness += corex::core::polygonArea(overlapPoly) * 1000;
         }
       }
     }
@@ -409,5 +415,63 @@ namespace bpt
     solution.setBuildingXPos(targetGeneIndex, newXPos);
     solution.setBuildingYPos(targetGeneIndex, newYPos);
     solution.setBuildingRotation(targetGeneIndex, newRotation);
+  }
+
+  void GA::applySwapping(Solution& solution,
+                         const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    eastl::vector<Solution> generatedSolutions;
+
+    // Save original solution.
+    generatedSolutions.push_back(solution);
+
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+        float building0XPos = solution.getBuildingXPos(i);
+        float building0YPos = solution.getBuildingYPos(i);
+        float building0Rot = solution.getBuildingRotation(i);
+
+        float building1XPos = solution.getBuildingXPos(j);
+        float building1YPos = solution.getBuildingYPos(j);
+        float building1Rot = solution.getBuildingRotation(j);
+
+        Solution altSolution0 = solution;
+        Solution altSolution1 = solution;
+        Solution altSolution2 = solution;
+
+        // Swap the buildings' positions, and save as a possible solution.
+        altSolution0.setBuildingXPos(i, building1XPos);
+        altSolution0.setBuildingYPos(i, building1YPos);
+        altSolution0.setBuildingXPos(j, building0XPos);
+        altSolution0.setBuildingYPos(j, building0YPos);
+
+        // Swap the buildings' rotations, and save as a possible solution.
+        altSolution1.setBuildingRotation(i, building1Rot);
+        altSolution1.setBuildingRotation(j, building0Rot);
+
+        // Swap the buildings' positions and rotations, and save as a possible
+        // solution.
+        altSolution2.setBuildingXPos(i, building1XPos);
+        altSolution2.setBuildingYPos(i, building1YPos);
+        altSolution2.setBuildingXPos(j, building0XPos);
+        altSolution2.setBuildingYPos(j, building0YPos);
+        altSolution2.setBuildingRotation(i, building1Rot);
+        altSolution2.setBuildingRotation(j, building0Rot);
+
+        generatedSolutions.push_back(altSolution0);
+        generatedSolutions.push_back(altSolution1);
+        generatedSolutions.push_back(altSolution2);
+      }
+    }
+
+    solution = *std::min_element(
+      generatedSolutions.begin(),
+      generatedSolutions.end(),
+      [this, inputBuildings](Solution solutionA, Solution solutionB) {
+        return corex::core::floatLessThan(
+          this->getSolutionFitness(solutionA, inputBuildings),
+          this->getSolutionFitness(solutionB, inputBuildings));
+      }
+    );
   }
 }

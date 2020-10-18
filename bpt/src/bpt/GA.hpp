@@ -37,6 +37,8 @@ namespace bpt
                                                  const Solution& solutionB);
     void mutateSolution(Solution& solution,
                         const corex::core::NPolygon& boundingArea);
+    void applySwapping(Solution& solution,
+                       const eastl::vector<InputBuilding>& inputBuildings);
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;
     eastl::vector<float> recentRunWorstFitnesses;
