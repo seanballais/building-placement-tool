@@ -136,7 +136,8 @@ namespace bpt
                                    boundingArea);
             }
 
-            this->applySwapping(newPopulation[numOffsprings], inputBuildings);
+            this->applySwapping(newPopulation[weakestSolutionIndex],
+                                inputBuildings);
           }
         } else {
           newPopulation[numOffsprings] = children[1];
