@@ -92,16 +92,18 @@ namespace bpt
         assert(parentB.getNumBuildings() != 0);
 
         // Crossover
-        auto children = this->crossoverSolutions(parentA, parentB);
+        auto children = this->crossoverSolutions(parentA,
+                                                 parentB,
+                                                 inputBuildings);
         newPopulation[numOffsprings] = children[0];
         
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
         if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-          this->mutateSolution(newPopulation[numOffsprings], boundingArea);
+          this->mutateSolution(newPopulation[numOffsprings],
+                               boundingArea,
+                               inputBuildings);
         }
-
-        this->applySwapping(newPopulation[numOffsprings], inputBuildings);
 
         numOffsprings++;
 
@@ -133,11 +135,9 @@ namespace bpt
               mutationChanceDistribution);
             if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
               this->mutateSolution(newPopulation[weakestSolutionIndex],
-                                   boundingArea);
+                                   boundingArea,
+                                   inputBuildings);
             }
-
-            this->applySwapping(newPopulation[weakestSolutionIndex],
-                                inputBuildings);
           }
         } else {
           newPopulation[numOffsprings] = children[1];
@@ -145,10 +145,10 @@ namespace bpt
           float mutationProbability = corex::core::generateRandomReal(
             mutationChanceDistribution);
           if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-            this->mutateSolution(newPopulation[numOffsprings], boundingArea);
+            this->mutateSolution(newPopulation[numOffsprings],
+                                 boundingArea,
+                                 inputBuildings);
           }
-
-          this->applySwapping(newPopulation[numOffsprings], inputBuildings);
 
           numOffsprings++;
         }
@@ -323,23 +323,27 @@ namespace bpt
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
-    for (int32_t i = 0; i < inputBuildings.size(); i++) {
-      solution.setBuildingXPos(
-        i,
-        corex::core::generateRandomReal(xPosDistribution));
-      solution.setBuildingYPos(
-        i,
-        corex::core::generateRandomReal(yPosDistribution));
-      solution.setBuildingRotation(
-        i,
-        corex::core::generateRandomReal(rotationDistribution));
-    }
+    do {
+      for (int32_t i = 0; i < inputBuildings.size(); i++) {
+        solution.setBuildingXPos(
+          i,
+          corex::core::generateRandomReal(xPosDistribution));
+        solution.setBuildingYPos(
+          i,
+          corex::core::generateRandomReal(yPosDistribution));
+        solution.setBuildingRotation(
+          i,
+          corex::core::generateRandomReal(rotationDistribution));
+      }
+    } while (!this->isSolutionFeasible(solution, inputBuildings));
 
     return solution;
   }
 
-  eastl::array<Solution, 2> GA::crossoverSolutions(const Solution& solutionA,
-                                                   const Solution& solutionB)
+  eastl::array<Solution, 2>
+  GA::crossoverSolutions(const Solution& solutionA,
+                         const Solution& solutionB,
+                         const eastl::vector<InputBuilding>& inputBuildings)
   {
     // We're doing uniform crossover.
     std::uniform_int_distribution<int32_t> parentDistribution{ 0, 1 };
@@ -349,26 +353,31 @@ namespace bpt
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
 
     eastl::array<Solution, 2> children{ solutionA, solutionB };
-    for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
-      for (int32_t geneIdx = 0; geneIdx < numGenes; geneIdx++) {
-        int32_t parentIdx = corex::core::generateRandomInt(parentDistribution);
-        const Solution* const parent = parents[parentIdx];
+    do {
+      for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
+        for (int32_t geneIdx = 0; geneIdx < numGenes; geneIdx++) {
+          int32_t parentIdx = corex::core::generateRandomInt(
+            parentDistribution);
+          const Solution* const parent = parents[parentIdx];
 
-        children[childIdx].setBuildingXPos(geneIdx,
-                                           parent->getBuildingXPos(geneIdx));
-        children[childIdx].setBuildingYPos(geneIdx,
-                                           parent->getBuildingYPos(geneIdx));
-        children[childIdx].setBuildingRotation(
-          geneIdx,
-          parent->getBuildingRotation(geneIdx));
+          children[childIdx].setBuildingXPos(geneIdx,
+                                             parent->getBuildingXPos(geneIdx));
+          children[childIdx].setBuildingYPos(geneIdx,
+                                             parent->getBuildingYPos(geneIdx));
+          children[childIdx].setBuildingRotation(
+            geneIdx,
+            parent->getBuildingRotation(geneIdx));
+        }
       }
-    }
+    } while (!this->isSolutionFeasible(children[0], inputBuildings)
+             || !this->isSolutionFeasible(children[1], inputBuildings));
 
     return children;
   }
 
   void GA::mutateSolution(Solution& solution,
-                          const corex::core::NPolygon& boundingArea)
+                          const corex::core::NPolygon& boundingArea,
+                          const eastl::vector<InputBuilding>& inputBuildings)
   {
     std::uniform_int_distribution<int32_t> geneDistribution{
       0, solution.getNumBuildings() - 1
@@ -409,13 +418,18 @@ namespace bpt
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
-    float newXPos = corex::core::generateRandomReal(xPosDistribution);
-    float newYPos = corex::core::generateRandomReal(yPosDistribution);
-    float newRotation = corex::core::generateRandomReal(rotationDistribution);
+    Solution tempSolution = solution;
+    do {
+      float newXPos = corex::core::generateRandomReal(xPosDistribution);
+      float newYPos = corex::core::generateRandomReal(yPosDistribution);
+      float newRotation = corex::core::generateRandomReal(rotationDistribution);
 
-    solution.setBuildingXPos(targetGeneIndex, newXPos);
-    solution.setBuildingYPos(targetGeneIndex, newYPos);
-    solution.setBuildingRotation(targetGeneIndex, newRotation);
+      tempSolution.setBuildingXPos(targetGeneIndex, newXPos);
+      tempSolution.setBuildingYPos(targetGeneIndex, newYPos);
+      tempSolution.setBuildingRotation(targetGeneIndex, newRotation);
+    } while (!this->isSolutionFeasible(tempSolution, inputBuildings));
+
+    solution = tempSolution;
   }
 
   void GA::applySwapping(Solution& solution,
@@ -474,5 +488,34 @@ namespace bpt
           this->getSolutionFitness(solutionB, inputBuildings));
       }
     );
+  }
+
+  bool
+  GA::isSolutionFeasible(const Solution& solution,
+                         const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      corex::core::Rectangle building0 = corex::core::Rectangle{
+        solution.getBuildingXPos(i),
+        solution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        solution.getBuildingRotation(i)
+      };
+      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+        corex::core::Rectangle building1 = corex::core::Rectangle{
+          solution.getBuildingXPos(j),
+          solution.getBuildingYPos(j),
+          inputBuildings[j].width,
+          inputBuildings[j].length,
+          solution.getBuildingRotation(j)
+        };
+        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 }
