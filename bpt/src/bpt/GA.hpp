@@ -43,6 +43,9 @@ namespace bpt
                         const eastl::vector<InputBuilding>& inputBuildings);
     void applySwapping(Solution& solution,
                        const eastl::vector<InputBuilding>& inputBuildings);
+    void applyLocalSearch1(Solution& solution,
+                           const corex::core::NPolygon& boundingArea,
+                           const eastl::vector<InputBuilding>& inputBuildings);
     bool
     isSolutionFeasible(const Solution& solution,
                        const corex::core::NPolygon& boundingArea,

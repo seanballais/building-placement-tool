@@ -7,6 +7,7 @@
 #include <random>
 
 #include <EASTL/array.h>
+#include <EASTL/functional.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
@@ -208,6 +209,8 @@ namespace bpt
             this->getSolutionFitness(solutionB, inputBuildings));
         }
       );
+
+      this->applyLocalSearch1(bestSolution, boundingArea, inputBuildings);
 
       this->recentRunBestFitnesses.push_back(static_cast<float>(
         this->getSolutionFitness(bestSolution, inputBuildings)));
@@ -502,6 +505,151 @@ namespace bpt
         generatedSolutions.push_back(altSolution0);
         generatedSolutions.push_back(altSolution1);
         generatedSolutions.push_back(altSolution2);
+      }
+    }
+
+    solution = *std::min_element(
+      generatedSolutions.begin(),
+      generatedSolutions.end(),
+      [this, inputBuildings](Solution solutionA, Solution solutionB) {
+        return corex::core::floatLessThan(
+          this->getSolutionFitness(solutionA, inputBuildings),
+          this->getSolutionFitness(solutionB, inputBuildings));
+      }
+    );
+  }
+
+  void GA::applyLocalSearch1(Solution& solution,
+                             const corex::core::NPolygon& boundingArea,
+                             const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    constexpr int32_t numMovements = 8;
+    constexpr float maxShiftAmount = 15.f;
+    std::uniform_real_distribution<float> shiftDistrib{ 0, maxShiftAmount };
+    static const
+    eastl::array<eastl::function<Solution(Solution, int32_t)>,
+                 numMovements> searchFunctions = {
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 - shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 + shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 - shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 + shiftAmountB);
+        return solution;
+      }
+    };
+
+    eastl::vector<Solution> generatedSolutions;
+    generatedSolutions.push_back(solution);
+
+    constexpr float maxRotShiftAmount = 90.f;
+    std::uniform_real_distribution<float> rotShiftDistrib{
+      -maxRotShiftAmount,
+      maxRotShiftAmount
+    };
+
+    for (int32_t movementID = 0; movementID < numMovements; movementID++) {
+      int32_t buildingIndex = movementID % inputBuildings.size();
+
+      auto altSolution0 = searchFunctions[movementID](solution, buildingIndex);
+      if (this->isSolutionFeasible(altSolution0,
+                                   boundingArea,
+                                   inputBuildings)) {
+        generatedSolutions.push_back(altSolution0);
+      }
+
+      auto altSolution1 = altSolution0;
+      solution.setBuildingRotation(
+        buildingIndex,
+        corex::core::generateRandomReal(rotShiftDistrib));
+      if (this->isSolutionFeasible(altSolution1,
+                                   boundingArea,
+                                   inputBuildings)) {
+        generatedSolutions.push_back(altSolution1);
       }
     }
 
