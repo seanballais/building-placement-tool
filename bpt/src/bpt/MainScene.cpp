@@ -52,6 +52,7 @@ namespace bpt
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
     , gaSettings({ 0.25f, 25, 1000, 4 })
+    , currentSolution()
     , isGAThreadRunning(false)
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
@@ -61,6 +62,7 @@ namespace bpt
     , showGAResultsAverage(true)
     , showGAResultsBest(true)
     , showGAResultsWorst(true)
+    , hasSetupCurrentSolution(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
@@ -147,6 +149,45 @@ namespace bpt
   void MainScene::update(float timeDelta)
   {
     this->timeDelta = timeDelta;
+
+    if (!this->hasSetupCurrentSolution && !this->isGAThreadRunning) {
+      for (int32_t i = 0; i < this->currentSolution.getNumBuildings(); i++) {
+        entt::entity e = this->registry.create();
+        this->registry.emplace<corex::core::Position>(
+          e,
+          this->currentSolution.getBuildingXPos(i),
+          this->currentSolution.getBuildingYPos(i),
+          0.f,
+          static_cast<int8_t>(0));
+        this->registry.emplace<corex::core::Renderable>(
+          e,
+          corex::core::RenderableType::PRIMITIVE_RECTANGLE);
+        this->registry.emplace<corex::core::RenderRectangle>(
+          e,
+          this->currentSolution.getBuildingXPos(i),
+          this->currentSolution.getBuildingYPos(i),
+          this->inputBuildings[i].width,
+          this->inputBuildings[i].length,
+          this->currentSolution.getBuildingRotation(i),
+          SDL_Color{ 0, 102, 51, 255 },
+          true);
+
+        this->buildingEntities.push_back(e);
+
+        std::cout << "Building #" << i << std::endl;
+        std::cout << "-- x: " << this->currentSolution.getBuildingXPos(i) << std::endl;
+        std::cout << "-- y: " << this->currentSolution.getBuildingYPos(i) << std::endl;
+        std::cout << "-- Rotation: " << this->currentSolution.getBuildingRotation(i)
+                  << std::endl;
+      }
+
+      std::cout << "Fitness: "
+                << this->geneticAlgo.getSolutionFitness(this->currentSolution,
+                                                        this->inputBuildings)
+                << std::endl;
+
+      this->hasSetupCurrentSolution = true;
+    }
 
     switch (this->currentContext) {
       case Context::NO_ACTION: {
@@ -438,6 +479,7 @@ namespace bpt
     } else {
       if (ImGui::Button("Generate Solution")) {
         this->isGAThreadRunning = true;
+        this->hasSetupCurrentSolution = false;
 
         for (entt::entity& e : this->buildingEntities) {
           this->registry.destroy(e);
@@ -453,7 +495,7 @@ namespace bpt
             auto inputBuildingsCopy = this->inputBuildings;
             auto boundingAreaCopy = this->boundingArea;
 
-            Solution solution = this->geneticAlgo.generateSolution(
+            this->currentSolution = this->geneticAlgo.generateSolution(
               inputBuildingsCopy,
               boundingAreaCopy,
               this->gaSettings.mutationRate,
@@ -461,37 +503,6 @@ namespace bpt
               this->gaSettings.numGenerations,
               this->gaSettings.tournamentSize
             );
-
-            for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-              entt::entity e = this->registry.create();
-              this->registry.emplace<corex::core::Position>(
-                e,
-                solution.getBuildingXPos(i),
-                solution.getBuildingYPos(i),
-                0.f,
-                static_cast<int8_t>(0));
-              this->registry.emplace<corex::core::Renderable>(
-                e,
-                corex::core::RenderableType::PRIMITIVE_RECTANGLE);
-              this->registry.emplace<corex::core::RenderRectangle>(
-                e,
-                solution.getBuildingXPos(i),
-                solution.getBuildingYPos(i),
-                this->inputBuildings[i].width,
-                this->inputBuildings[i].length,
-                solution.getBuildingRotation(i),
-                SDL_Color{ 0, 102, 51, 255 },
-                true);
-
-              this->buildingEntities.push_back(e);
-
-              std::cout << "Building #" << i << std::endl;
-              std::cout << "-- x: " << solution.getBuildingXPos(i) << std::endl;
-              std::cout << "-- y: " << solution.getBuildingYPos(i) << std::endl;
-              std::cout << "-- Rotation: " << solution.getBuildingRotation(i) << std::endl;
-            }
-
-            std::cout << "Fitness: " << this->geneticAlgo.getSolutionFitness(solution, this->inputBuildings) << std::endl;
 
             this->recentGARunAvgFitnesses = this
                                               ->geneticAlgo

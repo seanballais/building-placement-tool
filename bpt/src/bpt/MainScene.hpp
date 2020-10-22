@@ -23,6 +23,7 @@
 #include <bpt/GA.hpp>
 #include <bpt/ds/GASettings.hpp>
 #include <bpt/ds/InputBuilding.hpp>
+#include <bpt/ds/Solution.hpp>
 
 namespace bpt
 {
@@ -54,6 +55,7 @@ namespace bpt
     Context currentContext;
     GA geneticAlgo;
     GASettings gaSettings;
+    Solution currentSolution;
     std::atomic<bool> isGAThreadRunning;
     bool doesInputDataExist;
     bool doesInputBoundingAreaFieldExist;
@@ -63,6 +65,7 @@ namespace bpt
     bool showGAResultsAverage;
     bool showGAResultsBest;
     bool showGAResultsWorst;
+    bool hasSetupCurrentSolution;
     float cameraMovementSpeed;
     float timeDelta;
     corex::core::Circle closeAreaTriggerCircle;
