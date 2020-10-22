@@ -115,9 +115,14 @@ namespace corex::core
                                                const Line& line1);
   ReturnValue<Point> intersectionOfLineandInfLine(const Line& line,
                                                   const Line& infLine);
+  ReturnValue<Point> intersectionOfLineAndLine(const Line& line0,
+                                               const Line& line1);
+  bool areTwoLinesIntersecting(const Line& line0, const Line& line1);
   NPolygon clippedPolygonFromTwoRects(const Rectangle& targetRect,
                                       const Rectangle& clippingRect);
   double polygonArea(const NPolygon& polygon);
+  bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon);
+  bool isRectWithinNPolygon(const Rectangle& rect, const NPolygon& polygon);
 
   template <uint32_t numVertices>
   eastl::array<Line, numVertices>

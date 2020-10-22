@@ -12,6 +12,7 @@
 #include <corex/core/math_functions.hpp>
 #include <corex/core/ds/NPolygon.hpp>
 #include <corex/core/ds/Point.hpp>
+#include <corex/core/ds/Rectangle.hpp>
 
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
@@ -38,6 +39,13 @@ namespace bpt
     const int32_t numGenerations,
     const int32_t tournamentSize)
   {
+    std::cout << "\\!/ Input Building Data" << std::endl;
+    for (auto& building : inputBuildings) {
+      std::cout << "# Building Data" << std::endl;
+      std::cout << "Width: " << building.width << std::endl;
+      std::cout << "Length: " << building.length << std::endl;
+    }
+
     eastl::vector<Solution> population(populationSize);
 
     this->recentRunAvgFitnesses.clear();
@@ -94,6 +102,7 @@ namespace bpt
         // Crossover
         auto children = this->crossoverSolutions(parentA,
                                                  parentB,
+                                                 boundingArea,
                                                  inputBuildings);
         newPopulation[numOffsprings] = children[0];
         
@@ -315,9 +324,6 @@ namespace bpt
       }
     )->y;
 
-    std::cout << "x: [" << minX << ", " << maxX << "]" << std::endl;
-    std::cout << "y: [" << minY << ", " << maxY << "]" << std::endl;
-
     std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
@@ -325,17 +331,30 @@ namespace bpt
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
     do {
       for (int32_t i = 0; i < inputBuildings.size(); i++) {
-        solution.setBuildingXPos(
-          i,
-          corex::core::generateRandomReal(xPosDistribution));
-        solution.setBuildingYPos(
-          i,
-          corex::core::generateRandomReal(yPosDistribution));
-        solution.setBuildingRotation(
-          i,
-          corex::core::generateRandomReal(rotationDistribution));
+        corex::core::Point buildingPos { 0.f, 0.f };
+        float buildingRotation = 0.f;
+        corex::core::Rectangle buildingRect {
+          buildingPos.x,
+          buildingPos.y,
+          inputBuildings[i].width,
+          inputBuildings[i].length,
+          buildingRotation
+        };
+        do {
+          buildingPos.x = corex::core::generateRandomReal(xPosDistribution);
+          buildingPos.y = corex::core::generateRandomReal(yPosDistribution);
+          buildingRotation = corex::core::generateRandomReal(
+            rotationDistribution);
+          buildingRect.x = buildingPos.x;
+          buildingRect.y = buildingPos.y;
+          buildingRect.angle = buildingRotation;
+        } while (!isRectWithinNPolygon(buildingRect, boundingArea));
+
+        solution.setBuildingXPos(i, buildingPos.x);
+        solution.setBuildingYPos(i, buildingPos.y);
+        solution.setBuildingRotation(i, buildingRotation);
       }
-    } while (!this->isSolutionFeasible(solution, inputBuildings));
+    } while (!this->isSolutionFeasible(solution, boundingArea, inputBuildings));
 
     return solution;
   }
@@ -343,6 +362,7 @@ namespace bpt
   eastl::array<Solution, 2>
   GA::crossoverSolutions(const Solution& solutionA,
                          const Solution& solutionB,
+                         const corex::core::NPolygon& boundingArea,
                          const eastl::vector<InputBuilding>& inputBuildings)
   {
     // We're doing uniform crossover.
@@ -369,8 +389,12 @@ namespace bpt
             parent->getBuildingRotation(geneIdx));
         }
       }
-    } while (!this->isSolutionFeasible(children[0], inputBuildings)
-             || !this->isSolutionFeasible(children[1], inputBuildings));
+    } while (!this->isSolutionFeasible(children[0],
+                                       boundingArea,
+                                       inputBuildings)
+             || !this->isSolutionFeasible(children[1],
+                                          boundingArea,
+                                          inputBuildings));
 
     return children;
   }
@@ -427,7 +451,9 @@ namespace bpt
       tempSolution.setBuildingXPos(targetGeneIndex, newXPos);
       tempSolution.setBuildingYPos(targetGeneIndex, newYPos);
       tempSolution.setBuildingRotation(targetGeneIndex, newRotation);
-    } while (!this->isSolutionFeasible(tempSolution, inputBuildings));
+    } while (!this->isSolutionFeasible(tempSolution,
+                                       boundingArea,
+                                       inputBuildings));
 
     solution = tempSolution;
   }
@@ -492,7 +518,19 @@ namespace bpt
 
   bool
   GA::isSolutionFeasible(const Solution& solution,
+                         const corex::core::NPolygon& boundingArea,
                          const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    return this->doesSolutionHaveNoBuildingsOverlapping(solution,
+                                                        inputBuildings)
+           && this->areSolutionBuildingsWithinBounds(solution,
+                                                     boundingArea,
+                                                     inputBuildings);
+  }
+
+  bool GA::doesSolutionHaveNoBuildingsOverlapping(
+    const Solution& solution,
+    const eastl::vector<InputBuilding>& inputBuildings)
   {
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
       corex::core::Rectangle building0 = corex::core::Rectangle{
@@ -513,6 +551,28 @@ namespace bpt
         if (corex::core::areTwoRectsIntersecting(building0, building1)) {
           return false;
         }
+      }
+    }
+
+    return true;
+  }
+
+  bool GA::areSolutionBuildingsWithinBounds(
+    const Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      corex::core::Rectangle buildingRect = corex::core::Rectangle{
+        solution.getBuildingXPos(i),
+        solution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        solution.getBuildingRotation(i)
+      };
+
+      if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
+        return false;
       }
     }
 

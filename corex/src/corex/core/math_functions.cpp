@@ -484,6 +484,34 @@ namespace corex::core
     return ReturnValue<Point>{ Point{}, ReturnState::RETURN_FAIL };
   }
 
+  ReturnValue<Point> intersectionOfLineAndLine(const Line& line0,
+                                               const Line& line1)
+  {
+    auto intersectionPt = intersectionOfTwoInfLines(line0, line1);
+    if (intersectionPt.status == ReturnState::RETURN_FAIL) {
+      return intersectionPt;
+    }
+
+    Point intersectPt = intersectionPt.value;
+
+    // For an intersection point to exist between two line segments, the point
+    // must within the two line segments.
+    if (isFloatInclusiveBetween(line0.start.x, intersectPt.x, line0.end.x)
+        && isFloatInclusiveBetween(line0.start.y, intersectPt.y, line0.end.y)
+        && isFloatInclusiveBetween(line1.start.x, intersectPt.x, line1.end.x)
+        && isFloatInclusiveBetween(line1.start.y, intersectPt.y, line1.end.y)) {
+      return ReturnValue<Point>{ intersectPt, ReturnState::RETURN_OK };
+    }
+
+    return ReturnValue<Point>{ Point{}, ReturnState::RETURN_FAIL };
+  }
+
+  bool areTwoLinesIntersecting(const Line& line0, const Line& line1)
+  {
+    auto intersectionPt = intersectionOfLineAndLine(line0, line1);
+    return intersectionPt.status == ReturnState::RETURN_OK;
+  }
+
   NPolygon clippedPolygonFromTwoRects(const Rectangle& targetRect,
                                       const Rectangle& clippingRect)
   {
@@ -562,5 +590,62 @@ namespace corex::core
     }
 
     return fabs(area) / 2.0;
+  }
+
+  bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon)
+  {
+    // Code based from:
+    //     https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+    // NOTE: I think the algorithm expects that the origin is situated in the
+    //       bottom-left corner of the space. Since our vertices are stored with
+    //       the assumption that the origin is situated in the top-left corner.
+    //       from the perspective of the algorithm, the vertices are flipped
+    //       vertically.
+    bool isPointInside = false;
+    for (int32_t i = 0, j = polygon.vertices.size() - 1;
+         i < polygon.vertices.size();
+         j = i++) {
+      Line polyLine = Line{ polygon.vertices[i], polygon.vertices[j] };
+      if (((polyLine.start.y > point.y) != (polyLine.end.y > point.y))
+          && (point.x < ((polyLine.end.x - polyLine.start.x)
+                          * (point.y - polyLine.start.y)
+                          / (polyLine.end.y - polyLine.start.y)
+                          + polyLine.start.x))) {
+        isPointInside = !isPointInside;
+      }
+    }
+
+    return isPointInside;
+  }
+
+  bool isRectWithinNPolygon(const Rectangle& rect, const NPolygon& polygon)
+  {
+    auto rectPoly = convertRectangleToPolygon(rect);
+
+    for (int32_t i = 0; i < polygon.vertices.size(); i++) {
+      Line boundaryLine = Line{
+        polygon.vertices[i],
+        polygon.vertices[(i + 1) % polygon.vertices.size()]
+      };
+
+      for (int32_t j = 0; j < rectPoly.vertices.size(); j++) {
+        Line rectLine = Line{
+          rectPoly.vertices[i],
+          rectPoly.vertices[(i + 1) % rectPoly.vertices.size()]
+        };
+
+        if (areTwoLinesIntersecting(boundaryLine, rectLine)
+            && (floatGreater(signedDistPointToInfLine(rectLine.start,
+                                                      boundaryLine),
+                             0.f)
+                || floatGreater(signedDistPointToInfLine(rectLine.end,
+                                                         boundaryLine),
+                                0.f))) {
+          return false;
+        }
+      }
+    }
+
+    return isPointWithinNPolygon(rectPoly.vertices[0], polygon);
   }
 }

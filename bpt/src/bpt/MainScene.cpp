@@ -447,9 +447,15 @@ namespace bpt
 
         std::thread gaThread{
           [this]() {
+            // We need to copy the input buildings and bounding area vectors to
+            // this thread,because they somehow get modified as the thread
+            // executes.
+            auto inputBuildingsCopy = this->inputBuildings;
+            auto boundingAreaCopy = this->boundingArea;
+
             Solution solution = this->geneticAlgo.generateSolution(
-              this->inputBuildings,
-              this->boundingArea,
+              inputBuildingsCopy,
+              boundingAreaCopy,
               this->gaSettings.mutationRate,
               this->gaSettings.populationSize,
               this->gaSettings.numGenerations,

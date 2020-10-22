@@ -36,6 +36,7 @@ namespace bpt
     eastl::array<Solution, 2>
     crossoverSolutions(const Solution& solutionA,
                        const Solution& solutionB,
+                       const corex::core::NPolygon& boundingArea,
                        const eastl::vector<InputBuilding>& inputBuildings);
     void mutateSolution(Solution& solution,
                         const corex::core::NPolygon& boundingArea,
@@ -44,7 +45,15 @@ namespace bpt
                        const eastl::vector<InputBuilding>& inputBuildings);
     bool
     isSolutionFeasible(const Solution& solution,
+                       const corex::core::NPolygon& boundingArea,
                        const eastl::vector<InputBuilding>& inputBuildings);
+    bool doesSolutionHaveNoBuildingsOverlapping(
+      const Solution& solution,
+      const eastl::vector<InputBuilding>& inputBuildings);
+    bool areSolutionBuildingsWithinBounds(
+      const Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;
     eastl::vector<float> recentRunWorstFitnesses;
