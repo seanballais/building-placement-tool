@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <typeinfo>
 
 #include <EASTL/vector.h>
 #include <entt/entt.hpp>
@@ -54,6 +55,7 @@ namespace bpt
     , gaSettings({ 0.25f, 25, 1000, 4 })
     , currentSolution()
     , isGAThreadRunning(false)
+    , hasSetupCurrentSolution(false)
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
     , doesInputBuildingsExist(false)
@@ -62,7 +64,6 @@ namespace bpt
     , showGAResultsAverage(true)
     , showGAResultsBest(true)
     , showGAResultsWorst(true)
-    , hasSetupCurrentSolution(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
@@ -75,6 +76,7 @@ namespace bpt
     , closeAreaTriggerEntity(entt::null)
     , inputBuildings()
     , buildingEntities()
+    , flowRates()
     , recentGARunAvgFitnesses()
     , recentGARunBestFitnesses()
     , recentGARunWorstFitnesses()
@@ -119,13 +121,24 @@ namespace bpt
           }
 
           if (this->inputData.contains("inputBuildings")) {
+            int32_t numBuildings = this->inputData["inputBuildings"].size();
             for (auto& building : this->inputData["inputBuildings"]) {
               // Sigh. Shoud have used a JSON object here.
               this->inputBuildings.push_back(InputBuilding{
                 building[0].get<float>(), building[1].get<float>()
               });
+
+              eastl::vector<float> buildingFlowRates;
+              for (auto flowRate : building[2]) {
+                std::cout << typeid(flowRate).name() << std::endl;
+                buildingFlowRates.push_back(flowRate.get<float>());
+              }
+
+              this->flowRates.push_back(buildingFlowRates);
             }
             this->doesInputBuildingsExist = true;
+
+            assert(this->inputBuildings.size() == this->flowRates.size());
           }
 
           if (this->inputData.contains("gaSettings")) {
@@ -183,7 +196,7 @@ namespace bpt
 
       std::cout << "Fitness: "
                 << this->geneticAlgo.getSolutionFitness(this->currentSolution,
-                                                        this->inputBuildings)
+                                                        this->flowRates)
                 << std::endl;
 
       this->hasSetupCurrentSolution = true;
@@ -321,10 +334,18 @@ namespace bpt
       }
 
       this->inputData["inputBuildings"] = nlohmann::json::array();
+      int32_t buildingIndex = 0;
       for (InputBuilding& building : this->inputBuildings) {
+        nlohmann::json flowRates = nlohmann::json::array();
+        for (float& flowRate : this->flowRates[buildingIndex]) {
+          flowRates.push_back(flowRate);
+        }
+
         this->inputData["inputBuildings"].push_back(
-          nlohmann::json::array({ building.length, building.width })
+          nlohmann::json::array({ building.length, building.width, flowRates })
         );
+
+        buildingIndex++;
       }
 
       this->inputData["gaSettings"] = nlohmann::json::object();
@@ -430,6 +451,14 @@ namespace bpt
 
     if (ImGui::Button("Add another building")) {
       this->inputBuildings.push_back(InputBuilding{});
+
+      // Add a column for the new input building for each pre-existing building.
+      for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
+        this->flowRates[i].push_back(1.f);
+      }
+
+      this->flowRates.push_back(
+        eastl::vector<float>(this->inputBuildings.size(), 1.f));
     }
     ImGui::Separator();
 
@@ -437,6 +466,8 @@ namespace bpt
 
     for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
       ImGui::Separator();
+
+      ImGui::Text("Buidling #%d", i);
 
       // Should be good enough for 9,999 input buildings.
       char lengthText[12];
@@ -458,9 +489,24 @@ namespace bpt
     if (removedBuildingIndex != -1) {
       this->inputBuildings
            .erase(this->inputBuildings.begin() + removedBuildingIndex);
+
+      this->flowRates.erase(this->flowRates.begin() + removedBuildingIndex);
+      for (int32_t i = 0; i < this->flowRates.size(); i++) {
+        this->flowRates[i].erase(
+          this->flowRates[i].begin() + removedBuildingIndex);
+      }
     }
 
     ImGui::EndChild();
+    ImGui::End();
+  }
+
+  void MainScene::buildFlowRateWindow()
+  {
+    ImGui::Begin("Flow Rate");
+
+    ImGui::Text("Stuff");
+
     ImGui::End();
   }
 
@@ -494,10 +540,12 @@ namespace bpt
             // executes.
             auto inputBuildingsCopy = this->inputBuildings;
             auto boundingAreaCopy = this->boundingArea;
+            auto flowRatesCopy = this->flowRates;
 
             this->currentSolution = this->geneticAlgo.generateSolution(
               inputBuildingsCopy,
               boundingAreaCopy,
+              flowRatesCopy,
               this->gaSettings.mutationRate,
               this->gaSettings.populationSize,
               this->gaSettings.numGenerations,

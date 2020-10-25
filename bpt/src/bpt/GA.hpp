@@ -19,13 +19,14 @@ namespace bpt
     Solution generateSolution(
       const eastl::vector<InputBuilding>& inputBuildings,
       const corex::core::NPolygon& boundingArea,
+      const eastl::vector<eastl::vector<float>>& flowRates,
       const float mutationRate,
       const int32_t populationSize,
       const int32_t numGenerations,
       const int32_t tournamentSize);
     double getSolutionFitness(
       const Solution& solution,
-      const eastl::vector<InputBuilding>& inputBuildings);
+      const eastl::vector<eastl::vector<float>>& flowRates);
     eastl::vector<float> getRecentRunAverageFitnesses();
     eastl::vector<float> getRecentRunBestFitnesses();
     eastl::vector<float> getRecentRunWorstFitnesses();
@@ -42,10 +43,12 @@ namespace bpt
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings);
     void applySwapping(Solution& solution,
-                       const eastl::vector<InputBuilding>& inputBuildings);
-    void applyLocalSearch1(Solution& solution,
-                           const corex::core::NPolygon& boundingArea,
-                           const eastl::vector<InputBuilding>& inputBuildings);
+                       const eastl::vector<eastl::vector<float>>& flowRates);
+    void applyLocalSearch1(
+      Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const eastl::vector<eastl::vector<float>>& flowRates);
     bool
     isSolutionFeasible(const Solution& solution,
                        const corex::core::NPolygon& boundingArea,

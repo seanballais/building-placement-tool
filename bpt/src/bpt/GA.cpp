@@ -35,11 +35,14 @@ namespace bpt
   Solution GA::generateSolution(
     const eastl::vector<InputBuilding>& inputBuildings,
     const corex::core::NPolygon& boundingArea,
+    const eastl::vector<eastl::vector<float>>& flowRates,
     const float mutationRate,
     const int32_t populationSize,
     const int32_t numGenerations,
     const int32_t tournamentSize)
   {
+    assert(flowRates.size() == inputBuildings.size());
+
     std::cout << "\\!/ Input Building Data" << std::endl;
     for (auto& building : inputBuildings) {
       std::cout << "# Building Data" << std::endl;
@@ -81,16 +84,15 @@ namespace bpt
             chromosomeDistribution);
           if (j == 0
               || (corex::core::floatLessThan(
-                   this->getSolutionFitness(population[parentIndex],
-                                            inputBuildings),
-                   this->getSolutionFitness(parentA, inputBuildings)))) {
+                   this->getSolutionFitness(population[parentIndex], flowRates),
+                   this->getSolutionFitness(parentA, flowRates)))) {
             parentB = parentA;
             parentA = population[parentIndex];
           } else if ((parentB.getNumBuildings() == 0)
                      || (corex::core::floatLessThan(
                           this->getSolutionFitness(population[parentIndex],
-                                                   inputBuildings),
-                          this->getSolutionFitness(parentB, inputBuildings)))) {
+                                                   flowRates),
+                          this->getSolutionFitness(parentB, flowRates)))) {
             parentB = population[parentIndex];
           }
         }
@@ -125,18 +127,18 @@ namespace bpt
           auto weakestSolutionIter = std::max_element(
             newPopulation.begin(),
             newPopulation.end(),
-            [this, inputBuildings](Solution solutionA, Solution solutionB)
+            [this, &inputBuildings, &flowRates](Solution solutionA,
+                                                Solution solutionB)
                                   -> bool {
               return corex::core::floatLessThan(
-                this->getSolutionFitness(solutionA, inputBuildings),
-                this->getSolutionFitness(solutionB, inputBuildings));
+                this->getSolutionFitness(solutionA, flowRates),
+                this->getSolutionFitness(solutionB, flowRates));
             }
           );
 
           if (corex::core::floatLessThan(
-                this->getSolutionFitness(children[1], inputBuildings),
-                this->getSolutionFitness(*weakestSolutionIter,
-                                         inputBuildings))) {
+                this->getSolutionFitness(children[1], flowRates),
+                this->getSolutionFitness(*weakestSolutionIter, flowRates))) {
             int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
                                                          weakestSolutionIter);
             newPopulation[weakestSolutionIndex] = children[1];
@@ -172,18 +174,19 @@ namespace bpt
         auto weakestSolutionIter = std::max_element(
           newPopulation.begin(),
           newPopulation.end(),
-          [this, inputBuildings](Solution solutionA, Solution solutionB)
+          [this, &inputBuildings, &flowRates](Solution solutionA,
+                                              Solution solutionB)
                                 -> bool {
             return corex::core::floatLessThan(
-              this->getSolutionFitness(solutionA, inputBuildings),
-              this->getSolutionFitness(solutionB, inputBuildings));
+              this->getSolutionFitness(solutionA, flowRates),
+              this->getSolutionFitness(solutionB, flowRates));
             }
           );
 
         if (corex::core::floatLessThan(
-              this->getSolutionFitness(bestSolution, inputBuildings),
+              this->getSolutionFitness(bestSolution, flowRates),
               this->getSolutionFitness(*weakestSolutionIter,
-                                       inputBuildings))) {
+                                       flowRates))) {
           int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
                                                        weakestSolutionIter);
           newPopulation[weakestSolutionIndex] = bestSolution;
@@ -194,7 +197,7 @@ namespace bpt
 
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
-        fitnessAverage += this->getSolutionFitness(sol, inputBuildings);
+        fitnessAverage += this->getSolutionFitness(sol, flowRates);
       }
 
       fitnessAverage = fitnessAverage / newPopulation.size();
@@ -203,30 +206,35 @@ namespace bpt
       bestSolution = *std::min_element(
         population.begin(),
         population.end(),
-        [this, inputBuildings](Solution solutionA, Solution solutionB) {
+        [this, &inputBuildings, &flowRates](Solution solutionA,
+                                            Solution solutionB) {
           return corex::core::floatLessThan(
-            this->getSolutionFitness(solutionA, inputBuildings),
-            this->getSolutionFitness(solutionB, inputBuildings));
+            this->getSolutionFitness(solutionA, flowRates),
+            this->getSolutionFitness(solutionB, flowRates));
         }
       );
 
-      this->applyLocalSearch1(bestSolution, boundingArea, inputBuildings);
+      this->applyLocalSearch1(bestSolution,
+                              boundingArea,
+                              inputBuildings,
+                              flowRates);
 
       this->recentRunBestFitnesses.push_back(static_cast<float>(
-        this->getSolutionFitness(bestSolution, inputBuildings)));
+        this->getSolutionFitness(bestSolution, flowRates)));
 
       worstSolution = *std::max_element(
         population.begin(),
         population.end(),
-        [this, inputBuildings](Solution solutionA, Solution solutionB) {
+        [this, &inputBuildings, &flowRates](Solution solutionA,
+                                            Solution solutionB) {
           return corex::core::floatLessThan(
-            this->getSolutionFitness(solutionA, inputBuildings),
-            this->getSolutionFitness(solutionB, inputBuildings));
+            this->getSolutionFitness(solutionA, flowRates),
+            this->getSolutionFitness(solutionB, flowRates));
         }
       );
 
       this->recentRunWorstFitnesses.push_back(static_cast<float>(
-        this->getSolutionFitness(worstSolution, inputBuildings)));
+        this->getSolutionFitness(worstSolution, flowRates)));
     }
 
     return bestSolution;
@@ -234,44 +242,30 @@ namespace bpt
 
   double GA::getSolutionFitness(
     const Solution& solution,
-    const eastl::vector<InputBuilding>& inputBuildings)
+    const eastl::vector<eastl::vector<float>>& flowRates)
   {
     double fitness = 0.0;
 
     // For now, consider the objective function as the minimization of the
     // distance of the buildings from each other.
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      for (int32_t j = 1; i < solution.getNumBuildings(); i++) {
-        fitness += static_cast<double>(corex::core::distance2D(
-          corex::core::Point{
-            solution.getBuildingXPos(i),
-            solution.getBuildingYPos(i)
-          },
-          corex::core::Point{
-            solution.getBuildingXPos(j),
-            solution.getBuildingYPos(j)
-          }
-        ));
-
-        auto rectA = corex::core::Rectangle{
-          solution.getBuildingXPos(i),
-          solution.getBuildingYPos(i),
-          inputBuildings[i].width,
-          inputBuildings[i].length,
-          solution.getBuildingRotation(i)
-        };
-        auto rectB = corex::core::Rectangle{
-          solution.getBuildingXPos(j),
-          solution.getBuildingYPos(j),
-          inputBuildings[j].width,
-          inputBuildings[j].length,
-          solution.getBuildingRotation(j)
-        };
-        if (corex::core::areTwoRectsIntersecting(rectA, rectB)) {
-          auto overlapPoly = corex::core::clippedPolygonFromTwoRects(rectA,
-                                                                     rectB);
-          fitness += corex::core::polygonArea(overlapPoly) * 1000;
+      assert(flowRates[i].size() == solution.getNumBuildings());
+      for (int32_t j = 1; j < solution.getNumBuildings(); j++) {
+        if (i == j) {
+          continue;
         }
+
+        fitness += static_cast<double>(
+          corex::core::distance2D(corex::core::Point{
+                                    solution.getBuildingXPos(i),
+                                    solution.getBuildingYPos(i)
+                                  },
+                                  corex::core::Point{
+                                    solution.getBuildingXPos(j),
+                                    solution.getBuildingYPos(j)
+                                  })
+          * flowRates[i][j]
+        );
       }
     }
 
@@ -462,7 +456,7 @@ namespace bpt
   }
 
   void GA::applySwapping(Solution& solution,
-                         const eastl::vector<InputBuilding>& inputBuildings)
+                         const eastl::vector<eastl::vector<float>>& flowRates)
   {
     eastl::vector<Solution> generatedSolutions;
 
@@ -511,17 +505,19 @@ namespace bpt
     solution = *std::min_element(
       generatedSolutions.begin(),
       generatedSolutions.end(),
-      [this, inputBuildings](Solution solutionA, Solution solutionB) {
+      [this, &flowRates](Solution solutionA, Solution solutionB) {
         return corex::core::floatLessThan(
-          this->getSolutionFitness(solutionA, inputBuildings),
-          this->getSolutionFitness(solutionB, inputBuildings));
+          this->getSolutionFitness(solutionA, flowRates),
+          this->getSolutionFitness(solutionB, flowRates));
       }
     );
   }
 
-  void GA::applyLocalSearch1(Solution& solution,
-                             const corex::core::NPolygon& boundingArea,
-                             const eastl::vector<InputBuilding>& inputBuildings)
+  void GA::applyLocalSearch1(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const eastl::vector<eastl::vector<float>>& flowRates)
   {
     constexpr int32_t numMovements = 8;
     constexpr float maxShiftAmount = 15.f;
@@ -656,10 +652,10 @@ namespace bpt
     solution = *std::min_element(
       generatedSolutions.begin(),
       generatedSolutions.end(),
-      [this, inputBuildings](Solution solutionA, Solution solutionB) {
+      [this, &flowRates](Solution solutionA, Solution solutionB) {
         return corex::core::floatLessThan(
-          this->getSolutionFitness(solutionA, inputBuildings),
-          this->getSolutionFitness(solutionB, inputBuildings));
+          this->getSolutionFitness(solutionA, flowRates),
+          this->getSolutionFitness(solutionB, flowRates));
       }
     );
   }

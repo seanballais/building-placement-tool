@@ -43,6 +43,7 @@ namespace bpt
     void buildConstructBoundingAreaWindow();
     void buildWarningWindow();
     void buildInputBuildingsWindow();
+    void buildFlowRateWindow();
     void buildGAControlsWindow();
     void buildGAResultsWindow();
     void handleWindowEvents(const corex::core::WindowEvent& e);
@@ -57,6 +58,7 @@ namespace bpt
     GASettings gaSettings;
     Solution currentSolution;
     std::atomic<bool> isGAThreadRunning;
+    std::atomic<bool> hasSetupCurrentSolution;
     bool doesInputDataExist;
     bool doesInputBoundingAreaFieldExist;
     bool doesInputBuildingsExist;
@@ -65,7 +67,6 @@ namespace bpt
     bool showGAResultsAverage;
     bool showGAResultsBest;
     bool showGAResultsWorst;
-    bool hasSetupCurrentSolution;
     float cameraMovementSpeed;
     float timeDelta;
     corex::core::Circle closeAreaTriggerCircle;
@@ -76,6 +77,7 @@ namespace bpt
     entt::entity closeAreaTriggerEntity;
     eastl::vector<InputBuilding> inputBuildings;
     eastl::vector<entt::entity> buildingEntities;
+    eastl::vector<eastl::vector<float>> flowRates;
     eastl::vector<float> recentGARunAvgFitnesses;
     eastl::vector<float> recentGARunBestFitnesses;
     eastl::vector<float> recentGARunWorstFitnesses;
