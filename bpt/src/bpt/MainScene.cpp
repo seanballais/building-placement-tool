@@ -6,7 +6,6 @@
 #include <sstream>
 #include <string>
 #include <thread>
-#include <typeinfo>
 
 #include <EASTL/vector.h>
 #include <entt/entt.hpp>
@@ -122,6 +121,7 @@ namespace bpt
 
           if (this->inputData.contains("inputBuildings")) {
             int32_t numBuildings = this->inputData["inputBuildings"].size();
+            int32_t buildingIndex = 0;
             for (auto& building : this->inputData["inputBuildings"]) {
               // Sigh. Shoud have used a JSON object here.
               this->inputBuildings.push_back(InputBuilding{
@@ -129,12 +129,18 @@ namespace bpt
               });
 
               eastl::vector<float> buildingFlowRates;
-              for (auto flowRate : building[2]) {
-                std::cout << typeid(flowRate).name() << std::endl;
-                buildingFlowRates.push_back(flowRate.get<float>());
+              if (building[2].size() == 0) {
+                buildingFlowRates = eastl::vector<float>(numBuildings, 1.f);
+                buildingFlowRates[buildingIndex] = 0.f;
+              } else {
+                for (auto flowRate : building[2]) {
+                  buildingFlowRates.push_back(flowRate.get<float>());
+                }
               }
 
               this->flowRates.push_back(buildingFlowRates);
+
+              buildingIndex++;
             }
             this->doesInputBuildingsExist = true;
 
@@ -316,6 +322,7 @@ namespace bpt
     this->buildConstructBoundingAreaWindow();
     this->buildWarningWindow();
     this->buildInputBuildingsWindow();
+    this->buildFlowRateWindow();
     this->buildGAControlsWindow();
     this->buildGAResultsWindow();
   }
@@ -453,12 +460,15 @@ namespace bpt
       this->inputBuildings.push_back(InputBuilding{});
 
       // Add a column for the new input building for each pre-existing building.
-      for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
+      for (int32_t i = 0; i < this->inputBuildings.size() - 1; i++) {
         this->flowRates[i].push_back(1.f);
       }
 
       this->flowRates.push_back(
         eastl::vector<float>(this->inputBuildings.size(), 1.f));
+      this->flowRates.back().back() = 0.f;
+
+      assert(this->inputBuildings.size() == this->flowRates.size());
     }
     ImGui::Separator();
 
@@ -504,9 +514,24 @@ namespace bpt
   void MainScene::buildFlowRateWindow()
   {
     ImGui::Begin("Flow Rate");
+    ImGui::BeginChild("Flow Rate List");
 
-    ImGui::Text("Stuff");
+    for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
+      ImGui::Separator();
+      ImGui::Text("Building #%d", i);
+      for (int32_t j = 0; j < this->inputBuildings.size(); j++) {
+        if (i == j) {
+          continue;
+        }
 
+        char buildingText[20];
+        sprintf(buildingText, "Building #%d##%d", j, i);
+
+        ImGui::InputFloat(buildingText, &(this->flowRates[i][j]));
+      }
+    }
+
+    ImGui::EndChild();
     ImGui::End();
   }
 
