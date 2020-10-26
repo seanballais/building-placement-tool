@@ -630,8 +630,8 @@ namespace corex::core
 
       for (int32_t j = 0; j < rectPoly.vertices.size(); j++) {
         Line rectLine = Line{
-          rectPoly.vertices[i],
-          rectPoly.vertices[(i + 1) % rectPoly.vertices.size()]
+          rectPoly.vertices[j],
+          rectPoly.vertices[(j + 1) % rectPoly.vertices.size()]
         };
 
         if (areTwoLinesIntersecting(boundaryLine, rectLine)

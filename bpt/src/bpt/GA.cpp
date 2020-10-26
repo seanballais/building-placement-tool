@@ -237,6 +237,50 @@ namespace bpt
         this->getSolutionFitness(worstSolution, flowRates)));
     }
 
+    std::cout << "-- FEASIBILITY TEST --" << std::endl;
+
+    if (this->isSolutionFeasible(bestSolution, boundingArea, inputBuildings)) {
+      std::cout << "Solution is feasible." << std::endl;
+    } else {
+      std::cout << "Oy! Solution ain't feasible." << std::endl;
+    }
+
+    for (int32_t i = 0; i < bestSolution.getNumBuildings(); i++) {
+      corex::core::Rectangle building0 = corex::core::Rectangle{
+        bestSolution.getBuildingXPos(i),
+        bestSolution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        bestSolution.getBuildingRotation(i)
+      };
+
+      auto rect0 = corex::core::convertRectangleToPolygon(building0);
+      std::cout << "Building 0" << std::endl;
+      for (auto v : rect0.vertices) {
+        std::cout << "(" << v.x << ", " << v.y << ")" << std::endl;
+      }
+
+      for (int32_t j = i + 1; j < bestSolution.getNumBuildings(); j++) {
+        corex::core::Rectangle building1 = corex::core::Rectangle{
+          bestSolution.getBuildingXPos(j),
+          bestSolution.getBuildingYPos(j),
+          inputBuildings[j].width,
+          inputBuildings[j].length,
+          bestSolution.getBuildingRotation(j)
+        };
+
+        auto rect1 = corex::core::convertRectangleToPolygon(building0);
+        std::cout << "Building 1" << std::endl;
+        for (auto v : rect1.vertices) {
+          std::cout << "(" << v.x << ", " << v.y << ")" << std::endl;
+        }
+
+        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
+          std::cout << "Intersecting!" << std::endl;
+        }
+      }
+    }
+
     return bestSolution;
   }
 
@@ -684,6 +728,7 @@ namespace bpt
         inputBuildings[i].length,
         solution.getBuildingRotation(i)
       };
+
       for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
         corex::core::Rectangle building1 = corex::core::Rectangle{
           solution.getBuildingXPos(j),

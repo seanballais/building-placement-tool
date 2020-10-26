@@ -786,14 +786,14 @@ namespace bpt
         if (!this->wipBoundingArea.vertices.empty()) {
           int32_t lastElementIndex = this->wipBoundingArea.vertices.size() - 1;
           this->wipBoundingArea
-               .vertices[lastElementIndex] = corex::core
-                                                  ::screenToWorldCoordinates(
-            corex::core::Point{
-              static_cast<float>(e.x),
-              static_cast<float>(e.y)
-            },
-            this->camera
-          );
+               .vertices[lastElementIndex] =
+                  corex::core::screenToWorldCoordinates(
+                    corex::core::Point{
+                      static_cast<float>(e.x),
+                      static_cast<float>(e.y)
+                    },
+                    this->camera
+              );
         }
 
         break;
