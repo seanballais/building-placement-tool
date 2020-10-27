@@ -63,6 +63,7 @@ namespace bpt
     , showGAResultsAverage(true)
     , showGAResultsBest(true)
     , showGAResultsWorst(true)
+    , needUpdateBuildingRenderMode(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
@@ -206,6 +207,21 @@ namespace bpt
                 << std::endl;
 
       this->hasSetupCurrentSolution = true;
+    }
+
+    if (this->needUpdateBuildingRenderMode) {
+      // Switch rendering mode for the buildings from wireframe mode and filled
+      // mode.
+      for (entt::entity e : this->buildingEntities) {
+        this->registry.patch<corex::core::RenderRectangle>(
+          e,
+          [this](corex::core::RenderRectangle& rect) {
+            rect.isFilled = !rect.isFilled;
+          }
+        );
+
+        this->needUpdateBuildingRenderMode = false;
+      }
     }
 
     switch (this->currentContext) {
@@ -689,6 +705,11 @@ namespace bpt
                                         this->getPPMRatio())
             * this->timeDelta
           );
+          break;
+        case SDLK_TAB:
+          if (e.numRepeats == 0) {
+            this->needUpdateBuildingRenderMode = true;
+          }
           break;
       }
     }

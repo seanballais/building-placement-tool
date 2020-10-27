@@ -67,6 +67,7 @@ namespace bpt
     bool showGAResultsAverage;
     bool showGAResultsBest;
     bool showGAResultsWorst;
+    bool needUpdateBuildingRenderMode;
     float cameraMovementSpeed;
     float timeDelta;
     corex::core::Circle closeAreaTriggerCircle;
