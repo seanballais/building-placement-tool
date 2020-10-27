@@ -17,10 +17,10 @@
 namespace corex::core
 {
   // Functions and that should only be accessible here.
-  bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
-                                     const Rectangle& rect1,
-                                     const Vec2& axis);
-  Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis);
+  // bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
+  //                                    const Rectangle& rect1,
+  //                                    const Vec2& axis);
+  //Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis);
 
   bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
                                      const Rectangle& rect1,
@@ -28,27 +28,6 @@ namespace corex::core
   {
     Line projLine0 = _projectRectToAnAxis(rect0, axis);
     Line projLine1 = _projectRectToAnAxis(rect1, axis);
-
-    // std::cout << "---" << std::endl;
-    // std::cout << "Rect 0:\n"
-    //           << "  Center X: " << rect0.x << "\n"
-    //           << "  Center Y: " << rect0.y << "\n"
-    //           << "  Width: " << rect0.width << "\n"
-    //           << "  Height: " << rect0.height << "\n"
-    //           << "  Angle: " << rect0.angle << std::endl;
-    // std::cout << "Rect 1:\n"
-    //           << "  Center X: " << rect1.x << "\n"
-    //           << "  Center Y: " << rect1.y << "\n"
-    //           << "  Width: " << rect1.width << "\n"
-    //           << "  Height: " << rect1.height << "\n"
-    //           << "  Angle: " << rect1.angle << std::endl;
-    // std::cout << "Axis: " << axis.x << ", " << axis.y << std::endl;
-    // std::cout << "Line 0:\n"
-    //           << "  Start: " << projLine0.start.x << ", " << projLine0.start.y << "\n"
-    //           << "  End: " << projLine0.end.x << ", " << projLine0.end.y << std::endl;
-    // std::cout << "Line 1:\n"
-    //           << "  Start: " << projLine1.start.x << ", " << projLine1.start.y << "\n"
-    //           << "  End: " << projLine1.end.x << ", " << projLine1.end.y << std::endl;
 
     // We need to find the line that merges both segments together (whether
     // or not they are intersecting). We could have used a loop here for
@@ -69,15 +48,8 @@ namespace corex::core
       &possibleRectLine5
     });
 
-    // std::cout << "Projected Rect Line:\n"
-    //           << "  Start: " << projRectLine.start.x << ", " << projRectLine.start.y << "\n"
-    //           << "  End: " << projRectLine.end.x << ", " << projRectLine.end.y << std::endl;
-    // std::cout << "Rects Colliding? "
-    //           << (lineLength(projRectLine)
-    //               <= lineLength(projLine0) + lineLength(projLine1))
-    //           << std::endl;
-    return lineLength(projRectLine)
-           <= lineLength(projLine0) + lineLength(projLine1);
+    return floatLessEqual(lineLength(projRectLine),
+                          lineLength(projLine0) + lineLength(projLine1));
   }
 
   Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis)
@@ -92,20 +64,21 @@ namespace corex::core
     Point projectedBottomLeftPt = projectVec2(bottomLeftPt, axis);
     Point projectedBottomRightPt = projectVec2(bottomRightPt, axis);
 
-    Point minProjectedPt = minVec2Magnitude({
-      &projectedTopLeftPt,
-      &projectedTopRightPt,
-      &projectedBottomLeftPt,
-      &projectedBottomRightPt
-    });
-    Point maxProjectedPt = maxVec2Magnitude({
-      &projectedTopLeftPt,
-      &projectedTopRightPt,
-      &projectedBottomLeftPt,
-      &projectedBottomRightPt
-    });
+    Line possibleRectLine0{ projectedTopLeftPt, projectedTopRightPt };
+    Line possibleRectLine1{ projectedTopLeftPt, projectedBottomLeftPt };
+    Line possibleRectLine2{ projectedTopLeftPt, projectedBottomRightPt };
+    Line possibleRectLine3{ projectedTopRightPt, projectedBottomLeftPt };
+    Line possibleRectLine4{ projectedTopRightPt, projectedBottomRightPt };
+    Line possibleRectLine5{ projectedBottomLeftPt, projectedBottomRightPt };
 
-    return Line{ minProjectedPt, maxProjectedPt };
+    return longestLine({
+      &possibleRectLine0,
+      &possibleRectLine1,
+      &possibleRectLine2,
+      &possibleRectLine3,
+      &possibleRectLine4,
+      &possibleRectLine5
+    });
   }
   /////////////////////////////////////////////////
 
