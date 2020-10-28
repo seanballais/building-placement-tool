@@ -884,6 +884,23 @@ namespace bpt
                 << "Tournament Size:," << this->gaSettings.tournamentSize
                 << "\n";
 
+    resultsFile << "\n";
+    resultsFile << "Input Buildings" << "\n"
+                << "Width,Length" << "\n";
+    for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
+      resultsFile << this->inputBuildings[i].width << ","
+                  << this->inputBuildings[i].length << "\n";
+    }
+
+    resultsFile << "\n";
+    resultsFile << "Solution:" << "\n"
+                << "x,y,Rotation" << "\n";
+    for (int32_t i = 0; i < this->currentSolution.getNumBuildings(); i++) {
+      resultsFile << this->currentSolution.getBuildingXPos(i) << ","
+                  << this->currentSolution.getBuildingYPos(i) << ","
+                  << this->currentSolution.getBuildingRotation(i) << "\n";
+    }
+
     resultsFile.close();
   }
 }
