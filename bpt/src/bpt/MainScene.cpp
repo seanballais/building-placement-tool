@@ -543,7 +543,9 @@ namespace bpt
         char buildingText[20];
         sprintf(buildingText, "Building #%d##%d", j, i);
 
-        ImGui::InputFloat(buildingText, &(this->flowRates[i][j]));
+        if (ImGui::InputFloat(buildingText, &(this->flowRates[i][j]))) {
+          this->flowRates[j][i] = this->flowRates[i][j];
+        }
       }
     }
 
