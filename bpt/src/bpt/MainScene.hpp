@@ -41,6 +41,7 @@ namespace bpt
 
   private:
     void buildConstructBoundingAreaWindow();
+    void buildHazardsWindow();
     void buildWarningWindow();
     void buildInputBuildingsWindow();
     void buildFlowRateWindow();
@@ -72,10 +73,15 @@ namespace bpt
     float timeDelta;
     corex::core::Circle closeAreaTriggerCircle;
     corex::core::LineSegments wipBoundingArea;
+    corex::core::LineSegments wipHazardArea;
     corex::core::NPolygon boundingArea;
+    eastl::vector<corex::core::NPolygon> floodProneAreas;
+    eastl::vector<corex::core::NPolygon> landslideProneAreas;
     entt::entity wipBoundingAreaEntity;
     entt::entity boundingAreaEntity;
     entt::entity closeAreaTriggerEntity;
+    eastl::vector<entt::entity> floodProneAreaEntities;
+    eastl::vector<entt::entity> landslideProneAreaEntities;
     eastl::vector<InputBuilding> inputBuildings;
     eastl::vector<entt::entity> buildingEntities;
     eastl::vector<eastl::vector<float>> flowRates;

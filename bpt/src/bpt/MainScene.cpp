@@ -10,8 +10,6 @@
 #include <EASTL/vector.h>
 #include <entt/entt.hpp>
 #include <imgui.h>
-#include <imgui_impls/imgui_impl_opengl3.h>
-#include <imgui_impls/imgui_impl_sdl.h>
 #include <implot/implot.h>
 #include <nlohmann/json.hpp>
 
@@ -70,10 +68,15 @@ namespace bpt
     , cameraMovementSpeed(15.f)
     , timeDelta(0.f)
     , wipBoundingArea()
+    , wipHazardArea()
     , boundingArea()
+    , floodProneAreas()
+    , landslideProneAreas()
     , wipBoundingAreaEntity(entt::null)
     , boundingAreaEntity(entt::null)
     , closeAreaTriggerEntity(entt::null)
+    , floodProneAreaEntities()
+    , landslideProneAreaEntities()
     , inputBuildings()
     , buildingEntities()
     , flowRates()
@@ -338,6 +341,7 @@ namespace bpt
     this->buildConstructBoundingAreaWindow();
     this->buildWarningWindow();
     this->buildInputBuildingsWindow();
+    this->buildHazardsWindow();
     this->buildFlowRateWindow();
     this->buildGAControlsWindow();
     this->buildGAResultsWindow();
@@ -405,6 +409,10 @@ namespace bpt
         break;
       case Context::DRAW_AREA_BOUND:
         ImGui::Text("Press the Right Mouse Button to Cancel.");
+        break;
+      case Context::DRAW_FLOOD_PRONE_AREA:
+        ImGui::Text("Finish drawing a flood-prone area first.");
+        break;
     }
 
     ImGui::Text("Bound Area Vertices");
@@ -417,6 +425,79 @@ namespace bpt
       for (corex::core::Point& pt : this->wipBoundingArea.vertices) {
         ImGui::Text("%f, %f", pt.x, pt.y);
       }
+    }
+    ImGui::EndChild();
+
+    ImGui::End();
+  }
+
+  void MainScene::buildHazardsWindow()
+  {
+    ImGui::Begin("Hazards");
+
+    switch (this->currentContext) {
+      case Context::NO_ACTION:
+        if (ImGui::Button("Add Flood-Prone Area")) {
+          this->currentContext = Context::DRAW_FLOOD_PRONE_AREA;
+
+          // Just doing this to make sure we don't get unneeded vertices.
+          this->wipHazardArea.vertices.clear();
+          this->wipHazardArea.vertices.push_back(corex::core::Point{});
+        }
+
+        ImGui::SameLine();
+
+        ImGui::Button("Add Landslide-Prone Area");
+
+        break;
+      case Context::DRAW_FLOOD_PRONE_AREA:
+        ImGui::Text("Press RMB to Cancel Drawing Area (Flood-Prone).");
+        break;
+      case Context::DRAW_AREA_BOUND:
+        ImGui::Text("Finish drawing the area bound first.");
+        break;
+    }
+
+    ImGui::Separator();
+
+    ImGui::BeginChild("Hazard Areas List");
+    if (ImGui::CollapsingHeader("Flood-Prone Areas")) {
+      int32_t areaIndex = 0;
+      for (corex::core::NPolygon& area : this->floodProneAreas) {
+        char areaText[23];
+        char removeAreaBtnText[18];
+
+        sprintf(areaText, "Flood-Prone Area #%d", areaIndex);
+        sprintf(removeAreaBtnText, "Remove Area #%d", areaIndex);
+        if (ImGui::TreeNode(areaText)) {
+          for (corex::core::Point& pt : area.vertices) {
+            ImGui::Text("%f, %f", pt.x, pt.y);
+          }
+
+          ImGui::TreePop();
+        }
+
+        ImGui::Button(removeAreaBtnText);
+
+        areaIndex++;
+      }
+
+      if (this->currentContext == Context::DRAW_FLOOD_PRONE_AREA) {
+        ImGui::Separator();
+
+        ImGui::Text("New Area Vertices");
+        ImGui::BeginChild("New Area Vertices List");
+
+        for (corex::core::Point& pt : this->wipHazardArea.vertices) {
+          ImGui::Text("%f, %f", pt.x, pt.y);
+        }
+
+        ImGui::EndChild();
+      }
+    }
+
+    if (ImGui::CollapsingHeader("Landslide-Prone Areas")) {
+      ImGui::Text("Text 2");
     }
     ImGui::EndChild();
 
@@ -720,43 +801,50 @@ namespace bpt
   void
   MainScene::handleMouseButtonEvents(const corex::core::MouseButtonEvent& e)
   {
-    switch (this->currentContext) {
-      case Context::NO_ACTION:
-        break;
-      case Context::DRAW_AREA_BOUND:
-        if (e.buttonType == corex::core::MouseButtonType::MOUSE_BUTTON_LEFT
-            && e.buttonState == corex::core
-                                     ::MouseButtonState::MOUSE_BUTTON_DOWN
-            && e.numRepeats == 0) {
-          if (this->isCloseAreaTriggerEnabled) {
-            int32_t lastElementIndex = this->wipBoundingArea
-                                            .vertices.size() - 1;
-            float dist = corex::core::distance2D(
-              this->wipBoundingArea.vertices[0],
-              this->wipBoundingArea.vertices[lastElementIndex]);
-            if (corex::core::floatLessEqual(dist, 7.f)) {
-              for (int32_t i = 0;
-                   i < this->wipBoundingArea.vertices.size() - 1;
-                   i++) {
-                // Note: The last elements contains the position of the mouse.
-                //       We shouldn't add it, otherwise we'd get another edge
-                //       to the bounding area that we don't want.
-                this->boundingArea.vertices.push_back(
-                  this->wipBoundingArea.vertices[i]);
-              }
-
-              this->currentContext = Context::NO_ACTION;
-              this->isCloseAreaTriggerEnabled = false;
-              this->closeAreaTriggerCircle.position = corex::core
-                                                           ::Point{ 0.f, 0.f };
-              this->wipBoundingArea.vertices.clear();
-              break;
+    if (e.buttonType == corex::core::MouseButtonType::MOUSE_BUTTON_LEFT
+        && e.buttonState == corex::core::MouseButtonState::MOUSE_BUTTON_DOWN
+        && e.numRepeats == 0) {
+      if (this->currentContext == Context::DRAW_AREA_BOUND) {
+        if (this->isCloseAreaTriggerEnabled) {
+          int32_t lastElementIndex = this->wipBoundingArea
+                                          .vertices.size() - 1;
+          float dist = corex::core::distance2D(
+            this->wipBoundingArea.vertices[0],
+            this->wipBoundingArea.vertices[lastElementIndex]);
+          if (corex::core::floatLessEqual(dist, 7.f)) {
+            for (int32_t i = 0;
+                 i < this->wipBoundingArea.vertices.size() - 1;
+                 i++) {
+              // Note: The last elements contains the position of the mouse.
+              //       We shouldn't add it, otherwise we'd get another edge
+              //       to the bounding area that we don't want.
+              this->boundingArea.vertices.push_back(
+                this->wipBoundingArea.vertices[i]);
             }
-          }
 
-          // Once the number of vertices the WIP bounding area has becomes two,
-          // the Point instance we're pushing will hold the current position
-          // of the mouse cursor, while we're drawing the bounding area.
+            this->currentContext = Context::NO_ACTION;
+            this->isCloseAreaTriggerEnabled = false;
+            this->closeAreaTriggerCircle.position = corex::core::Point{
+              0.f, 0.f
+            };
+            this->wipBoundingArea.vertices.clear();
+          }
+        }
+
+        // Once the number of vertices the WIP bounding area has becomes two,
+        // the Point instance we're pushing will hold the current position
+        // of the mouse cursor, while we're drawing the bounding area.
+        this->wipBoundingArea.vertices.push_back(
+          corex::core::screenToWorldCoordinates(
+            corex::core::Point{
+              static_cast<float>(e.x),
+              static_cast<float>(e.y)
+            },
+            this->camera
+          )
+        );
+
+        if (this->wipBoundingArea.vertices.size() == 1) {
           this->wipBoundingArea.vertices.push_back(
             corex::core::screenToWorldCoordinates(
               corex::core::Point{
@@ -766,36 +854,27 @@ namespace bpt
               this->camera
             )
           );
-
-          if (this->wipBoundingArea.vertices.size() == 1) {
-            this->wipBoundingArea.vertices.push_back(
-              corex::core::screenToWorldCoordinates(
-                corex::core::Point{
-                  static_cast<float>(e.x),
-                  static_cast<float>(e.y)
-                },
-                this->camera
-              )
-            );
-          }
-
-          if (this->wipBoundingArea.vertices.size() == 4) {
-            this->closeAreaTriggerCircle.position = this->wipBoundingArea
-                                                         .vertices[0];
-            this->isCloseAreaTriggerEnabled = true;
-          }
-        } else if (
-            e.buttonType == corex::core::MouseButtonType::MOUSE_BUTTON_RIGHT
-            && e.buttonState == corex::core
-                                     ::MouseButtonState::MOUSE_BUTTON_DOWN
-            && e.numRepeats == 0) {
-          this->currentContext = Context::NO_ACTION;
-          this->isCloseAreaTriggerEnabled = false;
-          this->closeAreaTriggerCircle.position = corex::core
-                                                       ::Point{ 0.f, 0.f };
-          this->wipBoundingArea.vertices.clear();
         }
-        break;
+
+        if (this->wipBoundingArea.vertices.size() == 4) {
+          this->closeAreaTriggerCircle.position = this->wipBoundingArea
+            .vertices[0];
+          this->isCloseAreaTriggerEnabled = true;
+        }
+      }
+    } else if (e.buttonType == corex::core::MouseButtonType::MOUSE_BUTTON_RIGHT
+               && e.buttonState == corex::core::MouseButtonState
+                                              ::MOUSE_BUTTON_DOWN
+               && e.numRepeats == 0) {
+      this->currentContext = Context::NO_ACTION;
+      this->isCloseAreaTriggerEnabled = false;
+      this->closeAreaTriggerCircle.position = corex::core::Point{ 0.f, 0.f };
+
+      if (this->currentContext == Context::DRAW_AREA_BOUND) {
+        this->wipBoundingArea.vertices.clear();
+      } else if (this->currentContext != Context::NO_ACTION) {
+        this->wipHazardArea.vertices.clear();
+      }
     }
   }
 
