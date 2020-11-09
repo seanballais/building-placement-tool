@@ -2,7 +2,6 @@
 #include <filesystem>
 #include <iostream>
 
-#include <EASTL/array.h>
 #include <EASTL/unique_ptr.h>
 #include <entt/entt.hpp>
 #include <GL/glew.h>

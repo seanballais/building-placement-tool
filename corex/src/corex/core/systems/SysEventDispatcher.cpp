@@ -2,6 +2,7 @@
 #include <string>
 
 #include <entt/entt.hpp>
+#include <imgui.h>
 #include <imgui_impls/imgui_impl_sdl.h>
 #include <SDL2/SDL.h>
 
@@ -17,9 +18,13 @@ namespace corex::core
 
   void SysEventDispatcher::update()
   {
+    ImGuiIO& io = ImGui::GetIO();
     SDL_Event event;
     while (SDL_PollEvent(&event) != 0) {
       ImGui_ImplSDL2_ProcessEvent(&event);
+      if (io.WantCaptureKeyboard || io.WantCaptureMouse || io.WantTextInput) {
+        continue;
+      }
 
       switch (event.type) {
         case SDL_WINDOWEVENT:
