@@ -300,7 +300,7 @@ namespace bpt
             this->registry.emplace<corex::core::RenderPolygon>(
               this->landslideProneAreaEntities[i],
               eastl::vector<corex::core::Point>{},
-              SDL_Color{ 179, 60, 0, 255 },
+              SDL_Color{ 102, 34, 0, 255 },
               true);
           } else {
             this->registry.patch<corex::core::RenderPolygon>(
@@ -394,7 +394,7 @@ namespace bpt
             wipHazardAreaColour = SDL_Color{ 0, 115, 153, 255 };
             break;
           case Context::DRAW_LANDSLIDE_PRONE_AREA:
-            wipHazardAreaColour = SDL_Color{ 179, 60, 0, 255};
+            wipHazardAreaColour = SDL_Color{ 102, 32, 0, 255};
             break;
           default:
             break;
@@ -535,6 +535,9 @@ namespace bpt
       case Context::DRAW_FLOOD_PRONE_AREA:
         ImGui::Text("Finish drawing a flood-prone area first.");
         break;
+      case Context::DRAW_LANDSLIDE_PRONE_AREA:
+        ImGui::Text("Finish drawing a landslide-prone area first.");
+        break;
       default:
         break;
     }
@@ -576,11 +579,20 @@ namespace bpt
 
         ImGui::SameLine();
 
-        ImGui::Button("Add Landslide-Prone Area");
+        if (ImGui::Button("Add Landslide-Prone Area")) {
+          this->currentContext = Context::DRAW_LANDSLIDE_PRONE_AREA;
+
+          // Just doing this to make sure we don't get unneeded vertices.
+          this->wipHazardArea.vertices.clear();
+          this->wipHazardArea.vertices.push_back(corex::core::Point{});
+        }
 
         break;
       case Context::DRAW_FLOOD_PRONE_AREA:
-        ImGui::Text("Press RMB to Cancel Drawing A Flood-Prone Area.");
+        ImGui::Text("Press RMB to cancel drawing a flood-prone area.");
+        break;
+      case Context::DRAW_LANDSLIDE_PRONE_AREA:
+        ImGui::Text("Press RMB to cancel drawing a landslide-prone area.");
         break;
       case Context::DRAW_AREA_BOUND:
         ImGui::Text("Finish drawing the area bound first.");
@@ -593,13 +605,13 @@ namespace bpt
 
     ImGui::BeginChild("Hazard Areas List");
     if (ImGui::CollapsingHeader("Flood-Prone Areas")) {
-      int32_t areaIndex = 0;
-      for (corex::core::NPolygon& area : this->floodProneAreas) {
+      for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
+        corex::core::NPolygon& area = this->floodProneAreas[i];
         char areaText[23];
-        char removeAreaBtnText[18];
+        char removeAreaBtnText[21];
 
-        sprintf(areaText, "Flood-Prone Area #%d", areaIndex);
-        sprintf(removeAreaBtnText, "Remove Area #%d", areaIndex);
+        sprintf(areaText, "Flood-Prone Area #%d", i);
+        sprintf(removeAreaBtnText, "Remove Area #%d##0", i);
         if (ImGui::TreeNode(areaText)) {
           for (corex::core::Point& pt : area.vertices) {
             ImGui::Text("%f, %f", pt.x, pt.y);
@@ -609,10 +621,8 @@ namespace bpt
         }
 
         if (ImGui::Button(removeAreaBtnText)) {
-          removedFloodProneAreaIndex = areaIndex;
+          removedFloodProneAreaIndex = i;
         }
-
-        areaIndex++;
       }
 
       if (this->currentContext == Context::DRAW_FLOOD_PRONE_AREA) {
@@ -630,7 +640,38 @@ namespace bpt
     }
 
     if (ImGui::CollapsingHeader("Landslide-Prone Areas")) {
-      ImGui::Text("Text 2");
+      for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
+        corex::core::NPolygon& area = this->landslideProneAreas[i];
+        char areaText[27];
+        char removeAreaBtnText[21];
+
+        sprintf(areaText, "Landslide-Prone Area #%d", i);
+        sprintf(removeAreaBtnText, "Remove Area #%d##1", i);
+        if (ImGui::TreeNode(areaText)) {
+          for (corex::core::Point& pt : area.vertices) {
+            ImGui::Text("%f, %f", pt.x, pt.y);
+          }
+
+          ImGui::TreePop();
+        }
+
+        if (ImGui::Button(removeAreaBtnText)) {
+          removedLandslideProneAreaIndex = i;
+        }
+      }
+
+      if (this->currentContext == Context::DRAW_FLOOD_PRONE_AREA) {
+        ImGui::Separator();
+
+        ImGui::Text("New Area Vertices");
+        ImGui::BeginChild("New Area Vertices List");
+
+        for (corex::core::Point& pt : this->wipHazardArea.vertices) {
+          ImGui::Text("%f, %f", pt.x, pt.y);
+        }
+
+        ImGui::EndChild();
+      }
     }
     ImGui::EndChild();
 
