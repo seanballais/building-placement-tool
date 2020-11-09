@@ -73,6 +73,7 @@ namespace bpt
     , floodProneAreas()
     , landslideProneAreas()
     , wipBoundingAreaEntity(entt::null)
+    , wipHazardAreaEntity(entt::null)
     , boundingAreaEntity(entt::null)
     , closeAreaTriggerEntity(entt::null)
     , floodProneAreaEntities()
@@ -254,8 +255,69 @@ namespace bpt
           );
         }
 
+        // Draw hazard areas.
+        // Draw flood-prone areas.
+        for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
+          if (!this->registry.valid(this->floodProneAreaEntities[i])) {
+            this->floodProneAreaEntities[i] = this->registry.create();
+            this->registry.emplace<corex::core::Position>(
+              this->floodProneAreaEntities[i],
+              0.f,
+              0.f,
+              1.f,
+              static_cast<int8_t>(1));
+            this->registry.emplace<corex::core::Renderable>(
+              this->floodProneAreaEntities[i],
+              corex::core::RenderableType::PRIMITIVE_POLYGON);
+            this->registry.emplace<corex::core::RenderPolygon>(
+              this->floodProneAreaEntities[i],
+              eastl::vector<corex::core::Point>{},
+              SDL_Color{ 0, 115, 153, 255 },
+              true);
+          } else {
+            this->registry.patch<corex::core::RenderPolygon>(
+              this->floodProneAreaEntities[i],
+              [this, &i](corex::core::RenderPolygon& poly) {
+                poly.vertices = this->floodProneAreas[i].vertices;
+              }
+            );
+          }
+        }
+
+        // Draw landslide-prone areas.
+        for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
+          if (!this->registry.valid(this->landslideProneAreaEntities[i])) {
+            this->landslideProneAreaEntities[i] = this->registry.create();
+            this->registry.emplace<corex::core::Position>(
+              this->landslideProneAreaEntities[i],
+              0.f,
+              0.f,
+              1.f,
+              static_cast<int8_t>(1));
+            this->registry.emplace<corex::core::Renderable>(
+              this->landslideProneAreaEntities[i],
+              corex::core::RenderableType::PRIMITIVE_POLYGON);
+            this->registry.emplace<corex::core::RenderPolygon>(
+              this->landslideProneAreaEntities[i],
+              eastl::vector<corex::core::Point>{},
+              SDL_Color{ 179, 60, 0, 255 },
+              true);
+          } else {
+            this->registry.patch<corex::core::RenderPolygon>(
+              this->landslideProneAreaEntities[i],
+              [this, &i](corex::core::RenderPolygon& poly) {
+                poly.vertices = this->landslideProneAreas[i].vertices;
+              }
+            );
+          }
+        }
+
         if (this->registry.valid(this->wipBoundingAreaEntity)) {
           this->registry.destroy(this->wipBoundingAreaEntity);
+        }
+
+        if (this->registry.valid(this->wipHazardAreaEntity)) {
+          this->registry.destroy(this->wipHazardAreaEntity);
         }
 
         if (this->registry.valid(this->closeAreaTriggerEntity)) {
@@ -263,18 +325,6 @@ namespace bpt
         }
       } break;
       case Context::DRAW_AREA_BOUND: {
-        if (this->isCloseAreaTriggerEnabled) {
-          int32_t lastElementIndex = this->wipBoundingArea.vertices.size() - 1;
-          float dist = corex::core::distance2D(
-            this->wipBoundingArea.vertices[0],
-            this->wipBoundingArea.vertices[lastElementIndex]);
-          if (corex::core::floatLessEqual(dist, 7.f)) {
-            this->closeAreaTriggerCircle.radius = 5.f;
-          } else {
-            this->closeAreaTriggerCircle.radius = 0.f;
-          }
-        }
-
         if (!this->registry.valid(this->wipBoundingAreaEntity)) {
           this->wipBoundingAreaEntity = this->registry.create();
           this->registry.emplace<corex::core::Position>(
@@ -336,6 +386,78 @@ namespace bpt
           this->registry.destroy(this->boundingAreaEntity);
         }
       } break;
+      case Context::DRAW_FLOOD_PRONE_AREA:
+      case Context::DRAW_LANDSLIDE_PRONE_AREA: {
+        SDL_Color wipHazardAreaColour;
+        switch (this->currentContext) {
+          case Context::DRAW_FLOOD_PRONE_AREA:
+            wipHazardAreaColour = SDL_Color{ 0, 115, 153, 255 };
+            break;
+          case Context::DRAW_LANDSLIDE_PRONE_AREA:
+            wipHazardAreaColour = SDL_Color{ 179, 60, 0, 255};
+            break;
+          default:
+            break;
+        }
+
+        if (!this->registry.valid(this->wipHazardAreaEntity)) {
+          this->wipHazardAreaEntity = this->registry.create();
+          this->registry.emplace<corex::core::Position>(
+            this->wipHazardAreaEntity,
+            0.f,
+            0.f,
+            32.f,
+            static_cast<int8_t>(-1));
+          this->registry.emplace<corex::core::Renderable>(
+            this->wipHazardAreaEntity,
+            corex::core::RenderableType::LINE_SEGMENTS);
+          this->registry.emplace<corex::core::RenderLineSegments>(
+            this->wipHazardAreaEntity,
+            eastl::vector<corex::core::Point>{},
+            wipHazardAreaColour);
+        } else {
+          this->registry.patch<corex::core::RenderLineSegments>(
+            this->wipHazardAreaEntity,
+            [this](corex::core::RenderLineSegments& segments) {
+              segments.vertices = this->wipHazardArea.vertices;
+            }
+          );
+        }
+
+        if (!this->registry.valid(this->closeAreaTriggerEntity)) {
+          this->closeAreaTriggerEntity = this->registry.create();
+          this->registry.emplace<corex::core::Position>(
+            this->closeAreaTriggerEntity,
+            0.f,
+            0.f,
+            32.f,
+            static_cast<int8_t>(-1));
+          this->registry.emplace<corex::core::Renderable>(
+            this->closeAreaTriggerEntity,
+            corex::core::RenderableType::PRIMITIVE_CIRCLE);
+          this->registry.emplace<corex::core::RenderCircle>(
+            this->closeAreaTriggerEntity,
+            this->closeAreaTriggerCircle.radius,
+            wipHazardAreaColour,
+            true);
+        } else {
+          this->registry.patch<corex::core::Position>(
+            this->closeAreaTriggerEntity,
+            [this](corex::core::Position& pos) {
+              pos.x = this->closeAreaTriggerCircle.position.x;
+              pos.y = this->closeAreaTriggerCircle.position.y;
+            }
+          );
+          this->registry.patch<corex::core::RenderCircle>(
+            this->closeAreaTriggerEntity,
+            [this](corex::core::RenderCircle& circle) {
+              circle.radius = this->closeAreaTriggerCircle.radius;
+            }
+          );
+        }
+      } break;
+      default:
+        break;
     }
 
     this->buildConstructBoundingAreaWindow();
@@ -413,6 +535,8 @@ namespace bpt
       case Context::DRAW_FLOOD_PRONE_AREA:
         ImGui::Text("Finish drawing a flood-prone area first.");
         break;
+      default:
+        break;
     }
 
     ImGui::Text("Bound Area Vertices");
@@ -433,6 +557,11 @@ namespace bpt
 
   void MainScene::buildHazardsWindow()
   {
+    static int32_t removedFloodProneAreaIndex;
+    static int32_t removedLandslideProneAreaIndex;
+    removedFloodProneAreaIndex = -1;
+    removedLandslideProneAreaIndex = -1;
+
     ImGui::Begin("Hazards");
 
     switch (this->currentContext) {
@@ -451,10 +580,12 @@ namespace bpt
 
         break;
       case Context::DRAW_FLOOD_PRONE_AREA:
-        ImGui::Text("Press RMB to Cancel Drawing Area (Flood-Prone).");
+        ImGui::Text("Press RMB to Cancel Drawing A Flood-Prone Area.");
         break;
       case Context::DRAW_AREA_BOUND:
         ImGui::Text("Finish drawing the area bound first.");
+        break;
+      default:
         break;
     }
 
@@ -477,7 +608,9 @@ namespace bpt
           ImGui::TreePop();
         }
 
-        ImGui::Button(removeAreaBtnText);
+        if (ImGui::Button(removeAreaBtnText)) {
+          removedFloodProneAreaIndex = areaIndex;
+        }
 
         areaIndex++;
       }
@@ -502,6 +635,25 @@ namespace bpt
     ImGui::EndChild();
 
     ImGui::End();
+
+    if (removedFloodProneAreaIndex != -1) {
+      this->registry.destroy(
+        this->floodProneAreaEntities[removedFloodProneAreaIndex]);
+      this->floodProneAreas.erase(
+        this->floodProneAreas.begin() + removedFloodProneAreaIndex);
+      this->floodProneAreaEntities.erase(
+        this->floodProneAreaEntities.begin() + removedFloodProneAreaIndex);
+    }
+
+    if (removedLandslideProneAreaIndex != -1) {
+      this->registry.destroy(
+        this->landslideProneAreaEntities[removedLandslideProneAreaIndex]);
+      this->landslideProneAreas.erase(
+        this->landslideProneAreas.begin() + removedLandslideProneAreaIndex);
+      this->landslideProneAreaEntities.erase(
+        this->landslideProneAreaEntities.begin()
+        + removedLandslideProneAreaIndex);
+    }
   }
 
   void MainScene::buildWarningWindow()
@@ -638,7 +790,6 @@ namespace bpt
   {
     ImGui::Begin("GA Controls");
 
-    // TODO: Save ga setting to a file.
     ImGui::InputFloat("Mutation Rate", &(this->gaSettings.mutationRate));
     ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
     ImGui::InputInt("No. of Generations", &(this->gaSettings.numGenerations));
@@ -804,22 +955,71 @@ namespace bpt
     if (e.buttonType == corex::core::MouseButtonType::MOUSE_BUTTON_LEFT
         && e.buttonState == corex::core::MouseButtonState::MOUSE_BUTTON_DOWN
         && e.numRepeats == 0) {
-      if (this->currentContext == Context::DRAW_AREA_BOUND) {
+      if (this->currentContext == Context::DRAW_AREA_BOUND
+          || this->currentContext == Context::DRAW_FLOOD_PRONE_AREA
+          || this->currentContext == Context::DRAW_LANDSLIDE_PRONE_AREA) {
+        corex::core::LineSegments *targetWIPArea = nullptr;
+        switch (this->currentContext) {
+          case Context::DRAW_AREA_BOUND:
+            targetWIPArea = &(this->wipBoundingArea);
+            break;
+          case Context::DRAW_FLOOD_PRONE_AREA:
+          case Context::DRAW_LANDSLIDE_PRONE_AREA:
+            targetWIPArea = &(this->wipHazardArea);
+            break;
+          default:
+            break;
+        }
+
         if (this->isCloseAreaTriggerEnabled) {
-          int32_t lastElementIndex = this->wipBoundingArea
-                                          .vertices.size() - 1;
+          int32_t lastElementIndex = targetWIPArea->vertices.size() - 1;
           float dist = corex::core::distance2D(
-            this->wipBoundingArea.vertices[0],
-            this->wipBoundingArea.vertices[lastElementIndex]);
+            targetWIPArea->vertices[0],
+            targetWIPArea->vertices[lastElementIndex]);
           if (corex::core::floatLessEqual(dist, 7.f)) {
-            for (int32_t i = 0;
-                 i < this->wipBoundingArea.vertices.size() - 1;
-                 i++) {
+            // Alright, we're done drawing the area.
+            switch (this->currentContext) {
+              case Context::DRAW_FLOOD_PRONE_AREA:
+                this->floodProneAreas.push_back();
+                break;
+              case Context::DRAW_LANDSLIDE_PRONE_AREA:
+                this->landslideProneAreas.push_back();
+                break;
+              default:
+                break;
+            }
+
+            for (int32_t i = 0; i < targetWIPArea->vertices.size() - 1; i++) {
               // Note: The last elements contains the position of the mouse.
               //       We shouldn't add it, otherwise we'd get another edge
-              //       to the bounding area that we don't want.
-              this->boundingArea.vertices.push_back(
-                this->wipBoundingArea.vertices[i]);
+              //       to the bounding/hazard area that we don't want.
+              switch (this->currentContext) {
+                case Context::DRAW_AREA_BOUND:
+                  this->boundingArea.vertices.push_back(
+                    targetWIPArea->vertices[i]);
+                  break;
+                case Context::DRAW_FLOOD_PRONE_AREA:
+                  this->floodProneAreas.back().vertices.push_back(
+                    targetWIPArea->vertices[i]);
+                  break;
+                case Context::DRAW_LANDSLIDE_PRONE_AREA:
+                  this->landslideProneAreas.back().vertices.push_back(
+                    targetWIPArea->vertices[i]);
+                  break;
+                default:
+                  break;
+              }
+            }
+
+            switch (this->currentContext) {
+              case Context::DRAW_FLOOD_PRONE_AREA:
+                this->floodProneAreaEntities.push_back(entt::null);
+                break;
+              case Context::DRAW_LANDSLIDE_PRONE_AREA:
+                this->landslideProneAreaEntities.push_back(entt::null);
+                break;
+              default:
+                break;
             }
 
             this->currentContext = Context::NO_ACTION;
@@ -827,14 +1027,16 @@ namespace bpt
             this->closeAreaTriggerCircle.position = corex::core::Point{
               0.f, 0.f
             };
-            this->wipBoundingArea.vertices.clear();
+
+            targetWIPArea->vertices.clear();
+            return;
           }
         }
 
-        // Once the number of vertices the WIP bounding area has becomes two,
-        // the Point instance we're pushing will hold the current position
-        // of the mouse cursor, while we're drawing the bounding area.
-        this->wipBoundingArea.vertices.push_back(
+        // Once the number of vertices the WIP bounding/hazard area has becomes
+        // two, the Point instance we're pushing will hold the current position
+        // of the mouse cursor, while we're drawing the area.
+        targetWIPArea->vertices.push_back(
           corex::core::screenToWorldCoordinates(
             corex::core::Point{
               static_cast<float>(e.x),
@@ -844,8 +1046,8 @@ namespace bpt
           )
         );
 
-        if (this->wipBoundingArea.vertices.size() == 1) {
-          this->wipBoundingArea.vertices.push_back(
+        if (targetWIPArea->vertices.size() == 1) {
+          targetWIPArea->vertices.push_back(
             corex::core::screenToWorldCoordinates(
               corex::core::Point{
                 static_cast<float>(e.x),
@@ -856,9 +1058,8 @@ namespace bpt
           );
         }
 
-        if (this->wipBoundingArea.vertices.size() == 4) {
-          this->closeAreaTriggerCircle.position = this->wipBoundingArea
-            .vertices[0];
+        if (targetWIPArea->vertices.size() == 4) {
+          this->closeAreaTriggerCircle.position = targetWIPArea->vertices[0];
           this->isCloseAreaTriggerEnabled = true;
         }
       }
@@ -881,24 +1082,47 @@ namespace bpt
   void
   MainScene::handleMouseMovementEvents(const corex::core::MouseMovementEvent& e)
   {
-    switch (this->currentContext) {
-      case Context::NO_ACTION:
-        break;
-      case Context::DRAW_AREA_BOUND:
-        if (!this->wipBoundingArea.vertices.empty()) {
-          int32_t lastElementIndex = this->wipBoundingArea.vertices.size() - 1;
-          this->wipBoundingArea
-               .vertices[lastElementIndex] =
-                  corex::core::screenToWorldCoordinates(
-                    corex::core::Point{
-                      static_cast<float>(e.x),
-                      static_cast<float>(e.y)
-                    },
-                    this->camera
-              );
+    if (this->currentContext == Context::DRAW_AREA_BOUND
+        || this->currentContext == Context::DRAW_FLOOD_PRONE_AREA
+        || this->currentContext == Context::DRAW_LANDSLIDE_PRONE_AREA) {
+      corex::core::LineSegments* targetWIPArea = nullptr;
+      switch (this->currentContext) {
+        case Context::DRAW_AREA_BOUND:
+          targetWIPArea = &(this->wipBoundingArea);
+          break;
+        case Context::DRAW_FLOOD_PRONE_AREA:
+        case Context::DRAW_LANDSLIDE_PRONE_AREA:
+          targetWIPArea = &(this->wipHazardArea);
+          break;
+        default:
+          break;
+      }
+
+      if (targetWIPArea) {
+        if (!targetWIPArea->vertices.empty()) {
+          int32_t lastElementIndex = targetWIPArea->vertices.size() - 1;
+          targetWIPArea->vertices[lastElementIndex] =
+            corex::core::screenToWorldCoordinates(
+              corex::core::Point{
+                static_cast<float>(e.x),
+                static_cast<float>(e.y)
+              },
+              this->camera
+            );
         }
 
-        break;
+        if (this->isCloseAreaTriggerEnabled) {
+          int32_t lastElementIndex = targetWIPArea->vertices.size() - 1;
+          float dist = corex::core::distance2D(
+            targetWIPArea->vertices[0],
+            targetWIPArea->vertices[lastElementIndex]);
+          if (corex::core::floatLessEqual(dist, 7.f)) {
+            this->closeAreaTriggerCircle.radius = 5.f;
+          } else {
+            this->closeAreaTriggerCircle.radius = 0.f;
+          }
+        }
+      }
     }
   }
 

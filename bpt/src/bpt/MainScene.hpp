@@ -78,6 +78,7 @@ namespace bpt
     eastl::vector<corex::core::NPolygon> floodProneAreas;
     eastl::vector<corex::core::NPolygon> landslideProneAreas;
     entt::entity wipBoundingAreaEntity;
+    entt::entity wipHazardAreaEntity;
     entt::entity boundingAreaEntity;
     entt::entity closeAreaTriggerEntity;
     eastl::vector<entt::entity> floodProneAreaEntities;
