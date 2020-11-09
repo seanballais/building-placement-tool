@@ -5,6 +5,7 @@ eastl/3.16.05
 entt/3.5.2
 imgui/1.76
 nlohmann_json/3.8.0
+sdl2/2.0.12@bincrafters/stable
 
 [generators]
 cmake
