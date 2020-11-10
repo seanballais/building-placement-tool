@@ -15,6 +15,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Mhmm. We're sticking with just Clang. Note that -stdlib is a Clang-only flag.
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -stdlib=libc++")
 
+# Make sure no optimizations are present during a debug build. This will let us
+# get accurate profiling results.
+if (CMAKE_BUILD_TYPE STREQUAL Debug)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/sdl_gpu/include)
 

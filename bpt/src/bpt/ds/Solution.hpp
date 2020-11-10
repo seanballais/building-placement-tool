@@ -19,13 +19,17 @@ namespace bpt
     void setBuildingXPos(int32_t buildingIndex, float xPos);
     void setBuildingYPos(int32_t buildingIndex, float yPos);
     void setBuildingRotation(int32_t buildingIndex, float rotation);
+    void setFitness(double fitness);
     float getBuildingXPos(int32_t buildingIndex) const;
     float getBuildingYPos(int32_t buildingIndex) const;
     float getBuildingRotation(int32_t buildingIndex) const;
     int32_t getNumBuildings() const;
+    double getFitness() const;
   private:
     eastl::vector<float> genes;
     int32_t numBuildings;
+    double fitness;
+    bool hasFitnessSet;
   };
 }
 

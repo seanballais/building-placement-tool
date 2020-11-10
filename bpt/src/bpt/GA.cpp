@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <iterator>
@@ -11,7 +10,6 @@
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
-#include <corex/core/ds/Line.hpp>
 #include <corex/core/ds/NPolygon.hpp>
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/ds/Rectangle.hpp>
@@ -19,11 +17,7 @@
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
-#include <corex/core/math_functions.hpp>
 #include <corex/core/utils.hpp>
-#include <corex/core/ds/NPolygon.hpp>
-#include <corex/core/ds/Rectangle.hpp>
-#include <corex/core/ds/Vec2.hpp>
 
 #include <bpt/GA.hpp>
 
@@ -38,19 +32,16 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<eastl::vector<float>>& flowRates,
+    eastl::vector<corex::core::NPolygon>& floodProneAreas,
+    eastl::vector<corex::core::NPolygon>& landslideProneAreas,
     const float mutationRate,
     const int32_t populationSize,
     const int32_t numGenerations,
-    const int32_t tournamentSize)
+    const int32_t tournamentSize,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty)
   {
     assert(flowRates.size() == inputBuildings.size());
-
-    std::cout << "\\!/ Input Building Data" << std::endl;
-    for (auto& building : inputBuildings) {
-      std::cout << "# Building Data" << std::endl;
-      std::cout << "Width: " << building.width << std::endl;
-      std::cout << "Length: " << building.length << std::endl;
-    }
 
     eastl::vector<Solution> population(populationSize);
 
@@ -63,6 +54,15 @@ namespace bpt
       std::cout << "Generating solution #" << i << "..." << std::endl;
       population[i] = this->generateRandomSolution(inputBuildings,
                                                    boundingArea);
+      population[i].setFitness(
+        this->getSolutionFitness(
+          population[i],
+          inputBuildings,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty));
     }
 
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
@@ -86,17 +86,16 @@ namespace bpt
         for (int32_t j = 0; j < tournamentSize; j++) {
           int32_t parentIndex = corex::core::generateRandomInt(
             chromosomeDistribution);
-          if (j == 0
-              || (corex::core::floatLessThan(
-                   this->getSolutionFitness(population[parentIndex], flowRates),
-                   this->getSolutionFitness(parentA, flowRates)))) {
+          if (j == 0 // Boolean short-circuit. Hehe.
+              || corex::core::floatLessThan(
+                  population[parentIndex].getFitness(),
+                  parentA.getFitness())) {
             parentB = parentA;
             parentA = population[parentIndex];
-          } else if ((parentB.getNumBuildings() == 0)
-                     || (corex::core::floatLessThan(
-                          this->getSolutionFitness(population[parentIndex],
-                                                   flowRates),
-                          this->getSolutionFitness(parentB, flowRates)))) {
+          } else if (parentB.getNumBuildings() == 0 // Boolean short again.
+                     || corex::core::floatLessThan(
+                          population[parentIndex].getFitness(),
+                          parentB.getFitness())) {
             parentB = population[parentIndex];
           }
         }
@@ -112,6 +111,14 @@ namespace bpt
                                                  boundingArea,
                                                  inputBuildings);
         newPopulation[numOffsprings] = children[0];
+        newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
+          newPopulation[numOffsprings],
+          inputBuildings,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty));
         
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
@@ -119,6 +126,14 @@ namespace bpt
           this->mutateSolution(newPopulation[numOffsprings],
                                boundingArea,
                                inputBuildings);
+          newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
+            newPopulation[numOffsprings],
+            inputBuildings,
+            flowRates,
+            floodProneAreas,
+            landslideProneAreas,
+            floodProneAreaPenalty,
+            landslideProneAreaPenalty));
         }
 
         numOffsprings++;
@@ -131,21 +146,26 @@ namespace bpt
           auto weakestSolutionIter = std::max_element(
             newPopulation.begin(),
             newPopulation.end(),
-            [this, &inputBuildings, &flowRates](Solution solutionA,
-                                                Solution solutionB)
-                                  -> bool {
-              return corex::core::floatLessThan(
-                this->getSolutionFitness(solutionA, flowRates),
-                this->getSolutionFitness(solutionB, flowRates));
+            [](Solution solutionA, Solution solutionB) -> bool {
+              return corex::core::floatLessThan(solutionA.getFitness(),
+                                                solutionB.getFitness());
             }
           );
 
-          if (corex::core::floatLessThan(
-                this->getSolutionFitness(children[1], flowRates),
-                this->getSolutionFitness(*weakestSolutionIter, flowRates))) {
+          if (corex::core::floatLessThan(children[1].getFitness(),
+                                         weakestSolutionIter->getFitness())) {
             int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
                                                          weakestSolutionIter);
             newPopulation[weakestSolutionIndex] = children[1];
+            newPopulation[weakestSolutionIndex].setFitness(
+              this->getSolutionFitness(
+                newPopulation[weakestSolutionIndex],
+                inputBuildings,
+                flowRates,
+                floodProneAreas,
+                landslideProneAreas,
+                floodProneAreaPenalty,
+                landslideProneAreaPenalty));
 
             float mutationProbability = corex::core::generateRandomReal(
               mutationChanceDistribution);
@@ -153,10 +173,27 @@ namespace bpt
               this->mutateSolution(newPopulation[weakestSolutionIndex],
                                    boundingArea,
                                    inputBuildings);
+              newPopulation[weakestSolutionIndex].setFitness(
+                this->getSolutionFitness(
+                  newPopulation[weakestSolutionIndex],
+                  inputBuildings,
+                  flowRates,
+                  floodProneAreas,
+                  landslideProneAreas,
+                  floodProneAreaPenalty,
+                  landslideProneAreaPenalty));
             }
           }
         } else {
           newPopulation[numOffsprings] = children[1];
+          newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
+            newPopulation[numOffsprings],
+            inputBuildings,
+            flowRates,
+            floodProneAreas,
+            landslideProneAreas,
+            floodProneAreaPenalty,
+            landslideProneAreaPenalty));
           
           float mutationProbability = corex::core::generateRandomReal(
             mutationChanceDistribution);
@@ -164,6 +201,14 @@ namespace bpt
             this->mutateSolution(newPopulation[numOffsprings],
                                  boundingArea,
                                  inputBuildings);
+            newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
+              newPopulation[numOffsprings],
+              inputBuildings,
+              flowRates,
+              floodProneAreas,
+              landslideProneAreas,
+              floodProneAreaPenalty,
+              landslideProneAreaPenalty));
           }
 
           numOffsprings++;
@@ -173,24 +218,19 @@ namespace bpt
       // Replace the worst solution in the new population with the best solution
       // in the previous generation, if the previous best solution is better
       // than the current generation worst. We should only do this in the
-      // second genetation.
+      // second generation.
       if (i > 0) {
         auto weakestSolutionIter = std::max_element(
           newPopulation.begin(),
           newPopulation.end(),
-          [this, &inputBuildings, &flowRates](Solution solutionA,
-                                              Solution solutionB)
-                                -> bool {
-            return corex::core::floatLessThan(
-              this->getSolutionFitness(solutionA, flowRates),
-              this->getSolutionFitness(solutionB, flowRates));
-            }
-          );
+          [](Solution solutionA, Solution solutionB) -> bool {
+            return corex::core::floatLessThan(solutionA.getFitness(),
+                                              solutionB.getFitness());
+          }
+        );
 
-        if (corex::core::floatLessThan(
-              this->getSolutionFitness(bestSolution, flowRates),
-              this->getSolutionFitness(*weakestSolutionIter,
-                                       flowRates))) {
+        if (corex::core::floatLessThan(bestSolution.getFitness(),
+                                       weakestSolutionIter->getFitness())) {
           int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
                                                        weakestSolutionIter);
           newPopulation[weakestSolutionIndex] = bestSolution;
@@ -201,7 +241,7 @@ namespace bpt
 
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
-        fitnessAverage += this->getSolutionFitness(sol, flowRates);
+        fitnessAverage += sol.getFitness();
       }
 
       fitnessAverage = fitnessAverage / newPopulation.size();
@@ -210,35 +250,43 @@ namespace bpt
       bestSolution = *std::min_element(
         population.begin(),
         population.end(),
-        [this, &inputBuildings, &flowRates](Solution solutionA,
-                                            Solution solutionB) {
-          return corex::core::floatLessThan(
-            this->getSolutionFitness(solutionA, flowRates),
-            this->getSolutionFitness(solutionB, flowRates));
+        [](Solution solutionA, Solution solutionB) {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
         }
       );
 
       this->applyLocalSearch1(bestSolution,
                               boundingArea,
                               inputBuildings,
-                              flowRates);
+                              flowRates,
+                              floodProneAreas,
+                              landslideProneAreas,
+                              floodProneAreaPenalty,
+                              landslideProneAreaPenalty);
+      bestSolution.setFitness(this->getSolutionFitness(
+        bestSolution,
+        inputBuildings,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty));
 
       this->recentRunBestFitnesses.push_back(static_cast<float>(
-        this->getSolutionFitness(bestSolution, flowRates)));
+        bestSolution.getFitness()));
 
       worstSolution = *std::max_element(
         population.begin(),
         population.end(),
-        [this, &inputBuildings, &flowRates](Solution solutionA,
-                                            Solution solutionB) {
-          return corex::core::floatLessThan(
-            this->getSolutionFitness(solutionA, flowRates),
-            this->getSolutionFitness(solutionB, flowRates));
+        [](Solution solutionA, Solution solutionB) {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
         }
       );
 
       this->recentRunWorstFitnesses.push_back(static_cast<float>(
-        this->getSolutionFitness(worstSolution, flowRates)));
+        worstSolution.getFitness()));
     }
 
     return bestSolution;
@@ -246,12 +294,16 @@ namespace bpt
 
   double GA::getSolutionFitness(
     const Solution& solution,
-    const eastl::vector<eastl::vector<float>>& flowRates)
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const eastl::vector<eastl::vector<float>>& flowRates,
+    const eastl::vector<corex::core::NPolygon>& floodProneAreas,
+    const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty)
   {
     double fitness = 0.0;
 
-    // For now, consider the objective function as the minimization of the
-    // distance of the buildings from each other.
+    // Compute fitness for the inter-building distance part.
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
       assert(flowRates[i].size() == solution.getNumBuildings());
       for (int32_t j = 1; j < solution.getNumBuildings(); j++) {
@@ -270,6 +322,30 @@ namespace bpt
                                   })
           * flowRates[i][j]
         );
+      }
+    }
+
+    // Compute penalty for placing buildings in hazard areas.
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      corex::core::Rectangle building {
+        solution.getBuildingXPos(i),
+        solution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        solution.getBuildingRotation(i)
+      };
+      // Compute penalty for placing a building in a flood-prone area.
+      for (const corex::core::NPolygon& area : floodProneAreas) {
+        if (corex::core::isRectWithinNPolygon(building, area)) {
+          fitness += floodProneAreaPenalty;
+        }
+      }
+
+      // Compute penalty for placing a building in a landslide-prone area.
+      for (const corex::core::NPolygon& area : landslideProneAreas) {
+        if (corex::core::isRectWithinNPolygon(building, area)) {
+          fitness += landslideProneAreaPenalty;
+        }
       }
     }
 
@@ -456,69 +532,15 @@ namespace bpt
     solution = tempSolution;
   }
 
-  void GA::applySwapping(Solution& solution,
-                         const eastl::vector<eastl::vector<float>>& flowRates)
-  {
-    eastl::vector<Solution> generatedSolutions;
-
-    // Save original solution.
-    generatedSolutions.push_back(solution);
-
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
-        float building0XPos = solution.getBuildingXPos(i);
-        float building0YPos = solution.getBuildingYPos(i);
-        float building0Rot = solution.getBuildingRotation(i);
-
-        float building1XPos = solution.getBuildingXPos(j);
-        float building1YPos = solution.getBuildingYPos(j);
-        float building1Rot = solution.getBuildingRotation(j);
-
-        Solution altSolution0 = solution;
-        Solution altSolution1 = solution;
-        Solution altSolution2 = solution;
-
-        // Swap the buildings' positions, and save as a possible solution.
-        altSolution0.setBuildingXPos(i, building1XPos);
-        altSolution0.setBuildingYPos(i, building1YPos);
-        altSolution0.setBuildingXPos(j, building0XPos);
-        altSolution0.setBuildingYPos(j, building0YPos);
-
-        // Swap the buildings' rotations, and save as a possible solution.
-        altSolution1.setBuildingRotation(i, building1Rot);
-        altSolution1.setBuildingRotation(j, building0Rot);
-
-        // Swap the buildings' positions and rotations, and save as a possible
-        // solution.
-        altSolution2.setBuildingXPos(i, building1XPos);
-        altSolution2.setBuildingYPos(i, building1YPos);
-        altSolution2.setBuildingXPos(j, building0XPos);
-        altSolution2.setBuildingYPos(j, building0YPos);
-        altSolution2.setBuildingRotation(i, building1Rot);
-        altSolution2.setBuildingRotation(j, building0Rot);
-
-        generatedSolutions.push_back(altSolution0);
-        generatedSolutions.push_back(altSolution1);
-        generatedSolutions.push_back(altSolution2);
-      }
-    }
-
-    solution = *std::min_element(
-      generatedSolutions.begin(),
-      generatedSolutions.end(),
-      [this, &flowRates](Solution solutionA, Solution solutionB) {
-        return corex::core::floatLessThan(
-          this->getSolutionFitness(solutionA, flowRates),
-          this->getSolutionFitness(solutionB, flowRates));
-      }
-    );
-  }
-
   void GA::applyLocalSearch1(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
-    const eastl::vector<eastl::vector<float>>& flowRates)
+    const eastl::vector<eastl::vector<float>>& flowRates,
+    eastl::vector<corex::core::NPolygon> floodProneAreas,
+    eastl::vector<corex::core::NPolygon> landslideProneAreas,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty)
   {
     constexpr int32_t numMovements = 8;
     constexpr float maxShiftAmount = 15.f;
@@ -653,10 +675,9 @@ namespace bpt
     solution = *std::min_element(
       generatedSolutions.begin(),
       generatedSolutions.end(),
-      [this, &flowRates](Solution solutionA, Solution solutionB) {
-        return corex::core::floatLessThan(
-          this->getSolutionFitness(solutionA, flowRates),
-          this->getSolutionFitness(solutionB, flowRates));
+      [](Solution solutionA, Solution solutionB) {
+        return corex::core::floatLessThan(solutionA.getFitness(),
+                                          solutionB.getFitness());
       }
     );
   }

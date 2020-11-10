@@ -1,9 +1,5 @@
-#include <algorithm>
+#include <cassert>
 #include <cstdlib>
-#include <iostream>
-#include <random>
-
-#include <corex/core/utils.hpp>
 
 #include <bpt/ds/Solution.hpp>
 
@@ -11,15 +7,21 @@ namespace bpt
 {
   Solution::Solution()
     : genes()
-    , numBuildings(0) {}
+    , numBuildings(0)
+    , fitness(0)
+    , hasFitnessSet(false) {}
 
   Solution::Solution(const Solution& other)
     : genes(other.genes)
-    , numBuildings(other.numBuildings) {}
+    , numBuildings(other.numBuildings)
+    , fitness(other.fitness)
+    , hasFitnessSet(other.hasFitnessSet) {}
 
   Solution::Solution(int32_t numBuildings)
     : genes(numBuildings * 3, 0.f)
-    , numBuildings(numBuildings) {}
+    , numBuildings(numBuildings)
+    , fitness(0)
+    , hasFitnessSet(false) {}
 
   void Solution::setBuildingXPos(int32_t buildingIndex, float xPos)
   {
@@ -34,6 +36,12 @@ namespace bpt
   void Solution::setBuildingRotation(int32_t buildingIndex, float rotation)
   {
     this->genes[(buildingIndex * 3) + 2] = rotation;
+  }
+
+  void Solution::setFitness(double fitness)
+  {
+    this->fitness = fitness;
+    this->hasFitnessSet = true;
   }
 
   float Solution::getBuildingXPos(int32_t buildingIndex) const
@@ -54,5 +62,11 @@ namespace bpt
   int32_t Solution::getNumBuildings() const
   {
     return this->numBuildings;
+  }
+
+  double Solution::getFitness() const
+  {
+    assert(this->hasFitnessSet);
+    return this->fitness;
   }
 }

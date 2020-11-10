@@ -49,7 +49,7 @@ namespace bpt
                        corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
-    , gaSettings({ 0.25f, 25, 1000, 4 })
+    , gaSettings({ 0.25f, 25, 1000, 4, 5.f, 5.f })
     , currentSolution()
     , isGAThreadRunning(false)
     , hasSetupCurrentSolution(false)
@@ -218,7 +218,7 @@ namespace bpt
           this->currentSolution.getBuildingXPos(i),
           this->currentSolution.getBuildingYPos(i),
           0.f,
-          static_cast<int8_t>(0));
+          static_cast<int8_t>(1));
         this->registry.emplace<corex::core::Renderable>(
           e,
           corex::core::RenderableType::PRIMITIVE_RECTANGLE);
@@ -242,8 +242,14 @@ namespace bpt
       }
 
       std::cout << "Fitness: "
-                << this->geneticAlgo.getSolutionFitness(this->currentSolution,
-                                                        this->flowRates)
+                << this->geneticAlgo.getSolutionFitness(
+                     this->currentSolution,
+                     this->inputBuildings,
+                     this->flowRates,
+                     this->floodProneAreas,
+                     this->landslideProneAreas,
+                     this->gaSettings.floodProneAreaPenalty,
+                     this->gaSettings.landslideProneAreaPenalty)
                 << std::endl;
 
       this->hasSetupCurrentSolution = true;
@@ -273,7 +279,7 @@ namespace bpt
             0.f,
             0.f,
             1.f,
-            static_cast<int8_t>(1));
+            static_cast<int8_t>(2));
           this->registry.emplace<corex::core::Renderable>(
             this->boundingAreaEntity,
             corex::core::RenderableType::PRIMITIVE_POLYGON);
@@ -301,7 +307,7 @@ namespace bpt
               0.f,
               0.f,
               1.f,
-              static_cast<int8_t>(1));
+              static_cast<int8_t>(0));
             this->registry.emplace<corex::core::Renderable>(
               this->floodProneAreaEntities[i],
               corex::core::RenderableType::PRIMITIVE_POLYGON);
@@ -329,7 +335,7 @@ namespace bpt
               0.f,
               0.f,
               1.f,
-              static_cast<int8_t>(1));
+              static_cast<int8_t>(0));
             this->registry.emplace<corex::core::Renderable>(
               this->landslideProneAreaEntities[i],
               corex::core::RenderableType::PRIMITIVE_POLYGON);
@@ -900,11 +906,16 @@ namespace bpt
   void MainScene::buildGAControlsWindow()
   {
     ImGui::Begin("GA Controls");
+    ImGui::BeginChild("GA Controls List");
 
     ImGui::InputFloat("Mutation Rate", &(this->gaSettings.mutationRate));
     ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
     ImGui::InputInt("No. of Generations", &(this->gaSettings.numGenerations));
     ImGui::InputInt("Tournament Size", &(this->gaSettings.tournamentSize));
+    ImGui::InputFloat("Flood Penalty",
+                      &(this->gaSettings.floodProneAreaPenalty));
+    ImGui::InputFloat("Landslide Penalty",
+                      &(this->gaSettings.landslideProneAreaPenalty));
 
     if (this->isGAThreadRunning) {
       ImGui::Text("Running GA...");
@@ -921,21 +932,26 @@ namespace bpt
 
         std::thread gaThread{
           [this]() {
-            // We need to copy the input buildings and bounding area vectors to
-            // this thread,because they somehow get modified as the thread
-            // executes.
+            // We need to copy the following vectors to this thread, because
+            // they somehow get modified as the thread executes.
             auto inputBuildingsCopy = this->inputBuildings;
             auto boundingAreaCopy = this->boundingArea;
             auto flowRatesCopy = this->flowRates;
+            auto floodProneAreasCopy = this->floodProneAreas;
+            auto landslideProneAreasCopy = this->landslideProneAreas;
 
             this->currentSolution = this->geneticAlgo.generateSolution(
               inputBuildingsCopy,
               boundingAreaCopy,
               flowRatesCopy,
+              floodProneAreasCopy,
+              landslideProneAreasCopy,
               this->gaSettings.mutationRate,
               this->gaSettings.populationSize,
               this->gaSettings.numGenerations,
-              this->gaSettings.tournamentSize
+              this->gaSettings.tournamentSize,
+              this->gaSettings.floodProneAreaPenalty,
+              this->gaSettings.landslideProneAreaPenalty
             );
 
             this->recentGARunAvgFitnesses = this
@@ -958,6 +974,7 @@ namespace bpt
       }
     }
 
+    ImGui::EndChild();
     ImGui::End();
   }
 
