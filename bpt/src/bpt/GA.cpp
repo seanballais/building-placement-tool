@@ -336,14 +336,14 @@ namespace bpt
       };
       // Compute penalty for placing a building in a flood-prone area.
       for (const corex::core::NPolygon& area : floodProneAreas) {
-        if (corex::core::isRectWithinNPolygon(building, area)) {
+        if (corex::core::isRectIntersectingNPolygon(building, area)) {
           fitness += floodProneAreaPenalty;
         }
       }
 
       // Compute penalty for placing a building in a landslide-prone area.
       for (const corex::core::NPolygon& area : landslideProneAreas) {
-        if (corex::core::isRectWithinNPolygon(building, area)) {
+        if (corex::core::isRectIntersectingNPolygon(building, area)) {
           fitness += landslideProneAreaPenalty;
         }
       }

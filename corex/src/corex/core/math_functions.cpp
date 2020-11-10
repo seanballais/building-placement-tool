@@ -17,10 +17,10 @@
 namespace corex::core
 {
   // Functions and that should only be accessible here.
-  // bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
-  //                                    const Rectangle& rect1,
-  //                                    const Vec2& axis);
-  //Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis);
+  bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
+                                     const Rectangle& rect1,
+                                     const Vec2& axis);
+  Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis);
 
   bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
                                      const Rectangle& rect1,
@@ -615,6 +615,36 @@ namespace corex::core
                                                          boundaryLine),
                                 0.f))) {
           return false;
+        }
+      }
+    }
+
+    return isPointWithinNPolygon(rectPoly.vertices[0], polygon);
+  }
+
+  bool isRectIntersectingNPolygon(const Rectangle& rect,
+                                  const NPolygon& polygon)
+  {
+    // NOTE: "A subset of a set is equal to its intersections."
+    // Source: https://www.quora.com
+    //                /Set-Theory-Is-a-subset-a-type-of-intersection
+    //                /answer/Vinay-Madhusudanan
+    auto rectPoly = convertRectangleToPolygon(rect);
+
+    for (int32_t i = 0; i < polygon.vertices.size(); i++) {
+      Line boundaryLine = Line{
+        polygon.vertices[i],
+        polygon.vertices[(i + 1) % polygon.vertices.size()]
+      };
+
+      for (int32_t j = 0; j < rectPoly.vertices.size(); j++) {
+        Line rectLine = Line{
+          rectPoly.vertices[j],
+          rectPoly.vertices[(j + 1) % rectPoly.vertices.size()]
+        };
+
+        if (areTwoLinesIntersecting(boundaryLine, rectLine)) {
+          return true;
         }
       }
     }

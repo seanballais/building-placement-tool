@@ -123,11 +123,8 @@ namespace corex::core
   double polygonArea(const NPolygon& polygon);
   bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon);
   bool isRectWithinNPolygon(const Rectangle& rect, const NPolygon& polygon);
-
-  Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis);
-  bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
-                                     const Rectangle& rect1,
-                                     const Vec2& axis);
+  bool isRectIntersectingNPolygon(const Rectangle& rect,
+                                  const NPolygon& polygon);
 
   template <uint32_t numVertices>
   eastl::array<Line, numVertices>

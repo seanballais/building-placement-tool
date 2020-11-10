@@ -198,6 +198,10 @@ namespace bpt
                                                 .get<int32_t>();
             this->gaSettings.tournamentSize = gaSettingsJSON["tournamentSize"]
                                                 .get<int32_t>();
+            this->gaSettings.floodProneAreaPenalty =
+              gaSettingsJSON["floodProneAreaPenalty"].get<float>();
+            this->gaSettings.landslideProneAreaPenalty =
+              gaSettingsJSON["landslideProneAreaPenalty"].get<float>();
 
             this->doesGASettingsFieldExist = true;
           }
@@ -548,6 +552,10 @@ namespace bpt
                                                              .numGenerations;
       this->inputData["gaSettings"]["tournamentSize"] = this->gaSettings
                                                              .tournamentSize;
+      this->inputData["gaSettings"]["floodProneAreaPenalty"] =
+        this->gaSettings.floodProneAreaPenalty;
+      this->inputData["gaSettings"]["landslideProneAreaPenalty"] =
+        this->gaSettings.landslideProneAreaPenalty;
 
       this->inputData["floodProneAreas"] = nlohmann::json::array();
       for (corex::core::NPolygon& area : this->floodProneAreas) {
