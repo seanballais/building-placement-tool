@@ -57,6 +57,8 @@ namespace bpt
     , doesInputBoundingAreaFieldExist(false)
     , doesInputBuildingsExist(false)
     , doesGASettingsFieldExist(false)
+    , doFloodProneAreasExist(false)
+    , doLandslideProneAreasExist(false)
     , isCloseAreaTriggerEnabled(false)
     , showGAResultsAverage(true)
     , showGAResultsBest(true)
@@ -116,7 +118,7 @@ namespace bpt
 
           if (this->inputData.contains("boundingAreaVertices")) {
             for (auto& vertex : this->inputData["boundingAreaVertices"]) {
-              // Sigh. Shoud have used a JSON object here.
+              // Sigh. Should have used a JSON object here.
               this->boundingArea.vertices.push_back(corex::core::Point{
                 vertex[0].get<float>(), vertex[1].get<float>()
               });
@@ -128,7 +130,7 @@ namespace bpt
             int32_t numBuildings = this->inputData["inputBuildings"].size();
             int32_t buildingIndex = 0;
             for (auto& building : this->inputData["inputBuildings"]) {
-              // Sigh. Shoud have used a JSON object here.
+              // Sigh. Should have used a JSON object here.
               this->inputBuildings.push_back(InputBuilding{
                 building[0].get<float>(), building[1].get<float>()
               });
@@ -150,6 +152,40 @@ namespace bpt
             this->doesInputBuildingsExist = true;
 
             assert(this->inputBuildings.size() == this->flowRates.size());
+          }
+
+          if (this->inputData.contains("floodProneAreas")) {
+            for (auto& area : this->inputData["floodProneAreas"]) {
+              this->floodProneAreas.push_back();
+              this->floodProneAreaEntities.push_back(entt::null);
+              for (auto& vertex : area) {
+                this->floodProneAreas.back().vertices.push_back(
+                  corex::core::Point{
+                    vertex[0].get<float>(),
+                    vertex[1].get<float>()
+                  }
+                );
+              }
+            }
+
+            this->doFloodProneAreasExist = true;
+          }
+
+          if (this->inputData.contains("landslideProneAreas")) {
+            for (auto& area : this->inputData["landslideProneAreas"]) {
+              this->landslideProneAreas.push_back();
+              this->landslideProneAreaEntities.push_back(entt::null);
+              for (auto& vertex : area) {
+                this->landslideProneAreas.back().vertices.push_back(
+                  corex::core::Point{
+                    vertex[0].get<float>(),
+                    vertex[1].get<float>()
+                  }
+                );
+              }
+            }
+
+            this->doLandslideProneAreasExist = true;
           }
 
           if (this->inputData.contains("gaSettings")) {
@@ -507,6 +543,26 @@ namespace bpt
       this->inputData["gaSettings"]["tournamentSize"] = this->gaSettings
                                                              .tournamentSize;
 
+      this->inputData["floodProneAreas"] = nlohmann::json::array();
+      for (corex::core::NPolygon& area : this->floodProneAreas) {
+        nlohmann::json areaVertices = nlohmann::json::array();
+        for (corex::core::Point& pt : area.vertices) {
+          areaVertices.push_back(nlohmann::json::array({ pt.x, pt.y }));
+        }
+
+        this->inputData["floodProneAreas"].push_back(areaVertices);
+      }
+
+      this->inputData["landslideProneAreas"] = nlohmann::json::array();
+      for (corex::core::NPolygon& area : this->landslideProneAreas) {
+        nlohmann::json areaVertices = nlohmann::json::array();
+        for (corex::core::Point& pt : area.vertices) {
+          areaVertices.push_back(nlohmann::json::array({ pt.x, pt.y }));
+        }
+
+        this->inputData["landslideProneAreas"].push_back(areaVertices);
+      }
+
       std::filesystem::path inputFilePath = corex::core::getBinFolder()
                                             / "data/input_data.bptdat";
       std::ofstream dataFile(inputFilePath, std::ios::trunc);
@@ -702,7 +758,9 @@ namespace bpt
     if (!this->doesInputDataExist
         || !this->doesInputBoundingAreaFieldExist
         || !this->doesInputBuildingsExist
-        || !this->doesGASettingsFieldExist) {
+        || !this->doesGASettingsFieldExist
+        || !this->doFloodProneAreasExist
+        || !this->doLandslideProneAreasExist) {
       ImGui::Begin("Warnings");
       ImGui::BeginChild("Warnings List");
 
@@ -727,6 +785,18 @@ namespace bpt
 
       if (!this->doesGASettingsFieldExist) {
         ImGui::Text("WARNING: GA settings field in input data "
+                    "does not exist.");
+        numWarnings++;
+      }
+
+      if (!this->doFloodProneAreasExist) {
+        ImGui::Text("WARNING: Flood-prone areas data in input data "
+                    "does not exist.");
+        numWarnings++;
+      }
+
+      if (!this->doLandslideProneAreasExist) {
+        ImGui::Text("WARNING: Landslide-prone areas data in input data "
                     "does not exist.");
         numWarnings++;
       }

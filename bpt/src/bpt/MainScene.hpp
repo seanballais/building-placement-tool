@@ -64,6 +64,8 @@ namespace bpt
     bool doesInputBoundingAreaFieldExist;
     bool doesInputBuildingsExist;
     bool doesGASettingsFieldExist;
+    bool doFloodProneAreasExist;
+    bool doLandslideProneAreasExist;
     bool isCloseAreaTriggerEnabled;
     bool showGAResultsAverage;
     bool showGAResultsBest;
