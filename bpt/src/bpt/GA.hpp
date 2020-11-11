@@ -56,11 +56,7 @@ namespace bpt
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
-      const eastl::vector<eastl::vector<float>>& flowRates,
-      eastl::vector<corex::core::NPolygon> floodProneAreas,
-      eastl::vector<corex::core::NPolygon> landslideProneAreas,
-      const float floodProneAreaPenalty,
-      const float landslideProneAreaPenalty);
+      const eastl::vector<eastl::vector<float>>& flowRates);
     bool
     isSolutionFeasible(const Solution& solution,
                        const corex::core::NPolygon& boundingArea,

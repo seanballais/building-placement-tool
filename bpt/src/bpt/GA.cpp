@@ -253,21 +253,16 @@ namespace bpt
         this->applyLocalSearch1(bestSolution,
                                 boundingArea,
                                 inputBuildings,
-                                flowRates,
-                                floodProneAreas,
-                                landslideProneAreas,
-                                floodProneAreaPenalty,
-                                landslideProneAreaPenalty);
+                                flowRates);
+        bestSolution.setFitness(this->getSolutionFitness(
+          bestSolution,
+          inputBuildings,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty));
       }
-
-      bestSolution.setFitness(this->getSolutionFitness(
-        bestSolution,
-        inputBuildings,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty));
 
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
@@ -540,11 +535,7 @@ namespace bpt
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
-    const eastl::vector<eastl::vector<float>>& flowRates,
-    eastl::vector<corex::core::NPolygon> floodProneAreas,
-    eastl::vector<corex::core::NPolygon> landslideProneAreas,
-    const float floodProneAreaPenalty,
-    const float landslideProneAreaPenalty)
+    const eastl::vector<eastl::vector<float>>& flowRates)
   {
     constexpr int32_t numMovements = 8;
     constexpr float maxShiftAmount = 15.f;
