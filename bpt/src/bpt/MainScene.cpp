@@ -49,7 +49,15 @@ namespace bpt
                        corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
-    , gaSettings({ 0.25f, 25, 1000, 4, 5.f, 5.f })
+    , gaSettings({
+        0.25f,
+        25,
+        1000,
+        4,
+        5.f,
+        5.f,
+        true
+      })
     , currentSolution()
     , isGAThreadRunning(false)
     , hasSetupCurrentSolution(false)
@@ -202,6 +210,8 @@ namespace bpt
               gaSettingsJSON["floodProneAreaPenalty"].get<float>();
             this->gaSettings.landslideProneAreaPenalty =
               gaSettingsJSON["landslideProneAreaPenalty"].get<float>();
+            this->gaSettings.isLocalSearchEnabled =
+              gaSettingsJSON["isLocalSearchEnabled"].get<bool>();
 
             this->doesGASettingsFieldExist = true;
           }
@@ -556,6 +566,8 @@ namespace bpt
         this->gaSettings.floodProneAreaPenalty;
       this->inputData["gaSettings"]["landslideProneAreaPenalty"] =
         this->gaSettings.landslideProneAreaPenalty;
+      this->inputData["gaSettings"]["isLocalSearchEnabled"] =
+        this->gaSettings.isLocalSearchEnabled;
 
       this->inputData["floodProneAreas"] = nlohmann::json::array();
       for (corex::core::NPolygon& area : this->floodProneAreas) {
@@ -924,6 +936,8 @@ namespace bpt
                       &(this->gaSettings.floodProneAreaPenalty));
     ImGui::InputFloat("Landslide Penalty",
                       &(this->gaSettings.landslideProneAreaPenalty));
+    ImGui::Checkbox("Enable Local Search",
+                    &(this->gaSettings.isLocalSearchEnabled));
 
     if (this->isGAThreadRunning) {
       ImGui::Text("Running GA...");
@@ -959,7 +973,8 @@ namespace bpt
               this->gaSettings.numGenerations,
               this->gaSettings.tournamentSize,
               this->gaSettings.floodProneAreaPenalty,
-              this->gaSettings.landslideProneAreaPenalty
+              this->gaSettings.landslideProneAreaPenalty,
+              this->gaSettings.isLocalSearchEnabled
             );
 
             this->recentGARunAvgFitnesses = this

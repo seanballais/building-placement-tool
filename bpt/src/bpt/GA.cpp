@@ -39,7 +39,8 @@ namespace bpt
     const int32_t numGenerations,
     const int32_t tournamentSize,
     const float floodProneAreaPenalty,
-    const float landslideProneAreaPenalty)
+    const float landslideProneAreaPenalty,
+    const bool isLocalSearchEnabled)
   {
     assert(flowRates.size() == inputBuildings.size());
 
@@ -239,14 +240,6 @@ namespace bpt
 
       population = newPopulation;
 
-      double fitnessAverage = 0.0;
-      for (Solution& sol : population) {
-        fitnessAverage += sol.getFitness();
-      }
-
-      fitnessAverage = fitnessAverage / newPopulation.size();
-      this->recentRunAvgFitnesses.push_back(static_cast<float>(fitnessAverage));
-
       bestSolution = *std::min_element(
         population.begin(),
         population.end(),
@@ -256,14 +249,17 @@ namespace bpt
         }
       );
 
-      this->applyLocalSearch1(bestSolution,
-                              boundingArea,
-                              inputBuildings,
-                              flowRates,
-                              floodProneAreas,
-                              landslideProneAreas,
-                              floodProneAreaPenalty,
-                              landslideProneAreaPenalty);
+      if (isLocalSearchEnabled) {
+        this->applyLocalSearch1(bestSolution,
+                                boundingArea,
+                                inputBuildings,
+                                flowRates,
+                                floodProneAreas,
+                                landslideProneAreas,
+                                floodProneAreaPenalty,
+                                landslideProneAreaPenalty);
+      }
+
       bestSolution.setFitness(this->getSolutionFitness(
         bestSolution,
         inputBuildings,
@@ -272,6 +268,14 @@ namespace bpt
         landslideProneAreas,
         floodProneAreaPenalty,
         landslideProneAreaPenalty));
+
+      double fitnessAverage = 0.0;
+      for (Solution& sol : population) {
+        fitnessAverage += sol.getFitness();
+      }
+
+      fitnessAverage = fitnessAverage / newPopulation.size();
+      this->recentRunAvgFitnesses.push_back(static_cast<float>(fitnessAverage));
 
       this->recentRunBestFitnesses.push_back(static_cast<float>(
         bestSolution.getFitness()));

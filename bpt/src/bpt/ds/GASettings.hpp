@@ -13,6 +13,7 @@ namespace bpt
     int32_t tournamentSize;
     float floodProneAreaPenalty;
     float landslideProneAreaPenalty;
+    bool isLocalSearchEnabled;
   };
 }
 

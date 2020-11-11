@@ -27,7 +27,8 @@ namespace bpt
       const int32_t numGenerations,
       const int32_t tournamentSize,
       const float floodProneAreaPenalty,
-      const float landslideProneAreaPenalty);
+      const float landslideProneAreaPenalty,
+      const bool isLocalSearchEnabled);
     double getSolutionFitness(
       const Solution& solution,
       const eastl::vector<InputBuilding>& inputBuildings,
