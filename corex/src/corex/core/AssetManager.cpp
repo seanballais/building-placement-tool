@@ -11,6 +11,7 @@
 #include <EASTL/vector.h>
 #include <nlohmann/json.hpp>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <SDL_gpu.h>
 
 #include <corex/core/Asset.hpp>
@@ -28,6 +29,54 @@ namespace corex::core
     loadAssetDB();
   }
 
+  Font AssetManager::getFont(eastl::string assetID,
+                             int32_t size,
+                             bool forceReload)
+  {
+    // Maybe not the best way to concatenate but this will do for now.
+    const eastl::string uniqueFontID = assetID + eastl::string("#")
+                                       + eastl::to_string(size);
+
+    auto iter = this->assetDB.find(assetID);
+
+    if (iter == this->assetDB.end()) {
+      std::cout << "Attempted to get a font asset with an invalid ID, "
+                << eaStrToStdStr(assetID) << ", and a font size of " << size
+                << std::endl;
+    } else {
+      AssetDBRecord& parentFontRecord = iter->second;
+      iter = this->assetDB.find(uniqueFontID);
+      if (iter != this->assetDB.end()) {
+        if (iter->second.assetType != "font") {
+          std::cout << "Attempted to retrieve a non-font asset." << std::endl;
+          STUBBED("The assert above should be an error log message.");
+        }
+      } else {
+        this->assetDB[uniqueFontID] = AssetDBRecord();
+        this->assetDB[uniqueFontID].assetType = parentFontRecord.assetType;
+        this->assetDB[uniqueFontID].filePath = parentFontRecord.filePath;
+
+        iter = this->assetDB.find(uniqueFontID);
+      }
+
+      if (eastl::get_if<Font>(&(iter->second.data)) == nullptr
+          || forceReload) {
+        eastl::string fontPath = iter->second.filePath;
+        TTF_Font* font = TTF_OpenFont(fontPath.c_str(), size);
+        if (font == nullptr) {
+          std::cout << "Font file, " << eaStrToStdStr(fontPath)
+                    << ", does not exist." << std::endl;
+          STUBBED("The assert above should be an error log message.");
+        }
+
+        eastl::get<Font>(iter->second.data).reset(
+          font, [](TTF_Font* font) { TTF_CloseFont(font); });
+      }
+    }
+
+    return eastl::get<Font>(iter->second.data);
+  }
+
   Texture AssetManager::getTexture(eastl::string assetID, bool forceReload)
   {
     auto iter = this->assetDB.find(assetID);
@@ -38,7 +87,7 @@ namespace corex::core
       }
 
       if (eastl::get_if<Texture>(&(iter->second.data)) == nullptr
-            || forceReload) {
+          || forceReload) {
         STUBBED("We should check if image exists.");
         eastl::string texturePath = iter->second.filePath;
         GPU_Image* texture = this->loadTexture(texturePath);
@@ -71,7 +120,7 @@ namespace corex::core
         STUBBED("We should check if spritesheet data exists.");
 
         std::ifstream dataFile(eaStrToStdStr(dataFilePath));
-        
+
         nlohmann::json spritesheetData;
         dataFile >> spritesheetData;
 

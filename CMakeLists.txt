@@ -23,6 +23,7 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/EAStdC/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/sdl_gpu/include)
 
 add_subdirectory(libs/)
@@ -34,6 +35,7 @@ target_link_libraries(bpt
     imgui-impls
     implot
     SDL_gpu
+    EAStdC
     ${CONAN_LIBS}
 )
 

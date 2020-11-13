@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include <implot/implot.h>
 #include <nlohmann/json.hpp>
+#include <SDL2/SDL.h>
 
 #include <corex/core/AssetManager.hpp>
 #include <corex/core/CameraZoomState.hpp>
@@ -25,6 +26,7 @@
 #include <corex/core/components/RenderLineSegments.hpp>
 #include <corex/core/components/RenderRectangle.hpp>
 #include <corex/core/components/RenderPolygon.hpp>
+#include <corex/core/components/Text.hpp>
 #include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/events/KeyboardEvent.hpp>
@@ -38,7 +40,6 @@
 
 #include <bpt/Context.hpp>
 #include <bpt/MainScene.hpp>
-#include <bpt/ds/Solution.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 
 namespace bpt

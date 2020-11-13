@@ -29,6 +29,12 @@ namespace corex::core
   public:
     void operator()(GPU_Target* target);
   };
+
+  struct SDLGPUImageDeleter
+  {
+  public:
+    void operator()(GPU_Image* image);
+  };
 }
 
 #endif

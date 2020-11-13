@@ -13,6 +13,7 @@ add_library(corex-core SHARED
     WindowManager.cpp
     asset_functions.cpp
     math_functions.cpp
+    components/Text.cpp
     ds/Vec2.cpp
     systems/BaseSystem.cpp
     systems/KeyboardHandler.cpp
