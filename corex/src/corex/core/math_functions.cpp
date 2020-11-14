@@ -554,7 +554,6 @@ namespace corex::core
   {
     // From "Calculating the area and centroid of a polygon" by Paul Bourke.
     // URL: http://paulbourke.net/geometry/polygonmesh/
-    // NOTE: Doesn't work with concave polygons.
     double polygonArea = getPolygonArea(polygon);
     auto& vertices = polygon.vertices;
     double centroidX = 0.0;

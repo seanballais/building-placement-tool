@@ -780,13 +780,9 @@ namespace bpt
         ImGui::Separator();
 
         ImGui::Text("New Area Vertices");
-        ImGui::BeginChild("New Area Vertices List");
-
         for (corex::core::Point& pt : this->wipHazardArea.vertices) {
           ImGui::Text("%f, %f", pt.x, pt.y);
         }
-
-        ImGui::EndChild();
       }
     }
 
@@ -811,17 +807,13 @@ namespace bpt
         }
       }
 
-      if (this->currentContext == Context::DRAW_FLOOD_PRONE_AREA) {
+      if (this->currentContext == Context::DRAW_LANDSLIDE_PRONE_AREA) {
         ImGui::Separator();
 
         ImGui::Text("New Area Vertices");
-        ImGui::BeginChild("New Area Vertices List");
-
         for (corex::core::Point& pt : this->wipHazardArea.vertices) {
           ImGui::Text("%f, %f", pt.x, pt.y);
         }
-
-        ImGui::EndChild();
       }
     }
     ImGui::EndChild();
