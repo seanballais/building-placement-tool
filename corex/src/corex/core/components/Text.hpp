@@ -16,9 +16,17 @@ namespace corex::core
   public:
     Text(const eastl::string&& text, Font font, SDL_Color colour);
     GPU_Image* getRenderableText() const;
+    void setText(const eastl::string&& text);
+    void setFont(const Font font);
+    void setColour(const SDL_Color colour);
 
   private:
     eastl::unique_ptr<GPU_Image, SDLGPUImageDeleter> renderableText;
+    eastl::string text;
+    Font font;
+    SDL_Color colour;
+
+    void generateTextTexture();
   };
 }
 

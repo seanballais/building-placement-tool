@@ -2,6 +2,34 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EABase/test/packages/EAAssert" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EABase/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EABase/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EABase/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EABase/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EABase/test/packages/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAStdC/test/packages/EAAssert" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAStdC/test/packages/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAStdC/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAStdC/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAStdC/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAStdC/test/packages/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EAAssert" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EATest" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/implot" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/sdl_gpu" vcs="Git" />
   </component>

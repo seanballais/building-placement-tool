@@ -88,6 +88,9 @@ namespace bpt
     eastl::vector<InputBuilding> inputBuildings;
     eastl::vector<entt::entity> buildingEntities;
     eastl::vector<eastl::vector<float>> flowRates;
+    eastl::vector<entt::entity> buildingTextEntities;
+    eastl::vector<entt::entity> floodProneAreaTextEntities;
+    eastl::vector<entt::entity> landslideProneAreaTextEntities;
     eastl::vector<float> recentGARunAvgFitnesses;
     eastl::vector<float> recentGARunBestFitnesses;
     eastl::vector<float> recentGARunWorstFitnesses;

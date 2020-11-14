@@ -11,18 +11,44 @@ namespace corex::core
 {
   Text::Text(const eastl::string&& text, Font font, SDL_Color colour)
     : renderableText(nullptr)
+    , text(text)
+    , font(font)
+    , colour(colour)
   {
-    SDL_Surface* textSurface = TTF_RenderText_Solid(font.get(),
-                                                    text.c_str(),
-                                                    colour);
-    this->renderableText = eastl::unique_ptr<GPU_Image, SDLGPUImageDeleter>(
-      GPU_CopyImageFromSurface(textSurface));
-
-    SDL_FreeSurface(textSurface);
+    this->generateTextTexture();
   }
 
   GPU_Image* Text::getRenderableText() const
   {
     return this->renderableText.get();
+  }
+
+  void Text::setText(const eastl::string&& text)
+  {
+    this->text = text;
+    this->generateTextTexture();
+  }
+
+  void Text::setFont(const Font font)
+  {
+    this->font = font;
+    this->generateTextTexture();
+  }
+
+  void Text::setColour(const SDL_Color colour)
+  {
+    this->colour = colour;
+    this->generateTextTexture();
+  }
+
+  void Text::generateTextTexture()
+  {
+    SDL_Surface* textSurface = TTF_RenderText_Blended(this->font.get(),
+                                                      this->text.c_str(),
+                                                      this->colour);
+    this->renderableText = eastl::unique_ptr<GPU_Image, SDLGPUImageDeleter>(
+      GPU_CopyImageFromSurface(textSurface));
+
+    SDL_FreeSurface(textSurface);
   }
 }
