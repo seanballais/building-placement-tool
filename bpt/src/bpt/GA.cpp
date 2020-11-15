@@ -24,7 +24,8 @@
 namespace bpt
 {
   GA::GA()
-    : recentRunAvgFitnesses()
+    : currRunGenerationNumber(-1)
+    , recentRunAvgFitnesses()
     , recentRunBestFitnesses()
     , recentRunWorstFitnesses() {}
 
@@ -78,7 +79,7 @@ namespace bpt
     Solution bestSolution;
     Solution worstSolution;
     for (int32_t i = 0; i < numGenerations; i++) {
-      std::cout << "Generation: " << i << std::endl;
+      this->currRunGenerationNumber++;
 
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newPopulation(populationSize);
@@ -302,6 +303,8 @@ namespace bpt
         worstSolution.getFitness()));
     }
 
+    this->currRunGenerationNumber = -1;
+
     return bestSolution;
   }
 
@@ -366,6 +369,11 @@ namespace bpt
     }
 
     return fitness;
+  }
+
+  int32_t GA::getCurrentRunGenerationNumber()
+  {
+    return this->currRunGenerationNumber;
   }
 
   eastl::vector<float> GA::getRecentRunAverageFitnesses()

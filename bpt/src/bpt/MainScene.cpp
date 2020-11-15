@@ -1042,7 +1042,9 @@ namespace bpt
                     &(this->gaSettings.isLocalSearchEnabled));
 
     if (this->isGAThreadRunning) {
-      ImGui::Text("Running GA...");
+      ImGui::Text("Running GA... (Generation %d out of %d)",
+                  this->geneticAlgo.getCurrentRunGenerationNumber(),
+                  this->gaSettings.numGenerations);
     } else {
       if (ImGui::Button("Generate Solution")) {
         this->isGAThreadRunning = true;
