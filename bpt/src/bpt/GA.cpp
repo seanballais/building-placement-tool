@@ -40,6 +40,7 @@ namespace bpt
     const int32_t tournamentSize,
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight,
     const bool isLocalSearchEnabled)
   {
     assert(flowRates.size() == inputBuildings.size());
@@ -63,7 +64,8 @@ namespace bpt
           floodProneAreas,
           landslideProneAreas,
           floodProneAreaPenalty,
-          landslideProneAreaPenalty));
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
     }
 
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
@@ -119,7 +121,8 @@ namespace bpt
           floodProneAreas,
           landslideProneAreas,
           floodProneAreaPenalty,
-          landslideProneAreaPenalty));
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
         
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
@@ -134,7 +137,8 @@ namespace bpt
             floodProneAreas,
             landslideProneAreas,
             floodProneAreaPenalty,
-            landslideProneAreaPenalty));
+            landslideProneAreaPenalty,
+            buildingDistanceWeight));
         }
 
         numOffsprings++;
@@ -166,7 +170,8 @@ namespace bpt
                 floodProneAreas,
                 landslideProneAreas,
                 floodProneAreaPenalty,
-                landslideProneAreaPenalty));
+                landslideProneAreaPenalty,
+                buildingDistanceWeight));
 
             float mutationProbability = corex::core::generateRandomReal(
               mutationChanceDistribution);
@@ -182,7 +187,8 @@ namespace bpt
                   floodProneAreas,
                   landslideProneAreas,
                   floodProneAreaPenalty,
-                  landslideProneAreaPenalty));
+                  landslideProneAreaPenalty,
+                  buildingDistanceWeight));
             }
           }
         } else {
@@ -194,7 +200,8 @@ namespace bpt
             floodProneAreas,
             landslideProneAreas,
             floodProneAreaPenalty,
-            landslideProneAreaPenalty));
+            landslideProneAreaPenalty,
+            buildingDistanceWeight));
           
           float mutationProbability = corex::core::generateRandomReal(
             mutationChanceDistribution);
@@ -209,7 +216,8 @@ namespace bpt
               floodProneAreas,
               landslideProneAreas,
               floodProneAreaPenalty,
-              landslideProneAreaPenalty));
+              landslideProneAreaPenalty,
+              buildingDistanceWeight));
           }
 
           numOffsprings++;
@@ -267,7 +275,8 @@ namespace bpt
         floodProneAreas,
         landslideProneAreas,
         floodProneAreaPenalty,
-        landslideProneAreaPenalty));
+        landslideProneAreaPenalty,
+        buildingDistanceWeight));
 
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
@@ -303,7 +312,8 @@ namespace bpt
     const eastl::vector<corex::core::NPolygon>& floodProneAreas,
     const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
     const float floodProneAreaPenalty,
-    const float landslideProneAreaPenalty)
+    const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight)
   {
     double fitness = 0.0;
 
@@ -328,6 +338,8 @@ namespace bpt
         );
       }
     }
+
+    fitness *= buildingDistanceWeight;
 
     // Compute penalty for placing buildings in hazard areas.
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {

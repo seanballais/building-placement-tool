@@ -57,6 +57,7 @@ namespace bpt
         4,
         5.f,
         5.f,
+        1.0f,
         true
       })
     , currentSolution()
@@ -216,6 +217,8 @@ namespace bpt
               gaSettingsJSON["floodProneAreaPenalty"].get<float>();
             this->gaSettings.landslideProneAreaPenalty =
               gaSettingsJSON["landslideProneAreaPenalty"].get<float>();
+            this->gaSettings.buildingDistanceWeight =
+              gaSettingsJSON["buildingDistanceWeight"].get<float>();
             this->gaSettings.isLocalSearchEnabled =
               gaSettingsJSON["isLocalSearchEnabled"].get<bool>();
 
@@ -286,7 +289,8 @@ namespace bpt
                      this->floodProneAreas,
                      this->landslideProneAreas,
                      this->gaSettings.floodProneAreaPenalty,
-                     this->gaSettings.landslideProneAreaPenalty)
+                     this->gaSettings.landslideProneAreaPenalty,
+                     this->gaSettings.buildingDistanceWeight)
                 << std::endl;
 
       this->hasSetupCurrentSolution = true;
@@ -635,6 +639,8 @@ namespace bpt
         this->gaSettings.floodProneAreaPenalty;
       this->inputData["gaSettings"]["landslideProneAreaPenalty"] =
         this->gaSettings.landslideProneAreaPenalty;
+      this->inputData["gaSettings"]["buildingDistanceWeight"] =
+        this->gaSettings.buildingDistanceWeight;
       this->inputData["gaSettings"]["isLocalSearchEnabled"] =
         this->gaSettings.isLocalSearchEnabled;
 
@@ -1030,6 +1036,8 @@ namespace bpt
                       &(this->gaSettings.floodProneAreaPenalty));
     ImGui::InputFloat("Landslide Penalty",
                       &(this->gaSettings.landslideProneAreaPenalty));
+    ImGui::InputFloat("Building Distance Weight",
+                      &(this->gaSettings.buildingDistanceWeight));
     ImGui::Checkbox("Enable Local Search",
                     &(this->gaSettings.isLocalSearchEnabled));
 
@@ -1073,6 +1081,7 @@ namespace bpt
               this->gaSettings.tournamentSize,
               this->gaSettings.floodProneAreaPenalty,
               this->gaSettings.landslideProneAreaPenalty,
+              this->gaSettings.buildingDistanceWeight,
               this->gaSettings.isLocalSearchEnabled
             );
 
@@ -1437,6 +1446,18 @@ namespace bpt
                 << "No. of Generations:," << this->gaSettings.numGenerations
                 << "\n"
                 << "Tournament Size:," << this->gaSettings.tournamentSize
+                << "\n"
+                << "Flood Penalty:," << this->gaSettings.floodProneAreaPenalty
+                << "\n"
+                << "Landslide Penalty:,"
+                << this->gaSettings.landslideProneAreaPenalty
+                << "\n"
+                << "Building Distance Weight:,"
+                << this->gaSettings.buildingDistanceWeight
+                << "\n"
+                << "Local Search:,"
+                << ((this->gaSettings.isLocalSearchEnabled) ? "Enabled"
+                                                            : "Disabled")
                 << "\n";
 
     resultsFile << "\n";
