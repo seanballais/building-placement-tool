@@ -281,17 +281,16 @@ namespace bpt
         this->buildingTextEntities.push_back(e);
       }
 
-      std::cout << "Fitness: "
-                << this->geneticAlgo.getSolutionFitness(
-                     this->currentSolution,
-                     this->inputBuildings,
-                     this->flowRates,
-                     this->floodProneAreas,
-                     this->landslideProneAreas,
-                     this->gaSettings.floodProneAreaPenalty,
-                     this->gaSettings.landslideProneAreaPenalty,
-                     this->gaSettings.buildingDistanceWeight)
-                << std::endl;
+      this->currentSolution.setFitness(
+        this->geneticAlgo.getSolutionFitness(
+          this->currentSolution,
+          this->inputBuildings,
+          this->flowRates,
+          this->floodProneAreas,
+          this->landslideProneAreas,
+          this->gaSettings.floodProneAreaPenalty,
+          this->gaSettings.landslideProneAreaPenalty,
+          this->gaSettings.buildingDistanceWeight));
 
       this->hasSetupCurrentSolution = true;
     }
@@ -1115,6 +1114,10 @@ namespace bpt
   {
     ImGui::Begin("GA Results");
     ImGui::BeginChild("GA Results Content");
+
+    ImGui::Text("Solution Fitness: %f", this->currentSolution.getFitness());
+
+    ImGui::Separator();
 
     float avgFitnesses[this->recentGARunAvgFitnesses.size()];
     for (int32_t i = 0; i < this->recentGARunAvgFitnesses.size(); i++) {
