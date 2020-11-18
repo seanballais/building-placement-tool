@@ -6,6 +6,7 @@
 #include <SDL_gpu.h>
 
 #include <corex/core/AssetDBRecord.hpp>
+#include <corex/core/asset_types/Font.hpp>
 #include <corex/core/asset_types/SpritesheetData.hpp>
 #include <corex/core/asset_types/Texture.hpp>
 
@@ -16,6 +17,7 @@ namespace corex::core
   public:
     AssetManager();
 
+    Font getFont(eastl::string assetID, int32_t size, bool forceReload = false);
     Texture getTexture(eastl::string assetID, bool forceReload = false);
     SpritesheetData
     getSpritesheet(eastl::string assetID, bool forceReload = false);

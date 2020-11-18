@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include <implot/implot.h>
 #include <nlohmann/json.hpp>
+#include <SDL2/SDL.h>
 
 #include <corex/core/AssetManager.hpp>
 #include <corex/core/CameraZoomState.hpp>
@@ -25,6 +26,7 @@
 #include <corex/core/components/RenderLineSegments.hpp>
 #include <corex/core/components/RenderRectangle.hpp>
 #include <corex/core/components/RenderPolygon.hpp>
+#include <corex/core/components/Text.hpp>
 #include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/events/KeyboardEvent.hpp>
@@ -38,7 +40,6 @@
 
 #include <bpt/Context.hpp>
 #include <bpt/MainScene.hpp>
-#include <bpt/ds/Solution.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 
 namespace bpt
@@ -56,6 +57,7 @@ namespace bpt
         4,
         5.f,
         5.f,
+        1.0f,
         true
       })
     , currentSolution()
@@ -91,6 +93,9 @@ namespace bpt
     , inputBuildings()
     , buildingEntities()
     , flowRates()
+    , buildingTextEntities()
+    , floodProneAreaTextEntities()
+    , landslideProneAreaTextEntities()
     , recentGARunAvgFitnesses()
     , recentGARunBestFitnesses()
     , recentGARunWorstFitnesses()
@@ -166,6 +171,7 @@ namespace bpt
             for (auto& area : this->inputData["floodProneAreas"]) {
               this->floodProneAreas.push_back();
               this->floodProneAreaEntities.push_back(entt::null);
+              this->floodProneAreaTextEntities.push_back(entt::null);
               for (auto& vertex : area) {
                 this->floodProneAreas.back().vertices.push_back(
                   corex::core::Point{
@@ -183,6 +189,7 @@ namespace bpt
             for (auto& area : this->inputData["landslideProneAreas"]) {
               this->landslideProneAreas.push_back();
               this->landslideProneAreaEntities.push_back(entt::null);
+              this->landslideProneAreaTextEntities.push_back(entt::null);
               for (auto& vertex : area) {
                 this->landslideProneAreas.back().vertices.push_back(
                   corex::core::Point{
@@ -210,6 +217,8 @@ namespace bpt
               gaSettingsJSON["floodProneAreaPenalty"].get<float>();
             this->gaSettings.landslideProneAreaPenalty =
               gaSettingsJSON["landslideProneAreaPenalty"].get<float>();
+            this->gaSettings.buildingDistanceWeight =
+              gaSettingsJSON["buildingDistanceWeight"].get<float>();
             this->gaSettings.isLocalSearchEnabled =
               gaSettingsJSON["isLocalSearchEnabled"].get<bool>();
 
@@ -243,28 +252,45 @@ namespace bpt
           this->inputBuildings[i].width,
           this->inputBuildings[i].length,
           this->currentSolution.getBuildingRotation(i),
-          SDL_Color{ 0, 102, 51, 255 },
+          SDL_Color{0, 102, 51, 255},
           true);
 
         this->buildingEntities.push_back(e);
-
-        std::cout << "Building #" << i << std::endl;
-        std::cout << "-- x: " << this->currentSolution.getBuildingXPos(i) << std::endl;
-        std::cout << "-- y: " << this->currentSolution.getBuildingYPos(i) << std::endl;
-        std::cout << "-- Rotation: " << this->currentSolution.getBuildingRotation(i)
-                  << std::endl;
       }
 
-      std::cout << "Fitness: "
-                << this->geneticAlgo.getSolutionFitness(
-                     this->currentSolution,
-                     this->inputBuildings,
-                     this->flowRates,
-                     this->floodProneAreas,
-                     this->landslideProneAreas,
-                     this->gaSettings.floodProneAreaPenalty,
-                     this->gaSettings.landslideProneAreaPenalty)
-                << std::endl;
+      for (int32_t i = 0; i < this->currentSolution.getNumBuildings(); i++) {
+        // We are using two separate loops to update the building and building
+        // text entities for performance reasons. Doing this will ensure that
+        // there will be more cache hits than cache misses.
+        entt::entity e = this->registry.create();
+        this->registry.emplace<corex::core::Position>(
+          e,
+          this->currentSolution.getBuildingXPos(i),
+          this->currentSolution.getBuildingYPos(i),
+          0.f,
+          static_cast<int8_t>(5));
+        this->registry.emplace<corex::core::Renderable>(
+          e,
+          corex::core::RenderableType::TEXT);
+        this->registry.emplace<corex::core::Text>(
+          e,
+          eastl::to_string(i),
+          this->assetManager.getFont("liberation-sans-regular-font", 15),
+          SDL_Color{ 255, 255, 255, 255 });
+
+        this->buildingTextEntities.push_back(e);
+      }
+
+      this->currentSolution.setFitness(
+        this->geneticAlgo.getSolutionFitness(
+          this->currentSolution,
+          this->inputBuildings,
+          this->flowRates,
+          this->floodProneAreas,
+          this->landslideProneAreas,
+          this->gaSettings.floodProneAreaPenalty,
+          this->gaSettings.landslideProneAreaPenalty,
+          this->gaSettings.buildingDistanceWeight));
 
       this->hasSetupCurrentSolution = true;
     }
@@ -340,6 +366,29 @@ namespace bpt
           }
         }
 
+        for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
+          if (!this->registry.valid(this->floodProneAreaTextEntities[i])) {
+            // Add the flood-prone area number.
+            this->floodProneAreaTextEntities[i] = this->registry.create();
+            auto polygonCentroid = corex::core::getPolygonCentroid(
+              this->floodProneAreas[i]);
+            this->registry.emplace<corex::core::Position>(
+              this->floodProneAreaTextEntities[i],
+              polygonCentroid.x,
+              polygonCentroid.y,
+              0.f,
+              static_cast<int8_t>(10));
+            this->registry.emplace<corex::core::Renderable>(
+              this->floodProneAreaTextEntities[i],
+              corex::core::RenderableType::TEXT);
+            this->registry.emplace<corex::core::Text>(
+              this->floodProneAreaTextEntities[i],
+              eastl::to_string(i),
+              this->assetManager.getFont("liberation-sans-regular-font", 15),
+              SDL_Color{ 255, 255, 255, 255 });
+          }
+        }
+
         // Draw landslide-prone areas.
         for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
           if (!this->registry.valid(this->landslideProneAreaEntities[i])) {
@@ -365,6 +414,29 @@ namespace bpt
                 poly.vertices = this->landslideProneAreas[i].vertices;
               }
             );
+          }
+        }
+
+        for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
+          if (!this->registry.valid(this->landslideProneAreaTextEntities[i])) {
+            // Add the landslide-prone area number.
+            this->landslideProneAreaTextEntities[i] = this->registry.create();
+            auto polygonCentroid = corex::core::getPolygonCentroid(
+              this->landslideProneAreas[i]);
+            this->registry.emplace<corex::core::Position>(
+              this->landslideProneAreaTextEntities[i],
+              polygonCentroid.x,
+              polygonCentroid.y,
+              0.f,
+              static_cast<int8_t>(10));
+            this->registry.emplace<corex::core::Renderable>(
+              this->landslideProneAreaTextEntities[i],
+              corex::core::RenderableType::TEXT);
+            this->registry.emplace<corex::core::Text>(
+              this->landslideProneAreaTextEntities[i],
+              eastl::to_string(i),
+              this->assetManager.getFont("liberation-sans-regular-font", 15),
+              SDL_Color{ 255, 255, 255, 255 });
           }
         }
 
@@ -566,6 +638,8 @@ namespace bpt
         this->gaSettings.floodProneAreaPenalty;
       this->inputData["gaSettings"]["landslideProneAreaPenalty"] =
         this->gaSettings.landslideProneAreaPenalty;
+      this->inputData["gaSettings"]["buildingDistanceWeight"] =
+        this->gaSettings.buildingDistanceWeight;
       this->inputData["gaSettings"]["isLocalSearchEnabled"] =
         this->gaSettings.isLocalSearchEnabled;
 
@@ -711,13 +785,9 @@ namespace bpt
         ImGui::Separator();
 
         ImGui::Text("New Area Vertices");
-        ImGui::BeginChild("New Area Vertices List");
-
         for (corex::core::Point& pt : this->wipHazardArea.vertices) {
           ImGui::Text("%f, %f", pt.x, pt.y);
         }
-
-        ImGui::EndChild();
       }
     }
 
@@ -742,17 +812,13 @@ namespace bpt
         }
       }
 
-      if (this->currentContext == Context::DRAW_FLOOD_PRONE_AREA) {
+      if (this->currentContext == Context::DRAW_LANDSLIDE_PRONE_AREA) {
         ImGui::Separator();
 
         ImGui::Text("New Area Vertices");
-        ImGui::BeginChild("New Area Vertices List");
-
         for (corex::core::Point& pt : this->wipHazardArea.vertices) {
           ImGui::Text("%f, %f", pt.x, pt.y);
         }
-
-        ImGui::EndChild();
       }
     }
     ImGui::EndChild();
@@ -762,20 +828,53 @@ namespace bpt
     if (removedFloodProneAreaIndex != -1) {
       this->registry.destroy(
         this->floodProneAreaEntities[removedFloodProneAreaIndex]);
+      this->registry.destroy(
+        this->floodProneAreaTextEntities[removedFloodProneAreaIndex]);
       this->floodProneAreas.erase(
         this->floodProneAreas.begin() + removedFloodProneAreaIndex);
       this->floodProneAreaEntities.erase(
         this->floodProneAreaEntities.begin() + removedFloodProneAreaIndex);
+      this->floodProneAreaTextEntities.erase(
+        this->floodProneAreaTextEntities.begin() + removedFloodProneAreaIndex);
+
+      // Update the area IDs.
+      for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
+        if (this->registry.valid(this->floodProneAreaTextEntities[i])) {
+          this->registry.patch<corex::core::Text>(
+            this->floodProneAreaTextEntities[i],
+            [&i](corex::core::Text& text) {
+              text.setText(eastl::to_string(i));
+            }
+          );
+        }
+      }
     }
 
     if (removedLandslideProneAreaIndex != -1) {
       this->registry.destroy(
         this->landslideProneAreaEntities[removedLandslideProneAreaIndex]);
+      this->registry.destroy(
+        this->landslideProneAreaTextEntities[removedLandslideProneAreaIndex]);
       this->landslideProneAreas.erase(
         this->landslideProneAreas.begin() + removedLandslideProneAreaIndex);
       this->landslideProneAreaEntities.erase(
         this->landslideProneAreaEntities.begin()
         + removedLandslideProneAreaIndex);
+      this->landslideProneAreaTextEntities.erase(
+        this->landslideProneAreaTextEntities.begin()
+        + removedLandslideProneAreaIndex);
+
+      // Update the area IDs.
+      for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
+        if (this->registry.valid(this->landslideProneAreaTextEntities[i])) {
+          this->registry.patch<corex::core::Text>(
+            this->landslideProneAreaTextEntities[i],
+            [&i](corex::core::Text& text) {
+              text.setText(eastl::to_string(i));
+            }
+          );
+        }
+      }
     }
   }
 
@@ -936,11 +1035,15 @@ namespace bpt
                       &(this->gaSettings.floodProneAreaPenalty));
     ImGui::InputFloat("Landslide Penalty",
                       &(this->gaSettings.landslideProneAreaPenalty));
+    ImGui::InputFloat("Building Distance Weight",
+                      &(this->gaSettings.buildingDistanceWeight));
     ImGui::Checkbox("Enable Local Search",
                     &(this->gaSettings.isLocalSearchEnabled));
 
     if (this->isGAThreadRunning) {
-      ImGui::Text("Running GA...");
+      ImGui::Text("Running GA... (Generation %d out of %d)",
+                  this->geneticAlgo.getCurrentRunGenerationNumber(),
+                  this->gaSettings.numGenerations);
     } else {
       if (ImGui::Button("Generate Solution")) {
         this->isGAThreadRunning = true;
@@ -950,7 +1053,12 @@ namespace bpt
           this->registry.destroy(e);
         }
 
+        for (entt::entity& e : this->buildingTextEntities) {
+          this->registry.destroy(e);
+        }
+
         this->buildingEntities.clear();
+        this->buildingTextEntities.clear();
 
         std::thread gaThread{
           [this]() {
@@ -974,6 +1082,7 @@ namespace bpt
               this->gaSettings.tournamentSize,
               this->gaSettings.floodProneAreaPenalty,
               this->gaSettings.landslideProneAreaPenalty,
+              this->gaSettings.buildingDistanceWeight,
               this->gaSettings.isLocalSearchEnabled
             );
 
@@ -1005,6 +1114,10 @@ namespace bpt
   {
     ImGui::Begin("GA Results");
     ImGui::BeginChild("GA Results Content");
+
+    ImGui::Text("Solution Fitness: %f", this->currentSolution.getFitness());
+
+    ImGui::Separator();
 
     float avgFitnesses[this->recentGARunAvgFitnesses.size()];
     for (int32_t i = 0; i < this->recentGARunAvgFitnesses.size(); i++) {
@@ -1165,9 +1278,11 @@ namespace bpt
             switch (this->currentContext) {
               case Context::DRAW_FLOOD_PRONE_AREA:
                 this->floodProneAreaEntities.push_back(entt::null);
+                this->floodProneAreaTextEntities.push_back(entt::null);
                 break;
               case Context::DRAW_LANDSLIDE_PRONE_AREA:
                 this->landslideProneAreaEntities.push_back(entt::null);
+                this->landslideProneAreaTextEntities.push_back(entt::null);
                 break;
               default:
                 break;
@@ -1336,6 +1451,18 @@ namespace bpt
                 << "No. of Generations:," << this->gaSettings.numGenerations
                 << "\n"
                 << "Tournament Size:," << this->gaSettings.tournamentSize
+                << "\n"
+                << "Flood Penalty:," << this->gaSettings.floodProneAreaPenalty
+                << "\n"
+                << "Landslide Penalty:,"
+                << this->gaSettings.landslideProneAreaPenalty
+                << "\n"
+                << "Building Distance Weight:,"
+                << this->gaSettings.buildingDistanceWeight
+                << "\n"
+                << "Local Search:,"
+                << ((this->gaSettings.isLocalSearchEnabled) ? "Enabled"
+                                                            : "Disabled")
                 << "\n";
 
     resultsFile << "\n";

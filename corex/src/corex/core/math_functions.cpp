@@ -1,9 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-#include <iostream>
 
-#include <EASTL/array.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
@@ -189,6 +187,12 @@ namespace corex::core
     return total;
   }
 
+  int32_t pyModInt32(int32_t x, int32_t divisor)
+  {
+    // From: https://stackoverflow.com/a/44197900/1116098
+    return (divisor + (x % divisor)) % divisor;
+  }
+
   float degreesToRadians(float degrees)
   {
     return setDecPlaces(degrees * (pi / 180.0), 6);
@@ -224,6 +228,12 @@ namespace corex::core
     }
 
     return *longestLine;
+  }
+
+  float det3x3(const Vec2& v0, const Vec2& v1, const Vec2& v2)
+  {
+    return ((v1.x * v2.y) + (v0.x * v1.y) + (v0.y * v2.x))
+           - ((v0.y * v1.x) + (v1.y * v2.x) + (v0.x * v2.y));
   }
 
   float vec2Magnitude(const Vec2& p)
@@ -540,20 +550,75 @@ namespace corex::core
     return NPolygon{ clippedPolyVerts };
   }
 
-  double polygonArea(const NPolygon& polygon)
+  Point getPolygonCentroid(const NPolygon& polygon)
+  {
+    // From "Calculating the area and centroid of a polygon" by Paul Bourke.
+    // URL: http://paulbourke.net/geometry/polygonmesh/
+    double polygonArea = getPolygonArea(polygon);
+    auto& vertices = polygon.vertices;
+    double centroidX = 0.0;
+    double centroidY = 0.0;
+
+    float determinant = corex::core::det3x3(vertices[0],
+                                            vertices[1],
+                                            vertices[2]);
+
+    for (int32_t i = 0; i < vertices.size(); i++) {
+      // If the polygon is oriented counterclockwise when the origin is in the
+      // center, then it is oriented clockwise when the origin is in the
+      // top-left. We must iterate through the vertices from left to right.
+      //
+      // If the polygon is oriented clockwise when the origin is in the center,
+      // then it is oriented counterclockwise when the origin is in the
+      // top-left. We must iterate through the vertices from right to left.
+      int32_t currVertIndex = 0;
+      int32_t nextVertIndex = 0;
+      if (corex::core::floatGreEqual(determinant, 0.f)) {
+        // Polygon is oriented counterclockwise when the origin is in the
+        // center.
+        currVertIndex = i;
+        nextVertIndex = corex::core::pyModInt32(currVertIndex + 1,
+                                                vertices.size());
+      } else {
+        // Polygon is oriented clockwise when the origin is in the
+        // center.
+        currVertIndex = vertices.size() - (i + 1);
+        nextVertIndex = corex::core::pyModInt32(currVertIndex - 1,
+                                                vertices.size());
+      }
+
+      centroidX += (vertices[currVertIndex].x + vertices[nextVertIndex].x)
+                   * ((vertices[currVertIndex].x * vertices[nextVertIndex].y)
+                     - (vertices[nextVertIndex].x * vertices[currVertIndex].y));
+      centroidY += (vertices[currVertIndex].y + vertices[nextVertIndex].y)
+                   * ((vertices[currVertIndex].x * vertices[nextVertIndex].y)
+                     - (vertices[nextVertIndex].x * vertices[currVertIndex].y));
+    }
+
+    double areaConstant = 1.0 / (6.0 * polygonArea);
+    centroidX *= areaConstant;
+    centroidY *= areaConstant;
+
+    return Point{
+      static_cast<float>(centroidX),
+      static_cast<float>(centroidY)
+    };
+  }
+
+  double getPolygonArea(const NPolygon& polygon)
   {
     // Let's use the Shoelace algorithm.
     double area = 0.f;
     auto& vertices = polygon.vertices;
     for (int32_t i = 0; i < polygon.vertices.size(); i++) {
       // Our polygon vertices, whose container list is accessed from left to
-      // right, are arranged in a clockwise manner in a coordinat system where
-      // the origin is on the top left coriner, like what we are using. However
+      // right, are arranged in a clockwise manner in a coordinate system where
+      // the origin is on the top left corner, like what we are using. However
       // when using an origin that is situated on the bottom left corner, the
-      // polygon will be orranged in a counterclockwise manner. The Shoelace
+      // polygon will be arranged in a counterclockwise manner. The Shoelace
       // Algorithm assumes that the origin is anchored on the bottom right
       // corner. As such, we can simply iterate through the list of vertices
-      //  from left to right.
+      // from left to right.
       int32_t nextIndex = (i + 1) % polygon.vertices.size();
       area += 
         (static_cast<double>(vertices[i].x)

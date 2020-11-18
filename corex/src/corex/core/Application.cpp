@@ -10,6 +10,7 @@
 #include <imgui_impls/imgui_impl_sdl.h>
 #include <implot/implot.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <SDL_gpu.h>
 
 #include <corex/core/AssetManager.hpp>
@@ -28,15 +29,12 @@
 #include <corex/core/components/RenderPolygon.hpp>
 #include <corex/core/components/RenderRectangle.hpp>
 #include <corex/core/components/Sprite.hpp>
+#include <corex/core/components/Text.hpp>
 #include <corex/core/ds/Polygon.hpp>
 #include <corex/core/events/game_events.hpp>
 #include <corex/core/events/metric_events.hpp>
 #include <corex/core/events/scene_manager_events.hpp>
 #include <corex/core/events/sys_events.hpp>
-#include <corex/core/systems/KeyboardHandler.hpp>
-#include <corex/core/systems/MouseHandler.hpp>
-#include <corex/core/systems/SpritesheetAnimation.hpp>
-#include <corex/core/systems/SysEventDispatcher.hpp>
 
 namespace corex::core
 {
@@ -63,6 +61,11 @@ namespace corex::core
       // TODO: Use a logging system.
       std::cout << "Error! Bleep, bloop. Bleh. " << SDL_GetError() << std::endl;
       STUBBED("Need to find a way to close the game on SDL init error.");
+    }
+
+    if (TTF_Init() != 0) {
+      std::cout << "Error! Bleep, bloop. Bleh. " << TTF_GetError() << std::endl;
+      STUBBED("Need to find a way to close the game on TTF init error.");
     }
 
     bool glewInitErrored = glewInit() != GLEW_OK;
@@ -123,6 +126,7 @@ namespace corex::core
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
+    TTF_Quit();
     SDL_Quit();
   }
 
@@ -278,6 +282,14 @@ namespace corex::core
       const Renderable& renderable = this->registry.get<Renderable>(e);
 
       switch (renderable.type) {
+        case RenderableType::TEXT: {
+          const Text& text = this->registry.get<Text>(e);
+          GPU_Blit(text.getRenderableText(),
+                   nullptr,
+                   this->windowManager.getRenderTarget(),
+                   pos.x,
+                   pos.y);
+        } break;
         case RenderableType::SPRITE: {
           const Sprite& sprite = this->registry.get<Sprite>(e);
 

@@ -7,3 +7,15 @@
 [submodule "libs/implot"]
 	path = libs/implot
 	url = git@github.com:seanballais/implot.git
+[submodule "libs/EAStdC"]
+	path = libs/EAStdC
+	url = https://github.com/electronicarts/EAStdC.git
+[submodule "libs/EAThread"]
+	path = libs/EAThread
+	url = https://github.com/electronicarts/EAThread.git
+[submodule "libs/EAAssert"]
+	path = libs/EAAssert
+	url = https://github.com/electronicarts/EAAssert.git
+[submodule "libs/EABase"]
+	path = libs/EABase
+	url = https://github.com/electronicarts/EABase.git

@@ -28,6 +28,7 @@ namespace bpt
       const int32_t tournamentSize,
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
+      const float buildingDistanceWeight,
       const bool isLocalSearchEnabled);
     double getSolutionFitness(
       const Solution& solution,
@@ -36,7 +37,9 @@ namespace bpt
       const eastl::vector<corex::core::NPolygon>& floodProneAreas,
       const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
       const float floodProneAreaPenalty,
-      const float landslideProneAreaPenalty);
+      const float landslideProneAreaPenalty,
+      const float buildingDistanceWeight);
+    int32_t getCurrentRunGenerationNumber();
     eastl::vector<float> getRecentRunAverageFitnesses();
     eastl::vector<float> getRecentRunBestFitnesses();
     eastl::vector<float> getRecentRunWorstFitnesses();
@@ -68,6 +71,7 @@ namespace bpt
       const Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
+    int32_t currRunGenerationNumber;
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;
     eastl::vector<float> recentRunWorstFitnesses;

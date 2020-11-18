@@ -3,12 +3,17 @@
 
 #include <EASTL/variant.h>
 
+#include <corex/core/asset_types/Font.hpp>
 #include <corex/core/asset_types/SpritesheetData.hpp>
 #include <corex/core/asset_types/Texture.hpp>
 
 namespace corex::core
 {
-  using Asset = eastl::variant<eastl::monostate, Texture, SpritesheetData>;
+  using Asset = eastl::variant<
+    eastl::monostate,
+    Font,
+    Texture,
+    SpritesheetData>;
 }
 
 #endif

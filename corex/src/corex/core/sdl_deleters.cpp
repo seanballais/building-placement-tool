@@ -24,4 +24,9 @@ namespace corex::core
   {
     GPU_FreeTarget(target);
   }
+
+  void SDLGPUImageDeleter::operator()(GPU_Image* image)
+  {
+    GPU_FreeImage(image);
+  }
 }

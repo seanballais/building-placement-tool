@@ -24,7 +24,8 @@
 namespace bpt
 {
   GA::GA()
-    : recentRunAvgFitnesses()
+    : currRunGenerationNumber(-1)
+    , recentRunAvgFitnesses()
     , recentRunBestFitnesses()
     , recentRunWorstFitnesses() {}
 
@@ -40,6 +41,7 @@ namespace bpt
     const int32_t tournamentSize,
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight,
     const bool isLocalSearchEnabled)
   {
     assert(flowRates.size() == inputBuildings.size());
@@ -63,7 +65,8 @@ namespace bpt
           floodProneAreas,
           landslideProneAreas,
           floodProneAreaPenalty,
-          landslideProneAreaPenalty));
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
     }
 
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
@@ -76,7 +79,7 @@ namespace bpt
     Solution bestSolution;
     Solution worstSolution;
     for (int32_t i = 0; i < numGenerations; i++) {
-      std::cout << "Generation: " << i << std::endl;
+      this->currRunGenerationNumber++;
 
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newPopulation(populationSize);
@@ -119,7 +122,8 @@ namespace bpt
           floodProneAreas,
           landslideProneAreas,
           floodProneAreaPenalty,
-          landslideProneAreaPenalty));
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
         
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
@@ -134,7 +138,8 @@ namespace bpt
             floodProneAreas,
             landslideProneAreas,
             floodProneAreaPenalty,
-            landslideProneAreaPenalty));
+            landslideProneAreaPenalty,
+            buildingDistanceWeight));
         }
 
         numOffsprings++;
@@ -166,7 +171,8 @@ namespace bpt
                 floodProneAreas,
                 landslideProneAreas,
                 floodProneAreaPenalty,
-                landslideProneAreaPenalty));
+                landslideProneAreaPenalty,
+                buildingDistanceWeight));
 
             float mutationProbability = corex::core::generateRandomReal(
               mutationChanceDistribution);
@@ -182,7 +188,8 @@ namespace bpt
                   floodProneAreas,
                   landslideProneAreas,
                   floodProneAreaPenalty,
-                  landslideProneAreaPenalty));
+                  landslideProneAreaPenalty,
+                  buildingDistanceWeight));
             }
           }
         } else {
@@ -194,7 +201,8 @@ namespace bpt
             floodProneAreas,
             landslideProneAreas,
             floodProneAreaPenalty,
-            landslideProneAreaPenalty));
+            landslideProneAreaPenalty,
+            buildingDistanceWeight));
           
           float mutationProbability = corex::core::generateRandomReal(
             mutationChanceDistribution);
@@ -209,7 +217,8 @@ namespace bpt
               floodProneAreas,
               landslideProneAreas,
               floodProneAreaPenalty,
-              landslideProneAreaPenalty));
+              landslideProneAreaPenalty,
+              buildingDistanceWeight));
           }
 
           numOffsprings++;
@@ -253,16 +262,22 @@ namespace bpt
         this->applyLocalSearch1(bestSolution,
                                 boundingArea,
                                 inputBuildings,
-                                flowRates);
-        bestSolution.setFitness(this->getSolutionFitness(
-          bestSolution,
-          inputBuildings,
-          flowRates,
-          floodProneAreas,
-          landslideProneAreas,
-          floodProneAreaPenalty,
-          landslideProneAreaPenalty));
+                                flowRates,
+                                floodProneAreas,
+                                landslideProneAreas,
+                                floodProneAreaPenalty,
+                                landslideProneAreaPenalty);
       }
+
+      bestSolution.setFitness(this->getSolutionFitness(
+        bestSolution,
+        inputBuildings,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight));
 
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
@@ -288,6 +303,8 @@ namespace bpt
         worstSolution.getFitness()));
     }
 
+    this->currRunGenerationNumber = -1;
+
     return bestSolution;
   }
 
@@ -298,7 +315,8 @@ namespace bpt
     const eastl::vector<corex::core::NPolygon>& floodProneAreas,
     const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
     const float floodProneAreaPenalty,
-    const float landslideProneAreaPenalty)
+    const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight)
   {
     double fitness = 0.0;
 
@@ -323,6 +341,8 @@ namespace bpt
         );
       }
     }
+
+    fitness *= buildingDistanceWeight;
 
     // Compute penalty for placing buildings in hazard areas.
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
@@ -349,6 +369,11 @@ namespace bpt
     }
 
     return fitness;
+  }
+
+  int32_t GA::getCurrentRunGenerationNumber()
+  {
+    return this->currRunGenerationNumber;
   }
 
   eastl::vector<float> GA::getRecentRunAverageFitnesses()
@@ -535,7 +560,11 @@ namespace bpt
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
-    const eastl::vector<eastl::vector<float>>& flowRates)
+    const eastl::vector<eastl::vector<float>>& flowRates,
+    eastl::vector<corex::core::NPolygon> floodProneAreas,
+    eastl::vector<corex::core::NPolygon> landslideProneAreas,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty)
   {
     constexpr int32_t numMovements = 8;
     constexpr float maxShiftAmount = 15.f;

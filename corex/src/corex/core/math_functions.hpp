@@ -62,6 +62,7 @@ namespace corex::core
   bool isFloatInclusiveBetween(float a, float val, float b);
 
   int32_t factorial(int32_t n);
+  int32_t pyModInt32(int32_t x, int32_t divisor);
 
   float degreesToRadians(float degrees);
   float radiansToDegrees(float radians);
@@ -69,6 +70,7 @@ namespace corex::core
   float lineLength(const Line& line);
   Line longestLine(const eastl::vector<Line*> lines);
 
+  float det3x3(const Vec2& v0, const Vec2& v1, const Vec2& v2);
   float vec2Magnitude(const Vec2& p);
   float dotProduct(const Vec2& p, const Vec2& q);
   float crossProduct(const Vec2& p, const Vec2& q);
@@ -120,7 +122,8 @@ namespace corex::core
   bool areTwoLinesIntersecting(const Line& line0, const Line& line1);
   NPolygon clippedPolygonFromTwoRects(const Rectangle& targetRect,
                                       const Rectangle& clippingRect);
-  double polygonArea(const NPolygon& polygon);
+  Point getPolygonCentroid(const NPolygon& polygon);
+  double getPolygonArea(const NPolygon& polygon);
   bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon);
   bool isRectWithinNPolygon(const Rectangle& rect, const NPolygon& polygon);
   bool isRectIntersectingNPolygon(const Rectangle& rect,
