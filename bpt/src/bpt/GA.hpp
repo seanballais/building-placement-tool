@@ -26,6 +26,7 @@ namespace bpt
       const int32_t populationSize,
       const int32_t numGenerations,
       const int32_t tournamentSize,
+      const int32_t numPrevGenOffsprings,
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
@@ -59,7 +60,11 @@ namespace bpt
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
-      const eastl::vector<eastl::vector<float>>& flowRates);
+      const eastl::vector<eastl::vector<float>>& flowRates,
+      eastl::vector<corex::core::NPolygon> floodProneAreas,
+      eastl::vector<corex::core::NPolygon> landslideProneAreas,
+      const float floodProneAreaPenalty,
+      const float landslideProneAreaPenalty);
     bool
     isSolutionFeasible(const Solution& solution,
                        const corex::core::NPolygon& boundingArea,

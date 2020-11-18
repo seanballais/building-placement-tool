@@ -55,6 +55,7 @@ namespace bpt
         25,
         1000,
         4,
+        5,
         5.f,
         5.f,
         1.0f,
@@ -213,6 +214,8 @@ namespace bpt
                                                 .get<int32_t>();
             this->gaSettings.tournamentSize = gaSettingsJSON["tournamentSize"]
                                                 .get<int32_t>();
+            this->gaSettings.numPrevGenOffsprings =
+              gaSettingsJSON["numPrevGenOffsprings"].get<int32_t>();
             this->gaSettings.floodProneAreaPenalty =
               gaSettingsJSON["floodProneAreaPenalty"].get<float>();
             this->gaSettings.landslideProneAreaPenalty =
@@ -634,6 +637,9 @@ namespace bpt
                                                              .numGenerations;
       this->inputData["gaSettings"]["tournamentSize"] = this->gaSettings
                                                              .tournamentSize;
+      this->inputData["gaSettings"]["numPrevGenOffsprings"] =
+        this->gaSettings
+             .numPrevGenOffsprings;
       this->inputData["gaSettings"]["floodProneAreaPenalty"] =
         this->gaSettings.floodProneAreaPenalty;
       this->inputData["gaSettings"]["landslideProneAreaPenalty"] =
@@ -1031,6 +1037,8 @@ namespace bpt
     ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
     ImGui::InputInt("No. of Generations", &(this->gaSettings.numGenerations));
     ImGui::InputInt("Tournament Size", &(this->gaSettings.tournamentSize));
+    ImGui::InputInt("No. of Prev. Offsprings to Keep",
+                    &(this->gaSettings.numPrevGenOffsprings));
     ImGui::InputFloat("Flood Penalty",
                       &(this->gaSettings.floodProneAreaPenalty));
     ImGui::InputFloat("Landslide Penalty",
@@ -1042,7 +1050,7 @@ namespace bpt
 
     if (this->isGAThreadRunning) {
       ImGui::Text("Running GA... (Generation %d out of %d)",
-                  this->geneticAlgo.getCurrentRunGenerationNumber(),
+                  this->geneticAlgo.getCurrentRunGenerationNumber() + 1,
                   this->gaSettings.numGenerations);
     } else {
       if (ImGui::Button("Generate Solution")) {
@@ -1080,6 +1088,7 @@ namespace bpt
               this->gaSettings.populationSize,
               this->gaSettings.numGenerations,
               this->gaSettings.tournamentSize,
+              this->gaSettings.numPrevGenOffsprings,
               this->gaSettings.floodProneAreaPenalty,
               this->gaSettings.landslideProneAreaPenalty,
               this->gaSettings.buildingDistanceWeight,

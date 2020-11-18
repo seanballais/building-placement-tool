@@ -39,6 +39,7 @@ namespace bpt
     const int32_t populationSize,
     const int32_t numGenerations,
     const int32_t tournamentSize,
+    const int32_t numPrevGenOffsprings,
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
@@ -78,12 +79,13 @@ namespace bpt
 
     Solution bestSolution;
     Solution worstSolution;
+    const int32_t numOffspringsToMake = populationSize - numPrevGenOffsprings;
     for (int32_t i = 0; i < numGenerations; i++) {
       this->currRunGenerationNumber++;
 
       int32_t numOffsprings = 0;
-      eastl::vector<Solution> newPopulation(populationSize);
-      while (numOffsprings < populationSize) {
+      eastl::vector<Solution> newOffsprings(numOffspringsToMake);
+      while (numOffsprings < numOffspringsToMake) {
         // Standard Tournament Selection.
         Solution parentA;
         Solution parentB;
@@ -114,9 +116,9 @@ namespace bpt
                                                  parentB,
                                                  boundingArea,
                                                  inputBuildings);
-        newPopulation[numOffsprings] = children[0];
-        newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
-          newPopulation[numOffsprings],
+        newOffsprings[numOffsprings] = children[0];
+        newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
+          newOffsprings[numOffsprings],
           inputBuildings,
           flowRates,
           floodProneAreas,
@@ -128,11 +130,11 @@ namespace bpt
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
         if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-          this->mutateSolution(newPopulation[numOffsprings],
+          this->mutateSolution(newOffsprings[numOffsprings],
                                boundingArea,
                                inputBuildings);
-          newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
-            newPopulation[numOffsprings],
+          newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
+            newOffsprings[numOffsprings],
             inputBuildings,
             flowRates,
             floodProneAreas,
@@ -148,10 +150,10 @@ namespace bpt
         // will have to be dropped. As such, we'll only add the second
         // generated child if it has a fitness better than the worst solution
         // in the new generation.
-        if (numOffsprings == populationSize) {
+        if (numOffsprings == numOffspringsToMake) {
           auto weakestSolutionIter = std::max_element(
-            newPopulation.begin(),
-            newPopulation.end(),
+            newOffsprings.begin(),
+            newOffsprings.end(),
             [](Solution solutionA, Solution solutionB) -> bool {
               return corex::core::floatLessThan(solutionA.getFitness(),
                                                 solutionB.getFitness());
@@ -160,12 +162,12 @@ namespace bpt
 
           if (corex::core::floatLessThan(children[1].getFitness(),
                                          weakestSolutionIter->getFitness())) {
-            int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
+            int32_t weakestSolutionIndex = std::distance(newOffsprings.begin(),
                                                          weakestSolutionIter);
-            newPopulation[weakestSolutionIndex] = children[1];
-            newPopulation[weakestSolutionIndex].setFitness(
+            newOffsprings[weakestSolutionIndex] = children[1];
+            newOffsprings[weakestSolutionIndex].setFitness(
               this->getSolutionFitness(
-                newPopulation[weakestSolutionIndex],
+                newOffsprings[weakestSolutionIndex],
                 inputBuildings,
                 flowRates,
                 floodProneAreas,
@@ -177,12 +179,12 @@ namespace bpt
             float mutationProbability = corex::core::generateRandomReal(
               mutationChanceDistribution);
             if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-              this->mutateSolution(newPopulation[weakestSolutionIndex],
+              this->mutateSolution(newOffsprings[weakestSolutionIndex],
                                    boundingArea,
                                    inputBuildings);
-              newPopulation[weakestSolutionIndex].setFitness(
+              newOffsprings[weakestSolutionIndex].setFitness(
                 this->getSolutionFitness(
-                  newPopulation[weakestSolutionIndex],
+                  newOffsprings[weakestSolutionIndex],
                   inputBuildings,
                   flowRates,
                   floodProneAreas,
@@ -193,9 +195,9 @@ namespace bpt
             }
           }
         } else {
-          newPopulation[numOffsprings] = children[1];
-          newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
-            newPopulation[numOffsprings],
+          newOffsprings[numOffsprings] = children[1];
+          newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
+            newOffsprings[numOffsprings],
             inputBuildings,
             flowRates,
             floodProneAreas,
@@ -207,11 +209,11 @@ namespace bpt
           float mutationProbability = corex::core::generateRandomReal(
             mutationChanceDistribution);
           if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-            this->mutateSolution(newPopulation[numOffsprings],
+            this->mutateSolution(newOffsprings[numOffsprings],
                                  boundingArea,
                                  inputBuildings);
-            newPopulation[numOffsprings].setFitness(this->getSolutionFitness(
-              newPopulation[numOffsprings],
+            newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
+              newOffsprings[numOffsprings],
               inputBuildings,
               flowRates,
               floodProneAreas,
@@ -225,29 +227,19 @@ namespace bpt
         }
       }
 
-      // Replace the worst solution in the new population with the best solution
-      // in the previous generation, if the previous best solution is better
-      // than the current generation worst. We should only do this in the
-      // second generation.
-      if (i > 0) {
-        auto weakestSolutionIter = std::max_element(
-          newPopulation.begin(),
-          newPopulation.end(),
-          [](Solution solutionA, Solution solutionB) -> bool {
-            return corex::core::floatLessThan(solutionA.getFitness(),
-                                              solutionB.getFitness());
-          }
-        );
-
-        if (corex::core::floatLessThan(bestSolution.getFitness(),
-                                       weakestSolutionIter->getFitness())) {
-          int32_t weakestSolutionIndex = std::distance(newPopulation.begin(),
-                                                       weakestSolutionIter);
-          newPopulation[weakestSolutionIndex] = bestSolution;
+      std::sort(
+        population.begin(),
+        population.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
         }
-      }
+      );
 
-      population = newPopulation;
+      // Keep only a set number of offsprings from the previous generation.
+      for (int32_t i = numPrevGenOffsprings; i < population.size(); i++) {
+        population[i] = newOffsprings[i - numPrevGenOffsprings];
+      }
 
       bestSolution = *std::min_element(
         population.begin(),
@@ -284,7 +276,7 @@ namespace bpt
         fitnessAverage += sol.getFitness();
       }
 
-      fitnessAverage = fitnessAverage / newPopulation.size();
+      fitnessAverage = fitnessAverage / population.size();
       this->recentRunAvgFitnesses.push_back(static_cast<float>(fitnessAverage));
 
       this->recentRunBestFitnesses.push_back(static_cast<float>(

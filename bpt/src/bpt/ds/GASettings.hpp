@@ -11,6 +11,7 @@ namespace bpt
     int32_t populationSize;
     int32_t numGenerations;
     int32_t tournamentSize;
+    int32_t numPrevGenOffsprings;
     float floodProneAreaPenalty;
     float landslideProneAreaPenalty;
     float buildingDistanceWeight;
