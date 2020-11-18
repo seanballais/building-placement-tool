@@ -16,7 +16,7 @@ namespace bpt
   {
   public:
     GA();
-    Solution generateSolution(
+    eastl::vector<eastl::vector<Solution>> generateSolutions(
       const eastl::vector<InputBuilding>& inputBuildings,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<eastl::vector<float>>& flowRates,

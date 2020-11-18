@@ -61,9 +61,10 @@ namespace bpt
         1.0f,
         true
       })
-    , currentSolution()
+    , currentSolution(nullptr)
+    , solutions()
     , isGAThreadRunning(false)
-    , hasSetupCurrentSolution(false)
+    , hasSolutionBeenSetup(false)
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
     , doesInputBuildingsExist(false)
@@ -80,6 +81,8 @@ namespace bpt
       })
     , cameraMovementSpeed(15.f)
     , timeDelta(0.f)
+    , currSelectedGen(0)
+    , currSelectedGenSolution(0)
     , wipBoundingArea()
     , wipHazardArea()
     , boundingArea()
@@ -236,13 +239,22 @@ namespace bpt
   {
     this->timeDelta = timeDelta;
 
-    if (!this->hasSetupCurrentSolution && !this->isGAThreadRunning) {
-      for (int32_t i = 0; i < this->currentSolution.getNumBuildings(); i++) {
+    if (this->solutions.size() > 0) {
+      this->currentSolution = &(this->solutions[this->currSelectedGen]
+                                               [this->currSelectedGenSolution]);
+    }
+
+    if (this->currentSolution
+        && !this->hasSolutionBeenSetup
+        && !this->isGAThreadRunning) {
+      this->clearCurrentlyRenderedSolution();
+
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
         entt::entity e = this->registry.create();
         this->registry.emplace<corex::core::Position>(
           e,
-          this->currentSolution.getBuildingXPos(i),
-          this->currentSolution.getBuildingYPos(i),
+          this->currentSolution->getBuildingXPos(i),
+          this->currentSolution->getBuildingYPos(i),
           0.f,
           static_cast<int8_t>(1));
         this->registry.emplace<corex::core::Renderable>(
@@ -250,26 +262,26 @@ namespace bpt
           corex::core::RenderableType::PRIMITIVE_RECTANGLE);
         this->registry.emplace<corex::core::RenderRectangle>(
           e,
-          this->currentSolution.getBuildingXPos(i),
-          this->currentSolution.getBuildingYPos(i),
+          this->currentSolution->getBuildingXPos(i),
+          this->currentSolution->getBuildingYPos(i),
           this->inputBuildings[i].width,
           this->inputBuildings[i].length,
-          this->currentSolution.getBuildingRotation(i),
+          this->currentSolution->getBuildingRotation(i),
           SDL_Color{0, 102, 51, 255},
           true);
 
         this->buildingEntities.push_back(e);
       }
 
-      for (int32_t i = 0; i < this->currentSolution.getNumBuildings(); i++) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
         // We are using two separate loops to update the building and building
         // text entities for performance reasons. Doing this will ensure that
         // there will be more cache hits than cache misses.
         entt::entity e = this->registry.create();
         this->registry.emplace<corex::core::Position>(
           e,
-          this->currentSolution.getBuildingXPos(i),
-          this->currentSolution.getBuildingYPos(i),
+          this->currentSolution->getBuildingXPos(i),
+          this->currentSolution->getBuildingYPos(i),
           0.f,
           static_cast<int8_t>(5));
         this->registry.emplace<corex::core::Renderable>(
@@ -284,9 +296,9 @@ namespace bpt
         this->buildingTextEntities.push_back(e);
       }
 
-      this->currentSolution.setFitness(
+      this->currentSolution->setFitness(
         this->geneticAlgo.getSolutionFitness(
-          this->currentSolution,
+          *(this->currentSolution),
           this->inputBuildings,
           this->flowRates,
           this->floodProneAreas,
@@ -295,7 +307,7 @@ namespace bpt
           this->gaSettings.landslideProneAreaPenalty,
           this->gaSettings.buildingDistanceWeight));
 
-      this->hasSetupCurrentSolution = true;
+      this->hasSolutionBeenSetup = true;
     }
 
     if (this->needUpdateBuildingRenderMode) {
@@ -1055,18 +1067,6 @@ namespace bpt
     } else {
       if (ImGui::Button("Generate Solution")) {
         this->isGAThreadRunning = true;
-        this->hasSetupCurrentSolution = false;
-
-        for (entt::entity& e : this->buildingEntities) {
-          this->registry.destroy(e);
-        }
-
-        for (entt::entity& e : this->buildingTextEntities) {
-          this->registry.destroy(e);
-        }
-
-        this->buildingEntities.clear();
-        this->buildingTextEntities.clear();
 
         std::thread gaThread{
           [this]() {
@@ -1078,7 +1078,7 @@ namespace bpt
             auto floodProneAreasCopy = this->floodProneAreas;
             auto landslideProneAreasCopy = this->landslideProneAreas;
 
-            this->currentSolution = this->geneticAlgo.generateSolution(
+            this->solutions = this->geneticAlgo.generateSolutions(
               inputBuildingsCopy,
               boundingAreaCopy,
               flowRatesCopy,
@@ -1094,6 +1094,9 @@ namespace bpt
               this->gaSettings.buildingDistanceWeight,
               this->gaSettings.isLocalSearchEnabled
             );
+            this->currSelectedGen = this->gaSettings.numGenerations;
+            this->currSelectedGenSolution = 0;
+            this->hasSolutionBeenSetup = false;
 
             this->recentGARunAvgFitnesses = this
                                               ->geneticAlgo
@@ -1124,7 +1127,96 @@ namespace bpt
     ImGui::Begin("GA Results");
     ImGui::BeginChild("GA Results Content");
 
-    ImGui::Text("Solution Fitness: %f", this->currentSolution.getFitness());
+    ImGui::Text("Solution Fitness: %f",
+                (this->currentSolution) ? this->currentSolution->getFitness()
+                                        : 0.f);
+
+    // Display combo box for selecting the generation and solution.
+    if (ImGui::BeginCombo("Generation",
+                          eastl::to_string(currSelectedGen).c_str())) {
+      for (int32_t i = 0; i < this->solutions.size(); i++) {
+        // Note that i = 0 is the generation with random solutions.
+        const bool isItemSelected = (this->currSelectedGen == i);
+        if (ImGui::Selectable(eastl::to_string(i).c_str(), isItemSelected)) {
+          this->currSelectedGen = i;
+          this->hasSolutionBeenSetup = false;
+        }
+
+        // Set the initial focus to this item when opening the combo box.
+        if (isItemSelected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      ImGui::EndCombo();
+    }
+
+    if (ImGui::BeginCombo("Solution",
+                          eastl::to_string(currSelectedGenSolution).c_str())) {
+      if (this->solutions.size() > 0) {
+        for (int32_t i = 0; i < this->solutions[currSelectedGen].size(); i++) {
+          // Note that i = 0 is the generation with random solutions.
+          const bool isItemSelected = (this->currSelectedGenSolution == i);
+          if (ImGui::Selectable(eastl::to_string(i).c_str(), isItemSelected)) {
+            this->currSelectedGenSolution = i;
+            this->hasSolutionBeenSetup = false;
+          }
+
+          // Set the initial focus to this item when opening the combo box.
+          if (isItemSelected) {
+            ImGui::SetItemDefaultFocus();
+          }
+        }
+      }
+
+      ImGui::EndCombo();
+    }
+
+    ImGui::Columns(2, nullptr, false);
+
+    if (ImGui::Button("Previous Generation")) {
+      if (this->solutions.size() > 0) {
+        this->currSelectedGen = corex::core::pyModInt32(
+          this->currSelectedGen - 1,
+          this->solutions.size());
+        this->hasSolutionBeenSetup = false;
+      }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Next Generation")) {
+      if (this->solutions.size() > 0) {
+        this->currSelectedGen = corex::core::pyModInt32(
+          this->currSelectedGen + 1,
+          this->solutions.size());
+        this->hasSolutionBeenSetup = false;
+      }
+    }
+
+    ImGui::NextColumn();
+
+    if (ImGui::Button("Previous Solution")) {
+      if (this->solutions.size() > 0) {
+        this->currSelectedGenSolution = corex::core::pyModInt32(
+          this->currSelectedGenSolution - 1,
+          this->solutions[currSelectedGen].size());
+        this->hasSolutionBeenSetup = false;
+      }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Next Solution")) {
+      if (this->solutions.size() > 0) {
+        this->currSelectedGenSolution = corex::core::pyModInt32(
+          this->currSelectedGenSolution + 1,
+          this->solutions[currSelectedGen].size());
+        this->hasSolutionBeenSetup = false;
+      }
+    }
+
+    ImGui::Columns(1);
 
     ImGui::Separator();
 
@@ -1483,14 +1575,28 @@ namespace bpt
     }
 
     resultsFile << "\n";
-    resultsFile << "Solution:" << "\n"
+    resultsFile << "Best Solution:" << "\n"
                 << "x,y,Rotation" << "\n";
-    for (int32_t i = 0; i < this->currentSolution.getNumBuildings(); i++) {
-      resultsFile << this->currentSolution.getBuildingXPos(i) << ","
-                  << this->currentSolution.getBuildingYPos(i) << ","
-                  << this->currentSolution.getBuildingRotation(i) << "\n";
+    for (int32_t i = 0; i < this->solutions.back()[0].getNumBuildings(); i++) {
+      resultsFile << this->solutions.back()[0].getBuildingXPos(i) << ","
+                  << this->solutions.back()[0].getBuildingYPos(i) << ","
+                  << this->solutions.back()[0].getBuildingRotation(i) << "\n";
     }
 
     resultsFile.close();
+  }
+
+  void MainScene::clearCurrentlyRenderedSolution()
+  {
+    for (entt::entity& e : this->buildingEntities) {
+      this->registry.destroy(e);
+    }
+
+    for (entt::entity& e : this->buildingTextEntities) {
+      this->registry.destroy(e);
+    }
+
+    this->buildingEntities.clear();
+    this->buildingTextEntities.clear();
   }
 }

@@ -53,13 +53,15 @@ namespace bpt
     void handleMouseMovementEvents(const corex::core::MouseMovementEvent& e);
     void handleMouseScrollEvents(const corex::core::MouseScrollEvent& e);
     void saveResultsToCSVFile();
+    void clearCurrentlyRenderedSolution();
 
     Context currentContext;
     GA geneticAlgo;
     GASettings gaSettings;
-    Solution currentSolution;
+    Solution* currentSolution;
+    eastl::vector<eastl::vector<Solution>> solutions;
     std::atomic<bool> isGAThreadRunning;
-    std::atomic<bool> hasSetupCurrentSolution;
+    bool hasSolutionBeenSetup;
     bool doesInputDataExist;
     bool doesInputBoundingAreaFieldExist;
     bool doesInputBuildingsExist;
@@ -73,6 +75,8 @@ namespace bpt
     bool needUpdateBuildingRenderMode;
     float cameraMovementSpeed;
     float timeDelta;
+    int32_t currSelectedGen;
+    int32_t currSelectedGenSolution;
     corex::core::Circle closeAreaTriggerCircle;
     corex::core::LineSegments wipBoundingArea;
     corex::core::LineSegments wipHazardArea;

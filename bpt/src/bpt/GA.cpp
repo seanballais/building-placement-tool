@@ -29,7 +29,7 @@ namespace bpt
     , recentRunBestFitnesses()
     , recentRunWorstFitnesses() {}
 
-  Solution GA::generateSolution(
+  eastl::vector<eastl::vector<Solution>> GA::generateSolutions(
     const eastl::vector<InputBuilding>& inputBuildings,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<eastl::vector<float>>& flowRates,
@@ -47,6 +47,7 @@ namespace bpt
   {
     assert(flowRates.size() == inputBuildings.size());
 
+    eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<Solution> population(populationSize);
 
     this->recentRunAvgFitnesses.clear();
@@ -70,6 +71,41 @@ namespace bpt
           buildingDistanceWeight));
     }
 
+    // Add the initial population.
+    solutions.push_back(population);
+
+    Solution bestSolution = *std::min_element(
+      population.begin(),
+      population.end(),
+      [](Solution solutionA, Solution solutionB) {
+        return corex::core::floatLessThan(solutionA.getFitness(),
+                                          solutionB.getFitness());
+      }
+    );
+    Solution worstSolution = *std::max_element(
+      population.begin(),
+      population.end(),
+      [](Solution solutionA, Solution solutionB) {
+        return corex::core::floatLessThan(solutionA.getFitness(),
+                                          solutionB.getFitness());
+      }
+    );
+
+    // Add statistics about the initial population.
+    double fitnessAverage = 0.0;
+    for (Solution& sol : population) {
+      fitnessAverage += sol.getFitness();
+    }
+
+    fitnessAverage = fitnessAverage / population.size();
+    this->recentRunAvgFitnesses.push_back(static_cast<float>(fitnessAverage));
+
+    this->recentRunBestFitnesses.push_back(static_cast<float>(
+                                             bestSolution.getFitness()));
+
+    this->recentRunWorstFitnesses.push_back(static_cast<float>(
+                                              worstSolution.getFitness()));
+
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
       0, populationSize - 1
     };
@@ -77,8 +113,6 @@ namespace bpt
       0.f, 1.f
     };
 
-    Solution bestSolution;
-    Solution worstSolution;
     const int32_t numOffspringsToMake = populationSize - numPrevGenOffsprings;
     for (int32_t i = 0; i < numGenerations; i++) {
       this->currRunGenerationNumber++;
@@ -271,6 +305,19 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight));
 
+      // Sort again to make sure that the solutions in the generation are
+      // ordered from the fittest to the least fit.
+      std::sort(
+        population.begin(),
+        population.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
+        }
+      );
+
+      solutions.push_back(population);
+
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
         fitnessAverage += sol.getFitness();
@@ -297,7 +344,7 @@ namespace bpt
 
     this->currRunGenerationNumber = -1;
 
-    return bestSolution;
+    return solutions;
   }
 
   double GA::getSolutionFitness(
