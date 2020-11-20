@@ -160,7 +160,8 @@ namespace bpt
           floodProneAreaPenalty,
           landslideProneAreaPenalty,
           buildingDistanceWeight));
-        
+
+        // Mutation
         float mutationProbability = corex::core::generateRandomReal(
           mutationChanceDistribution);
         if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
@@ -541,53 +542,64 @@ namespace bpt
                           const eastl::vector<InputBuilding>& inputBuildings)
   {
     std::uniform_int_distribution<int32_t> geneDistribution{
-      0, solution.getNumBuildings() - 1
+      0, (solution.getNumBuildings() * 3) - 1
     };
 
-    int32_t targetGeneIndex = corex::core::generateRandomInt(geneDistribution);
+    const int32_t targetGeneIndex = corex::core::generateRandomInt(
+      geneDistribution);
+    // NOTE: The division below will drop the fractional part of the quotient.
+    const int32_t buildingIndex = targetGeneIndex / 3;
+    const int32_t anchorInt = buildingIndex * 3;
+    const int32_t targetValueType = targetGeneIndex - anchorInt;
 
-    float minX = std::min_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.x < ptB.x;
-      }
-    )->x;
-    float maxX = std::max_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.x < ptB.x;
-      }
-    )->x;
-    float minY = std::min_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.y < ptB.y;
-      }
-    )->y;
-    float maxY = std::max_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.y < ptB.y;
-      }
-    )->y;
+    float minVal = 0.f;
+    float maxVal = 0.f;
+    if (targetValueType == 0) {
+      minVal = std::min_element(
+        boundingArea.vertices.begin(),
+        boundingArea.vertices.end(),
+        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+          return ptA.x < ptB.x;
+        }
+      )->x;
+      maxVal = std::max_element(
+        boundingArea.vertices.begin(),
+        boundingArea.vertices.end(),
+        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+          return ptA.x < ptB.x;
+        }
+      )->x;
+    } else if (targetValueType == 1) {
+      minVal = std::min_element(
+        boundingArea.vertices.begin(),
+        boundingArea.vertices.end(),
+        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+          return ptA.y < ptB.y;
+        }
+      )->y;
+      maxVal = std::max_element(
+        boundingArea.vertices.begin(),
+        boundingArea.vertices.end(),
+        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+          return ptA.y < ptB.y;
+        }
+      )->y;
+    } else if (targetValueType == 2) {
+      maxVal = 360.f;
+    }
 
-    std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
-    std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
-    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
+    std::uniform_real_distribution<float> valueDistribution{ minVal, maxVal };
 
     Solution tempSolution = solution;
     do {
-      float newXPos = corex::core::generateRandomReal(xPosDistribution);
-      float newYPos = corex::core::generateRandomReal(yPosDistribution);
-      float newRotation = corex::core::generateRandomReal(rotationDistribution);
-
-      tempSolution.setBuildingXPos(targetGeneIndex, newXPos);
-      tempSolution.setBuildingYPos(targetGeneIndex, newYPos);
-      tempSolution.setBuildingRotation(targetGeneIndex, newRotation);
+      float newValue = corex::core::generateRandomReal(valueDistribution);
+      if (targetValueType == 0) {
+        tempSolution.setBuildingXPos(buildingIndex, newValue);
+      } else if (targetValueType == 1) {
+        tempSolution.setBuildingYPos(buildingIndex, newValue);
+      } else if (targetValueType == 2) {
+        tempSolution.setBuildingRotation(buildingIndex, newValue);
+      }
     } while (!this->isSolutionFeasible(tempSolution,
                                        boundingArea,
                                        inputBuildings));
@@ -606,7 +618,7 @@ namespace bpt
     const float landslideProneAreaPenalty)
   {
     constexpr int32_t numMovements = 8;
-    constexpr float maxShiftAmount = 15.f;
+    constexpr float maxShiftAmount = 1.f;
     std::uniform_real_distribution<float> shiftDistrib{ 0, maxShiftAmount };
     static const
     eastl::array<eastl::function<Solution(Solution, int32_t)>,
@@ -716,6 +728,7 @@ namespace bpt
 
     for (int32_t movementID = 0; movementID < numMovements; movementID++) {
       int32_t buildingIndex = movementID % inputBuildings.size();
+      // TODO: Apply the local search to all buildings.
 
       auto altSolution0 = searchFunctions[movementID](solution, buildingIndex);
       if (this->isSolutionFeasible(altSolution0,
