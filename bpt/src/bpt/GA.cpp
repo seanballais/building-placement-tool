@@ -720,31 +720,35 @@ namespace bpt
     eastl::vector<Solution> generatedSolutions;
     generatedSolutions.push_back(solution);
 
-    constexpr float maxRotShiftAmount = 90.f;
+    constexpr float maxRotShiftAmount = 5.f;
     std::uniform_real_distribution<float> rotShiftDistrib{
       -maxRotShiftAmount,
       maxRotShiftAmount
     };
 
-    for (int32_t movementID = 0; movementID < numMovements; movementID++) {
-      int32_t buildingIndex = movementID % inputBuildings.size();
-      // TODO: Apply the local search to all buildings.
+    for (int32_t buildingIndex = 0;
+         buildingIndex < inputBuildings.size();
+         buildingIndex++) {
+      for (int32_t movementID = 0; movementID < numMovements; movementID++) {
+        auto altSolution0 = searchFunctions[movementID](
+          solution,
+          buildingIndex);
+        if (this->isSolutionFeasible(altSolution0,
+                                     boundingArea,
+                                     inputBuildings)) {
+          generatedSolutions.push_back(altSolution0);
+        }
 
-      auto altSolution0 = searchFunctions[movementID](solution, buildingIndex);
-      if (this->isSolutionFeasible(altSolution0,
-                                   boundingArea,
-                                   inputBuildings)) {
-        generatedSolutions.push_back(altSolution0);
-      }
-
-      auto altSolution1 = altSolution0;
-      solution.setBuildingRotation(
-        buildingIndex,
-        corex::core::generateRandomReal(rotShiftDistrib));
-      if (this->isSolutionFeasible(altSolution1,
-                                   boundingArea,
-                                   inputBuildings)) {
-        generatedSolutions.push_back(altSolution1);
+        auto altSolution1 = altSolution0;
+        float newBuildingRot = altSolution1.getBuildingRotation(buildingIndex)
+                               + corex::core::generateRandomReal(
+                                   rotShiftDistrib);
+        altSolution1.setBuildingRotation(buildingIndex, newBuildingRot);
+        if (this->isSolutionFeasible(altSolution1,
+                                     boundingArea,
+                                     inputBuildings)) {
+          generatedSolutions.push_back(altSolution1);
+        }
       }
     }
 
