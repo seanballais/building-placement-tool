@@ -76,6 +76,7 @@ namespace bpt
     , showGAResultsBest(true)
     , showGAResultsWorst(true)
     , needUpdateBuildingRenderMode(false)
+    , isGATimelinePlaying(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
@@ -83,6 +84,7 @@ namespace bpt
     , timeDelta(0.f)
     , currSelectedGen(0)
     , currSelectedGenSolution(0)
+    , gaTimelinePlaybackSpeed(1)
     , wipBoundingArea()
     , wipHazardArea()
     , boundingArea()
@@ -238,6 +240,8 @@ namespace bpt
   void MainScene::update(float timeDelta)
   {
     this->timeDelta = timeDelta;
+
+    this->handleGATimelinePlayback(timeDelta);
 
     if (this->solutions.size() > 0) {
       this->currentSolution = &(this->solutions[this->currSelectedGen]
@@ -1218,6 +1222,27 @@ namespace bpt
 
     ImGui::Columns(1);
 
+    if (this->solutions.size() > 0) {
+      if (ImGui::Button(!(this->isGATimelinePlaying) ? "Play GA Timeline"
+                                                     : "Stop GA Timeline")) {
+        if (this->isGATimelinePlaying) {
+          // Halt playing the GA timeline.
+          this->currSelectedGen = this->gaSettings.numGenerations;
+        } else {
+          // We're just going to start playing the GA timeline.
+          this->currSelectedGen = 0;
+        }
+
+        this->isGATimelinePlaying = !(this->isGATimelinePlaying);
+        this->hasSolutionBeenSetup = false;
+      }
+    }
+
+    ImGui::SliderInt("Timeline Playback Speed",
+                     &(this->gaTimelinePlaybackSpeed),
+                     1,
+                     4);
+
     ImGui::Separator();
 
     float avgFitnesses[this->recentGARunAvgFitnesses.size()];
@@ -1264,6 +1289,26 @@ namespace bpt
 
     ImGui::EndChild();
     ImGui::End();
+  }
+
+  void MainScene::handleGATimelinePlayback(float timeDelta)
+  {
+    static float timeElapsed = 0.f;
+    if (this->isGATimelinePlaying) {
+      timeElapsed += timeDelta;
+
+      const float timePerGeneration = 0.15f / this->gaTimelinePlaybackSpeed;
+      if (corex::core::floatGreEqual(timeElapsed, timePerGeneration)) {
+        this->currSelectedGen = corex::core::pyModInt32(
+          this->currSelectedGen + 1,
+          this->solutions.size());
+        this->hasSolutionBeenSetup = false;
+
+        timeElapsed = 0.f;
+      }
+    } else {
+      timeElapsed = 0.f;
+    }
   }
 
   void MainScene::handleWindowEvents(const corex::core::WindowEvent& e)

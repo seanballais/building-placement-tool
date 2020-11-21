@@ -47,6 +47,7 @@ namespace bpt
     void buildFlowRateWindow();
     void buildGAControlsWindow();
     void buildGAResultsWindow();
+    void handleGATimelinePlayback(float timeDelta);
     void handleWindowEvents(const corex::core::WindowEvent& e);
     void handleKeyboardEvents(const corex::core::KeyboardEvent& e);
     void handleMouseButtonEvents(const corex::core::MouseButtonEvent& e);
@@ -73,10 +74,12 @@ namespace bpt
     bool showGAResultsBest;
     bool showGAResultsWorst;
     bool needUpdateBuildingRenderMode;
+    bool isGATimelinePlaying;
     float cameraMovementSpeed;
     float timeDelta;
     int32_t currSelectedGen;
     int32_t currSelectedGenSolution;
+    int32_t gaTimelinePlaybackSpeed;
     corex::core::Circle closeAreaTriggerCircle;
     corex::core::LineSegments wipBoundingArea;
     corex::core::LineSegments wipHazardArea;
