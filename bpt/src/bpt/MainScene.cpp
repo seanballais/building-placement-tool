@@ -59,6 +59,8 @@ namespace bpt
         5.f,
         5.f,
         1.0f,
+        10,
+        true,
         true
       })
     , currentSolution(nullptr)
@@ -1063,6 +1065,13 @@ namespace bpt
                       &(this->gaSettings.buildingDistanceWeight));
     ImGui::Checkbox("Enable Local Search",
                     &(this->gaSettings.isLocalSearchEnabled));
+    ImGui::Checkbox("Enable VNS",
+                    &(this->gaSettings.isVNSEnabled));
+
+    if (this->gaSettings.isVNSEnabled) {
+      ImGui::InputInt("Maximum Neighbourhood Size",
+                      &(this->gaSettings.maxNHSize));
+    }
 
     if (this->isGAThreadRunning) {
       ImGui::Text("Running GA... (Generation %d out of %d)",
@@ -1096,9 +1105,11 @@ namespace bpt
               this->gaSettings.floodProneAreaPenalty,
               this->gaSettings.landslideProneAreaPenalty,
               this->gaSettings.buildingDistanceWeight,
-              this->gaSettings.isLocalSearchEnabled
+              this->gaSettings.maxNHSize,
+              this->gaSettings.isLocalSearchEnabled,
+              this->gaSettings.isVNSEnabled
             );
-            this->currSelectedGen = this->gaSettings.numGenerations;
+            this->currSelectedGen = this->solutions.size() - 1;
             this->currSelectedGenSolution = 0;
             this->hasSolutionBeenSetup = false;
 
@@ -1143,6 +1154,13 @@ namespace bpt
         const bool isItemSelected = (this->currSelectedGen == i);
         if (ImGui::Selectable(eastl::to_string(i).c_str(), isItemSelected)) {
           this->currSelectedGen = i;
+
+          const int32_t numGenSolutions = this->solutions[this->currSelectedGen]
+                                               .size();
+          if (this->currSelectedGenSolution > numGenSolutions) {
+            this->currSelectedGenSolution = numGenSolutions - 1;
+          }
+
           this->hasSolutionBeenSetup = false;
         }
 
@@ -1202,9 +1220,15 @@ namespace bpt
 
     if (ImGui::Button("Previous Solution")) {
       if (this->solutions.size() > 0) {
+        const int32_t numGenSolutions = this->solutions[currSelectedGen].size();
         this->currSelectedGenSolution = corex::core::pyModInt32(
           this->currSelectedGenSolution - 1,
-          this->solutions[currSelectedGen].size());
+          numGenSolutions);
+
+        if (this->currSelectedGenSolution > numGenSolutions) {
+          this->currSelectedGenSolution = numGenSolutions - 1;
+        }
+
         this->hasSolutionBeenSetup = false;
       }
     }
@@ -1213,9 +1237,15 @@ namespace bpt
 
     if (ImGui::Button("Next Solution")) {
       if (this->solutions.size() > 0) {
+        const int32_t numGenSolutions = this->solutions[currSelectedGen].size();
         this->currSelectedGenSolution = corex::core::pyModInt32(
           this->currSelectedGenSolution + 1,
           this->solutions[currSelectedGen].size());
+
+        if (this->currSelectedGenSolution > numGenSolutions) {
+          this->currSelectedGenSolution = numGenSolutions - 1;
+        }
+
         this->hasSolutionBeenSetup = false;
       }
     }

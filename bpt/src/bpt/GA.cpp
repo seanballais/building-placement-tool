@@ -14,17 +14,18 @@
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/ds/Rectangle.hpp>
 
-#include <bpt/ds/InputBuilding.hpp>
-#include <bpt/ds/Solution.hpp>
-
 #include <corex/core/utils.hpp>
 
 #include <bpt/GA.hpp>
+#include <bpt/utils.hpp>
+#include <bpt/ds/InputBuilding.hpp>
+#include <bpt/ds/Solution.hpp>
 
 namespace bpt
 {
   GA::GA()
     : currRunGenerationNumber(-1)
+    , solutions()
     , recentRunAvgFitnesses()
     , recentRunBestFitnesses()
     , recentRunWorstFitnesses() {}
@@ -43,13 +44,15 @@ namespace bpt
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
-    const bool isLocalSearchEnabled)
+    const int32_t maxNHSize,
+    const bool isLocalSearchEnabled,
+    const bool isVNSEnabled)
   {
     assert(flowRates.size() == inputBuildings.size());
 
-    eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<Solution> population(populationSize);
 
+    this->solutions.clear();
     this->recentRunAvgFitnesses.clear();
     this->recentRunBestFitnesses.clear();
     this->recentRunWorstFitnesses.clear();
@@ -317,7 +320,7 @@ namespace bpt
         }
       );
 
-      solutions.push_back(population);
+      this->solutions.push_back(population);
 
       double fitnessAverage = 0.0;
       for (Solution& sol : population) {
@@ -343,9 +346,23 @@ namespace bpt
         worstSolution.getFitness()));
     }
 
+    if (isVNSEnabled) {
+      assert(bestSolution.getNumBuildings() != 0);
+      this->applyVNS(bestSolution,
+                     maxNHSize,
+                     boundingArea,
+                     inputBuildings,
+                     flowRates,
+                     floodProneAreas,
+                     landslideProneAreas,
+                     floodProneAreaPenalty,
+                     landslideProneAreaPenalty,
+                     buildingDistanceWeight);
+    }
+
     this->currRunGenerationNumber = -1;
 
-    return solutions;
+    return this->solutions;
   }
 
   double GA::getSolutionFitness(
@@ -730,25 +747,25 @@ namespace bpt
          buildingIndex < inputBuildings.size();
          buildingIndex++) {
       for (int32_t movementID = 0; movementID < numMovements; movementID++) {
-        auto altSolution0 = searchFunctions[movementID](
+        auto altSolution = searchFunctions[movementID](
           solution,
           buildingIndex);
-        if (this->isSolutionFeasible(altSolution0,
+        if (this->isSolutionFeasible(altSolution,
                                      boundingArea,
                                      inputBuildings)) {
-          generatedSolutions.push_back(altSolution0);
+          generatedSolutions.push_back(altSolution);
         }
+      }
 
-        auto altSolution1 = altSolution0;
-        float newBuildingRot = altSolution1.getBuildingRotation(buildingIndex)
-                               + corex::core::generateRandomReal(
-                                   rotShiftDistrib);
-        altSolution1.setBuildingRotation(buildingIndex, newBuildingRot);
-        if (this->isSolutionFeasible(altSolution1,
-                                     boundingArea,
-                                     inputBuildings)) {
-          generatedSolutions.push_back(altSolution1);
-        }
+      auto altSolution = solution;
+      float newBuildingRot = altSolution.getBuildingRotation(buildingIndex)
+                             + corex::core::generateRandomReal(
+        rotShiftDistrib);
+      altSolution.setBuildingRotation(buildingIndex, newBuildingRot);
+      if (this->isSolutionFeasible(altSolution,
+                                   boundingArea,
+                                   inputBuildings)) {
+        generatedSolutions.push_back(altSolution);
       }
     }
 
@@ -760,6 +777,134 @@ namespace bpt
                                           solutionB.getFitness());
       }
     );
+  }
+
+  void GA::applyVNS(Solution& solution,
+                    const int32_t maxNHSize,
+                    const corex::core::NPolygon& boundingArea,
+                    const eastl::vector<InputBuilding>& inputBuildings,
+                    const eastl::vector<eastl::vector<float>>& flowRates,
+                    eastl::vector<corex::core::NPolygon>& floodProneAreas,
+                    eastl::vector<corex::core::NPolygon>& landslideProneAreas,
+                    const float floodProneAreaPenalty,
+                    const float landslideProneAreaPenalty,
+                    const float buildingDistanceWeight)
+  {
+    constexpr int32_t numNeighbourhoods = 3;
+    static const
+    eastl::array<eastl::function<Solution(Solution)>,
+                 numNeighbourhoods> neighbourhoodFuncs = {
+      [this, &boundingArea, &inputBuildings](Solution solution) -> Solution {
+        // Exchange buildings values.
+        std::uniform_int_distribution<int32_t> distrib{
+          0, solution.getNumBuildings()
+        };
+
+        Solution tempSolution;
+        do {
+          tempSolution = solution;
+          const int32_t building0Idx = corex::core::generateRandomInt(distrib);
+          const int32_t building1Idx = corex::core::generateRandomInt(distrib);
+          swapBuildingData(tempSolution, building0Idx, building1Idx);
+        } while (this->isSolutionFeasible(tempSolution,
+                                          boundingArea,
+                                          inputBuildings));
+
+        return tempSolution;
+      },
+      [this, &boundingArea, &inputBuildings](Solution solution) -> Solution {
+        // Three Exchanges
+        std::uniform_int_distribution<int32_t> distrib{
+          0, solution.getNumBuildings()
+        };
+
+        Solution tempSolution;
+        do {
+          tempSolution = solution;
+          eastl::array<int32_t, 3> buildingIndexes = {
+            corex::core::generateRandomInt(distrib),
+            corex::core::generateRandomInt(distrib),
+            corex::core::generateRandomInt(distrib)
+          };
+
+          // Sort ascendingly.
+          std::sort(buildingIndexes.begin(), buildingIndexes.end());
+
+          swapBuildingData(tempSolution,
+                           buildingIndexes[1],
+                           buildingIndexes[2]);
+          swapBuildingData(tempSolution,
+                           buildingIndexes[0],
+                           buildingIndexes[1]);
+        } while (this->isSolutionFeasible(tempSolution,
+                                          boundingArea,
+                                          inputBuildings));
+
+        return tempSolution;
+      },
+      [this, &boundingArea, &inputBuildings](Solution solution) -> Solution {
+        return this->generateRandomSolution(inputBuildings, boundingArea);
+      }
+    };
+
+    int32_t neighbourIdx = 0;
+    Solution bestSolution = solution;
+    do {
+      // Shaking.
+      Solution currSolution = neighbourhoodFuncs[neighbourIdx](bestSolution);
+      currSolution.setFitness(
+        this->getSolutionFitness(currSolution,
+                                        inputBuildings,
+                                        flowRates,
+                                        floodProneAreas,
+                                        landslideProneAreas,
+                                        floodProneAreaPenalty,
+                                        landslideProneAreaPenalty,
+                                        buildingDistanceWeight)
+      );
+
+      // Create the neighbourhood.
+      eastl::vector<Solution> solutionNH(maxNHSize);
+      for (int32_t i = 0; i < maxNHSize; i++) {
+        solutionNH[i] = neighbourhoodFuncs[neighbourIdx](currSolution);
+        solutionNH[i].setFitness(
+          this->getSolutionFitness(solutionNH[i],
+                                   inputBuildings,
+                                   flowRates,
+                                   floodProneAreas,
+                                   landslideProneAreas,
+                                   floodProneAreaPenalty,
+                                   landslideProneAreaPenalty,
+                                   buildingDistanceWeight)
+        );
+      }
+
+      // Best Improvement Search.
+      Solution bestNeighbour = *std::min_element(
+        solutionNH.begin(),
+        solutionNH.end(),
+        [](Solution a, Solution b) {
+          return a.getFitness() < b.getFitness();
+        }
+      );
+
+      if (bestNeighbour.getFitness() < bestSolution.getFitness()) {
+        // TODO: Fix bug where infeasible solutions are accepted.
+        bestSolution = bestNeighbour;
+        std::cout << this->isSolutionFeasible(bestSolution,
+                                              boundingArea,
+                                              inputBuildings)
+                  << std::endl;
+      } else {
+        neighbourIdx++;
+      }
+
+      this->solutions.push_back({ bestSolution });
+      this->recentRunBestFitnesses.push_back(static_cast<float>(
+                                             bestSolution.getFitness()));
+    } while (neighbourIdx < numNeighbourhoods);
+
+    solution = bestSolution;
   }
 
   bool

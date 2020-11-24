@@ -30,7 +30,9 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
-      const bool isLocalSearchEnabled);
+      const int32_t maxNHSize,
+      const bool isLocalSearchEnabled,
+      const bool isVNSEnabled);
     double getSolutionFitness(
       const Solution& solution,
       const eastl::vector<InputBuilding>& inputBuildings,
@@ -65,6 +67,16 @@ namespace bpt
       eastl::vector<corex::core::NPolygon> landslideProneAreas,
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty);
+    void applyVNS(Solution& solution,
+                  const int32_t maxNHSize,
+                  const corex::core::NPolygon& boundingArea,
+                  const eastl::vector<InputBuilding>& inputBuildings,
+                  const eastl::vector<eastl::vector<float>>& flowRates,
+                  eastl::vector<corex::core::NPolygon>& floodProneAreas,
+                  eastl::vector<corex::core::NPolygon>& landslideProneAreas,
+                  const float floodProneAreaPenalty,
+                  const float landslideProneAreaPenalty,
+                  const float buildingDistanceWeight);
     bool
     isSolutionFeasible(const Solution& solution,
                        const corex::core::NPolygon& boundingArea,
@@ -77,6 +89,7 @@ namespace bpt
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
     int32_t currRunGenerationNumber;
+    eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;
     eastl::vector<float> recentRunWorstFitnesses;

@@ -15,7 +15,9 @@ namespace bpt
     float floodProneAreaPenalty;
     float landslideProneAreaPenalty;
     float buildingDistanceWeight;
+    int32_t maxNHSize;
     bool isLocalSearchEnabled;
+    bool isVNSEnabled;
   };
 }
 

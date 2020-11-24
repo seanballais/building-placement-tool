@@ -4,4 +4,5 @@ add_executable(bpt
     Application.cpp
     MainScene.cpp
     GA.cpp
+    utils.cpp
     ds/Solution.cpp)
