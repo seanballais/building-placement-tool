@@ -806,9 +806,9 @@ namespace bpt
           const int32_t building0Idx = corex::core::generateRandomInt(distrib);
           const int32_t building1Idx = corex::core::generateRandomInt(distrib);
           swapBuildingData(tempSolution, building0Idx, building1Idx);
-        } while (this->isSolutionFeasible(tempSolution,
-                                          boundingArea,
-                                          inputBuildings));
+        } while (!(this->isSolutionFeasible(tempSolution,
+                                            boundingArea,
+                                            inputBuildings)));
 
         return tempSolution;
       },
@@ -836,9 +836,9 @@ namespace bpt
           swapBuildingData(tempSolution,
                            buildingIndexes[0],
                            buildingIndexes[1]);
-        } while (this->isSolutionFeasible(tempSolution,
-                                          boundingArea,
-                                          inputBuildings));
+        } while (!(this->isSolutionFeasible(tempSolution,
+                                            boundingArea,
+                                            inputBuildings)));
 
         return tempSolution;
       },
