@@ -106,13 +106,6 @@ namespace bpt
     this->recentRunWorstFitnesses.push_back(static_cast<float>(
                                               worstSolution.getFitness()));
 
-    std::uniform_int_distribution<int32_t> chromosomeDistribution{
-      0, populationSize - 1
-    };
-    std::uniform_real_distribution<float> mutationChanceDistribution{
-      0.f, 1.f
-    };
-
     const int32_t numOffspringsToMake = populationSize - numPrevGenOffsprings;
     for (int32_t i = 0; i < numGenerations; i++) {
       this->currRunGenerationNumber++;
@@ -121,24 +114,11 @@ namespace bpt
       eastl::vector<Solution> newOffsprings(numOffspringsToMake);
       while (numOffsprings < numOffspringsToMake) {
         // Standard Tournament Selection.
-        Solution parentA;
-        Solution parentB;
-        for (int32_t j = 0; j < tournamentSize; j++) {
-          int32_t parentIndex = corex::core::generateRandomInt(
-            chromosomeDistribution);
-          if (j == 0 // Boolean short-circuit. Hehe.
-              || corex::core::floatLessThan(
-                  population[parentIndex].getFitness(),
-                  parentA.getFitness())) {
-            parentB = parentA;
-            parentA = population[parentIndex];
-          } else if (parentB.getNumBuildings() == 0 // Boolean short again.
-                     || corex::core::floatLessThan(
-                          population[parentIndex].getFitness(),
-                          parentB.getFitness())) {
-            parentB = population[parentIndex];
-          }
-        }
+        auto parents = this->selectParents(population,
+                                           populationSize,
+                                           tournamentSize);
+        Solution parentA = parents[0];
+        Solution parentB = parents[1];
 
         // Make sure we have individuals from the population, and not just
         // empty solutions.
@@ -146,120 +126,20 @@ namespace bpt
         assert(parentB.getNumBuildings() != 0);
 
         // Crossover
-        auto children = this->crossoverSolutions(parentA,
-                                                 parentB,
-                                                 boundingArea,
-                                                 inputBuildings);
-        newOffsprings[numOffsprings] = children[0];
-        newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
-          newOffsprings[numOffsprings],
-          inputBuildings,
-          flowRates,
-          floodProneAreas,
-          landslideProneAreas,
-          floodProneAreaPenalty,
-          landslideProneAreaPenalty,
-          buildingDistanceWeight));
-
-        // Mutation
-        float mutationProbability = corex::core::generateRandomReal(
-          mutationChanceDistribution);
-        if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-          this->mutateSolution(newOffsprings[numOffsprings],
-                               boundingArea,
-                               inputBuildings);
-          newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
-            newOffsprings[numOffsprings],
-            inputBuildings,
-            flowRates,
-            floodProneAreas,
-            landslideProneAreas,
-            floodProneAreaPenalty,
-            landslideProneAreaPenalty,
-            buildingDistanceWeight));
-        }
-
-        numOffsprings++;
-
-        // In cases where the population size is not an even number, a child
-        // will have to be dropped. As such, we'll only add the second
-        // generated child if it has a fitness better than the worst solution
-        // in the new generation.
-        if (numOffsprings == numOffspringsToMake) {
-          auto weakestSolutionIter = std::max_element(
-            newOffsprings.begin(),
-            newOffsprings.end(),
-            [](Solution solutionA, Solution solutionB) -> bool {
-              return corex::core::floatLessThan(solutionA.getFitness(),
-                                                solutionB.getFitness());
-            }
-          );
-
-          if (corex::core::floatLessThan(children[1].getFitness(),
-                                         weakestSolutionIter->getFitness())) {
-            int32_t weakestSolutionIndex = std::distance(newOffsprings.begin(),
-                                                         weakestSolutionIter);
-            newOffsprings[weakestSolutionIndex] = children[1];
-            newOffsprings[weakestSolutionIndex].setFitness(
-              this->getSolutionFitness(
-                newOffsprings[weakestSolutionIndex],
-                inputBuildings,
-                flowRates,
-                floodProneAreas,
-                landslideProneAreas,
-                floodProneAreaPenalty,
-                landslideProneAreaPenalty,
-                buildingDistanceWeight));
-
-            float mutationProbability = corex::core::generateRandomReal(
-              mutationChanceDistribution);
-            if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-              this->mutateSolution(newOffsprings[weakestSolutionIndex],
-                                   boundingArea,
-                                   inputBuildings);
-              newOffsprings[weakestSolutionIndex].setFitness(
-                this->getSolutionFitness(
-                  newOffsprings[weakestSolutionIndex],
-                  inputBuildings,
-                  flowRates,
-                  floodProneAreas,
-                  landslideProneAreas,
-                  floodProneAreaPenalty,
-                  landslideProneAreaPenalty,
-                  buildingDistanceWeight));
-            }
-          }
-        } else {
-          newOffsprings[numOffsprings] = children[1];
-          newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
-            newOffsprings[numOffsprings],
-            inputBuildings,
-            flowRates,
-            floodProneAreas,
-            landslideProneAreas,
-            floodProneAreaPenalty,
-            landslideProneAreaPenalty,
-            buildingDistanceWeight));
-          
-          float mutationProbability = corex::core::generateRandomReal(
-            mutationChanceDistribution);
-          if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-            this->mutateSolution(newOffsprings[numOffsprings],
-                                 boundingArea,
-                                 inputBuildings);
-            newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
-              newOffsprings[numOffsprings],
-              inputBuildings,
-              flowRates,
-              floodProneAreas,
-              landslideProneAreas,
-              floodProneAreaPenalty,
-              landslideProneAreaPenalty,
-              buildingDistanceWeight));
-          }
-
-          numOffsprings++;
-        }
+        this->makeTwoParentsBreed(parentA,
+                                  parentB,
+                                  newOffsprings,
+                                  numOffsprings,
+                                  numOffspringsToMake,
+                                  mutationRate,
+                                  boundingArea,
+                                  inputBuildings,
+                                  flowRates,
+                                  floodProneAreas,
+                                  landslideProneAreas,
+                                  floodProneAreaPenalty,
+                                  landslideProneAreaPenalty,
+                                  buildingDistanceWeight);
       }
 
       std::sort(
@@ -429,6 +309,168 @@ namespace bpt
   eastl::vector<float> GA::getRecentRunWorstFitnesses()
   {
     return this->recentRunWorstFitnesses;
+  }
+
+  eastl::array<Solution, 2> GA::selectParents(
+    const eastl::vector<Solution>& population,
+    const int32_t& populationSize,
+    const int32_t& tournamentSize)
+  {
+    std::uniform_int_distribution<int32_t> chromosomeDistribution{
+      0, populationSize - 1
+    };
+
+    eastl::array<Solution, 2> parents;
+    for (int32_t j = 0; j < tournamentSize; j++) {
+      int32_t parentIndex = corex::core::generateRandomInt(
+        chromosomeDistribution);
+      if (j == 0 // Boolean short-circuit. Hehe.
+          || population[parentIndex].getFitness() < parents[0].getFitness()) {
+        parents[1] = parents[0];
+        parents[0] = population[parentIndex];
+      } else if (parents[1].getNumBuildings() == 0 // Boolean short again.
+                 || population[parentIndex].getFitness()
+                    < parents[1].getFitness()) {
+        parents[1] = population[parentIndex];
+      }
+    }
+
+    return parents;
+  }
+
+  void GA::makeTwoParentsBreed(
+    const Solution& parentA,
+    const Solution& parentB,
+    eastl::vector<Solution>& offsprings,
+    int32_t& numOffsprings,
+    const int32_t numOffspringsToMake,
+    const float mutationRate,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const eastl::vector<eastl::vector<float>>& flowRates,
+    const eastl::vector<corex::core::NPolygon>& floodProneAreas,
+    const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight)
+  {
+    std::uniform_real_distribution<float> mutationChanceDistribution{
+      0.f, 1.f
+    };
+    auto children = this->crossoverSolutions(parentA,
+                             parentB,
+                             boundingArea,
+                             inputBuildings);
+    offsprings[numOffsprings] = children[0];
+    offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+      offsprings[numOffsprings],
+      inputBuildings,
+      flowRates,
+      floodProneAreas,
+      landslideProneAreas,
+      floodProneAreaPenalty,
+      landslideProneAreaPenalty,
+      buildingDistanceWeight));
+
+    // Mutation
+    float mutationProbability = corex::core::generateRandomReal(
+      mutationChanceDistribution);
+    if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
+      this->mutateSolution(offsprings[numOffsprings],
+                           boundingArea,
+                           inputBuildings);
+      offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+        offsprings[numOffsprings],
+        inputBuildings,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight));
+    }
+
+    numOffsprings++;
+
+    // In cases where the population size is not an even number, a child
+    // will have to be dropped. As such, we'll only add the second
+    // generated child if it has a fitness better than the worst solution
+    // in the new generation.
+    if (numOffsprings == numOffspringsToMake) {
+      auto weakestSolutionIter = std::max_element(
+        offsprings.begin(),
+        offsprings.end(),
+        [](Solution solutionA, Solution solutionB) -> bool {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
+        }
+      );
+
+      if (corex::core::floatLessThan(children[1].getFitness(),
+                                     weakestSolutionIter->getFitness())) {
+        int32_t weakestSolutionIndex = std::distance(offsprings.begin(),
+                                                     weakestSolutionIter);
+        offsprings[weakestSolutionIndex] = children[1];
+        offsprings[weakestSolutionIndex].setFitness(
+          this->getSolutionFitness(
+            offsprings[weakestSolutionIndex],
+            inputBuildings,
+            flowRates,
+            floodProneAreas,
+            landslideProneAreas,
+            floodProneAreaPenalty,
+            landslideProneAreaPenalty,
+            buildingDistanceWeight));
+
+        float mutationProbability = corex::core::generateRandomReal(
+          mutationChanceDistribution);
+        if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
+          this->mutateSolution(offsprings[weakestSolutionIndex],
+                               boundingArea,
+                               inputBuildings);
+          offsprings[weakestSolutionIndex].setFitness(
+            this->getSolutionFitness(
+              offsprings[weakestSolutionIndex],
+              inputBuildings,
+              flowRates,
+              floodProneAreas,
+              landslideProneAreas,
+              floodProneAreaPenalty,
+              landslideProneAreaPenalty,
+              buildingDistanceWeight));
+        }
+      }
+    } else {
+      offsprings[numOffsprings] = children[1];
+      offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+        offsprings[numOffsprings],
+        inputBuildings,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight));
+
+      float mutationProbability = corex::core::generateRandomReal(
+        mutationChanceDistribution);
+      if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
+        this->mutateSolution(offsprings[numOffsprings],
+                             boundingArea,
+                             inputBuildings);
+        offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+          offsprings[numOffsprings],
+          inputBuildings,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
+      }
+
+      numOffsprings++;
+    }
   }
 
   Solution

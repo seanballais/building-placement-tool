@@ -25,6 +25,9 @@ namespace bpt
     float getBuildingRotation(int32_t buildingIndex) const;
     int32_t getNumBuildings() const;
     double getFitness() const;
+
+    bool operator==(const Solution& other);
+    bool operator!=(const Solution& other);
   private:
     eastl::vector<float> genes;
     int32_t numBuildings;

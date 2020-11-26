@@ -1,6 +1,8 @@
 #include <cassert>
 #include <cstdlib>
 
+#include <corex/core/math_functions.hpp>
+
 #include <bpt/ds/Solution.hpp>
 
 namespace bpt
@@ -68,5 +70,25 @@ namespace bpt
   {
     assert(this->hasFitnessSet);
     return this->fitness;
+  }
+
+  bool Solution::operator==(const Solution& other)
+  {
+    if (this->genes.size() == other.genes.size()) {
+      for (int32_t i = 0; i < this->genes.size(); i++) {
+        if (!corex::core::floatEquals(this->genes[i], other.genes[i])) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  bool Solution::operator!=(const Solution& other)
+  {
+    return !((*this) == other);
   }
 }

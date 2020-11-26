@@ -45,6 +45,25 @@ namespace bpt
     eastl::vector<float> getRecentRunBestFitnesses();
     eastl::vector<float> getRecentRunWorstFitnesses();
   private:
+    eastl::array<Solution, 2> selectParents(
+      const eastl::vector<Solution>& population,
+      const int32_t& populationSize,
+      const int32_t& tournamentSize);
+    void makeTwoParentsBreed(
+      const Solution& parentA,
+      const Solution& parentB,
+      eastl::vector<Solution>& offsprings,
+      int32_t& numOffsprings,
+      const int32_t numOffspringsToMake,
+      const float mutationRate,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const eastl::vector<eastl::vector<float>>& flowRates,
+      const eastl::vector<corex::core::NPolygon>& floodProneAreas,
+      const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
+      const float floodProneAreaPenalty,
+      const float landslideProneAreaPenalty,
+      const float buildingDistanceWeight);
     Solution
     generateRandomSolution(const eastl::vector<InputBuilding>& inputBuildings,
                            const corex::core::NPolygon& boundingArea);
