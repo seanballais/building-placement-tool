@@ -195,14 +195,16 @@ namespace bpt
         population[i] = newOffsprings[i - numPrevGenOffsprings];
       }
 
-      bestSolution = *std::min_element(
+      std::sort(
         population.begin(),
         population.end(),
-        [](Solution solutionA, Solution solutionB) {
+        [](Solution& solutionA, Solution& solutionB) {
           return corex::core::floatLessThan(solutionA.getFitness(),
                                             solutionB.getFitness());
         }
       );
+
+      bestSolution = population[0];
 
       if (isLocalSearchEnabled) {
         this->applyLocalSearch1(bestSolution,
@@ -225,17 +227,6 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight));
 
-      // Sort again to make sure that the solutions in the generation are
-      // ordered from the fittest to the least fit.
-      std::sort(
-        population.begin(),
-        population.end(),
-        [](Solution& solutionA, Solution& solutionB) {
-          return corex::core::floatLessThan(solutionA.getFitness(),
-                                            solutionB.getFitness());
-        }
-      );
-
       solutions.push_back(population);
 
       double fitnessAverage = 0.0;
@@ -249,14 +240,7 @@ namespace bpt
       this->recentRunBestFitnesses.push_back(static_cast<float>(
         bestSolution.getFitness()));
 
-      worstSolution = *std::max_element(
-        population.begin(),
-        population.end(),
-        [](Solution solutionA, Solution solutionB) {
-          return corex::core::floatLessThan(solutionA.getFitness(),
-                                            solutionB.getFitness());
-        }
-      );
+      worstSolution = population.back();
 
       this->recentRunWorstFitnesses.push_back(static_cast<float>(
         worstSolution.getFitness()));
