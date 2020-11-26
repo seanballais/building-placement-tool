@@ -125,21 +125,60 @@ namespace bpt
         assert(parentA.getNumBuildings() != 0);
         assert(parentB.getNumBuildings() != 0);
 
-        // Crossover
-        this->makeTwoParentsBreed(parentA,
-                                  parentB,
-                                  newOffsprings,
-                                  numOffsprings,
-                                  numOffspringsToMake,
-                                  mutationRate,
-                                  boundingArea,
-                                  inputBuildings,
-                                  flowRates,
-                                  floodProneAreas,
-                                  landslideProneAreas,
-                                  floodProneAreaPenalty,
-                                  landslideProneAreaPenalty,
-                                  buildingDistanceWeight);
+        // Breeding time.
+        if (parentA == parentB) {
+          // Let's try 1-OR from the Random Offspring Generation process.
+          newOffsprings[numOffsprings] = this->generateRandomSolution(
+            inputBuildings,
+            boundingArea);
+          newOffsprings[numOffsprings].setFitness(this->getSolutionFitness(
+            newOffsprings[numOffsprings],
+            inputBuildings,
+            flowRates,
+            floodProneAreas,
+            landslideProneAreas,
+            floodProneAreaPenalty,
+            landslideProneAreaPenalty,
+            buildingDistanceWeight));
+
+          numOffsprings++;
+
+          if (numOffsprings == numOffspringsToMake) {
+            // Replace the weakest with a clone of the parent.
+            auto weakestSolutionIter = std::max_element(
+              newOffsprings.begin(),
+              newOffsprings.end(),
+              [](Solution solutionA, Solution solutionB) -> bool {
+                return corex::core::floatLessThan(solutionA.getFitness(),
+                                                  solutionB.getFitness());
+              }
+            );
+            if (parentA.getFitness() < weakestSolutionIter->getFitness()) {
+              int32_t weakestSolutionIndex = std::distance(
+                newOffsprings.begin(),
+                weakestSolutionIter);
+              newOffsprings[weakestSolutionIndex] = parentA;
+            }
+          } else {
+            newOffsprings[numOffsprings] = parentA;
+            numOffsprings++;
+          }
+        } else {
+          this->makeTwoParentsBreed(parentA,
+                                    parentB,
+                                    newOffsprings,
+                                    numOffsprings,
+                                    numOffspringsToMake,
+                                    mutationRate,
+                                    boundingArea,
+                                    inputBuildings,
+                                    flowRates,
+                                    floodProneAreas,
+                                    landslideProneAreas,
+                                    floodProneAreaPenalty,
+                                    landslideProneAreaPenalty,
+                                    buildingDistanceWeight);
+        }
       }
 
       std::sort(
@@ -358,9 +397,9 @@ namespace bpt
       0.f, 1.f
     };
     auto children = this->crossoverSolutions(parentA,
-                             parentB,
-                             boundingArea,
-                             inputBuildings);
+                                             parentB,
+                                             boundingArea,
+                                             inputBuildings);
     offsprings[numOffsprings] = children[0];
     offsprings[numOffsprings].setFitness(this->getSolutionFitness(
       offsprings[numOffsprings],
