@@ -1224,15 +1224,7 @@ namespace bpt
 
     if (this->solutions.size() > 0) {
       if (ImGui::Button(!(this->isGATimelinePlaying) ? "Play GA Timeline"
-                                                     : "Stop GA Timeline")) {
-        if (this->isGATimelinePlaying) {
-          // Halt playing the GA timeline.
-          this->currSelectedGen = this->gaSettings.numGenerations;
-        } else {
-          // We're just going to start playing the GA timeline.
-          this->currSelectedGen = 0;
-        }
-
+                                                     : "Pause GA Timeline")) {
         this->isGATimelinePlaying = !(this->isGATimelinePlaying);
         this->hasSolutionBeenSetup = false;
       }
