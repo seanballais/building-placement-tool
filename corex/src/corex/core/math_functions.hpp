@@ -63,6 +63,7 @@ namespace corex::core
 
   int32_t factorial(int32_t n);
   int32_t pyModInt32(int32_t x, int32_t divisor);
+  int32_t intPow(int32_t base, int32_t exponent);
 
   float degreesToRadians(float degrees);
   float radiansToDegrees(float radians);

@@ -158,13 +158,14 @@ namespace corex::core
 
   float setDecPlaces(float n, int32_t numDecPlaces)
   {
-    int32_t multiplier = std::pow(10, numDecPlaces);
+    // We're using a custom pow() because std::pow() is slow.
+    int32_t multiplier = intPow(10, numDecPlaces);
     return roundf(n * multiplier) / multiplier;
   }
 
   double setDecPlaces(double n, int32_t numDecPlaces)
   {
-    int32_t multiplier = std::pow(10, numDecPlaces);
+    int32_t multiplier = intPow(10, numDecPlaces);
     return roundf(n * multiplier) / multiplier;
   }
 
@@ -191,6 +192,16 @@ namespace corex::core
   {
     // From: https://stackoverflow.com/a/44197900/1116098
     return (divisor + (x % divisor)) % divisor;
+  }
+
+  int32_t intPow(int32_t base, int32_t exponent)
+  {
+    int32_t result = 1;
+    for (int32_t i = 0; i < exponent; i++) {
+      result *= base;
+    }
+
+    return result;
   }
 
   float degreesToRadians(float degrees)
