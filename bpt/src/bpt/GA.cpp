@@ -10,6 +10,7 @@
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
+#include <corex/core/ds/Line.hpp>
 #include <corex/core/ds/NPolygon.hpp>
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/ds/Rectangle.hpp>
@@ -558,69 +559,69 @@ namespace bpt
                           const corex::core::NPolygon& boundingArea,
                           const eastl::vector<InputBuilding>& inputBuildings)
   {
-    std::uniform_int_distribution<int32_t> geneDistribution{
-      0, (solution.getNumBuildings() * 3) - 1
+    std::uniform_int_distribution<int32_t> buildingDistrib{
+      0, static_cast<int32_t>(inputBuildings.size() - 1)
     };
-
-    const int32_t targetGeneIndex = corex::core::generateRandomInt(
-      geneDistribution);
-    // NOTE: The division below will drop the fractional part of the quotient.
-    const int32_t buildingIndex = targetGeneIndex / 3;
-    const int32_t anchorInt = buildingIndex * 3;
-    const int32_t targetValueType = targetGeneIndex - anchorInt;
-
-    float minVal = 0.f;
-    float maxVal = 0.f;
-    if (targetValueType == 0) {
-      minVal = std::min_element(
-        boundingArea.vertices.begin(),
-        boundingArea.vertices.end(),
-        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-          return ptA.x < ptB.x;
-        }
-      )->x;
-      maxVal = std::max_element(
-        boundingArea.vertices.begin(),
-        boundingArea.vertices.end(),
-        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-          return ptA.x < ptB.x;
-        }
-      )->x;
-    } else if (targetValueType == 1) {
-      minVal = std::min_element(
-        boundingArea.vertices.begin(),
-        boundingArea.vertices.end(),
-        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-          return ptA.y < ptB.y;
-        }
-      )->y;
-      maxVal = std::max_element(
-        boundingArea.vertices.begin(),
-        boundingArea.vertices.end(),
-        [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-          return ptA.y < ptB.y;
-        }
-      )->y;
-    } else if (targetValueType == 2) {
-      maxVal = 360.f;
-    }
-
-    std::uniform_real_distribution<float> valueDistribution{ minVal, maxVal };
+    std::uniform_int_distribution<int32_t> buddySideDistrib{ 0, 3 };
+    std::uniform_int_distribution<int32_t> relOrientationDistrib{ 0, 1 };
 
     Solution tempSolution = solution;
     do {
-      float newValue = corex::core::generateRandomReal(valueDistribution);
-      if (targetValueType == 0) {
-        tempSolution.setBuildingXPos(buildingIndex, newValue);
-      } else if (targetValueType == 1) {
-        tempSolution.setBuildingYPos(buildingIndex, newValue);
-      } else if (targetValueType == 2) {
-        tempSolution.setBuildingRotation(buildingIndex, newValue);
+      // Let's just do the Buddy-Buddy Mutation for now.
+      int32_t staticBuddy = 0;
+      int32_t dynamicBuddy = 0; // The buddy to be moved.
+      do {
+        staticBuddy = corex::core::generateRandomInt(buildingDistrib);
+        dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
+      } while (staticBuddy == dynamicBuddy);
+
+      corex::core::Rectangle staticBuddyRect = corex::core::Rectangle{
+        solution.getBuildingXPos(staticBuddy),
+        solution.getBuildingYPos(staticBuddy),
+        inputBuildings[staticBuddy].width,
+        inputBuildings[staticBuddy].length,
+        solution.getBuildingRotation(staticBuddy)
+      };
+      auto buddyPoly = corex::core::convertRectangleToPolygon(staticBuddyRect);
+
+      const int32_t buddySide = corex::core::generateRandomInt(
+        buddySideDistrib);
+
+      corex::core::Line contactLine;
+      switch (buddySide) {
+        case 0:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y },
+            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y }
+          };
+          break;
+        case 1:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y },
+            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y }
+          };
+          break;
+        case 2:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y },
+            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y }
+          };
+          break;
+        case 3:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y },
+            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y }
+          };
+          break;
+        default:
+          break;
       }
+
+      const int32_t orientation = corex::core::generateRandomInt(
+        relOrientationDistrib);
     } while (!this->isSolutionFeasible(tempSolution,
                                        boundingArea,
                                        inputBuildings));
-
     solution = tempSolution;
   }
 

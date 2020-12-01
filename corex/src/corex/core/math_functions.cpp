@@ -252,6 +252,38 @@ namespace corex::core
     return distance2D(Vec2{0.f, 0.f}, p);
   }
 
+  float vec2Angle(const Vec2& p)
+  {
+    // Based on: https://stackoverflow.com/a/48227232/1116098
+    // Returns the angle in degrees. Note also that we are using the
+    // standard Cartesian coordinate plane, not the window space Cartesian
+    // coordinate plane where the origin is on the top-left.
+    // Let's tackle the special cases first.
+    if (floatEquals(p.x, 0.f)) {
+      return floatGreEqual(p.y, 0.f) ? 90.f
+           : floatEquals(p.y, 0.f) ? 0.f
+           : 270.f;
+    } else if (floatEquals(p.y, 0.f)) {
+      return floatGreEqual(p.x, 0.f) ? 0
+           : 180.f;
+    }
+
+    float rotDelta = radiansToDegrees(
+      std::atanf(static_cast<float>(p.y / p.x)));
+    if (floatGreater(p.x, 0.f) && floatGreater(p.y, 0.f)) {
+      // Quadrant I
+      return rotDelta;
+    } else if (floatLessThan(p.x, 0.f) && floatGreater(p.y, 0.f)) {
+      // Quadrant II
+      return 90 + rotDelta;
+    } else if (floatLessThan(p.x, 0.f) && floatLessThan(p.y, 0.f)) {
+      // Quadrant III
+      return 180 + rotDelta;
+    } else if (floatGreater(p.x, 0.f) && floatLessThan(p.y, 0.f)) {
+      return 270 + rotDelta;
+    }
+  }
+
   float dotProduct(const Vec2& p, const Vec2& q)
   {
     return (p.x * q.x) + (p.y * q.y);

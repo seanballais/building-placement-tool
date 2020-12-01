@@ -73,6 +73,7 @@ namespace corex::core
 
   float det3x3(const Vec2& v0, const Vec2& v1, const Vec2& v2);
   float vec2Magnitude(const Vec2& p);
+  float vec2Angle(const Vec2& p);
   float dotProduct(const Vec2& p, const Vec2& q);
   float crossProduct(const Vec2& p, const Vec2& q);
   Vec2 rotateVec2(const Vec2& p, float angle);
