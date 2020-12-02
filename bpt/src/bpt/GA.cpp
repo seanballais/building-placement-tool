@@ -569,11 +569,11 @@ namespace bpt
       {
         this->applyBuddyBuddyMutation(solution, boundingArea, inputBuildings);
       },
-      [](Solution& solution,
+      [this](Solution& solution,
          const corex::core::NPolygon& boundingArea,
          const eastl::vector<InputBuilding>& inputBuildings)
       {
-
+        this->applyShakingMutation(solution, boundingArea, inputBuildings);
       }
     };
 
@@ -851,10 +851,70 @@ namespace bpt
     solution = tempSolution;
   }
 
-  bool
-  GA::isSolutionFeasible(const Solution& solution,
-                         const corex::core::NPolygon& boundingArea,
-                         const eastl::vector<InputBuilding>& inputBuildings)
+  void GA::applyShakingMutation(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    std::uniform_int_distribution<int32_t> geneDistribution{
+      0, solution.getNumBuildings() - 1
+    };
+
+    int32_t targetGeneIndex = corex::core::generateRandomInt(geneDistribution);
+
+    float minX = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.x < ptB.x;
+      }
+    )->x;
+    float maxX = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.x < ptB.x;
+      }
+    )->x;
+    float minY = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.y < ptB.y;
+      }
+    )->y;
+    float maxY = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
+        return ptA.y < ptB.y;
+      }
+    )->y;
+
+    std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
+    std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
+    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
+
+    Solution tempSolution = solution;
+    do {
+      float newXPos = corex::core::generateRandomReal(xPosDistribution);
+      float newYPos = corex::core::generateRandomReal(yPosDistribution);
+      float newRotation = corex::core::generateRandomReal(rotationDistribution);
+
+      tempSolution.setBuildingXPos(targetGeneIndex, newXPos);
+      tempSolution.setBuildingYPos(targetGeneIndex, newYPos);
+      tempSolution.setBuildingRotation(targetGeneIndex, newRotation);
+    } while (!this->isSolutionFeasible(tempSolution,
+                                       boundingArea,
+                                       inputBuildings));
+
+    solution = tempSolution;
+  }
+
+  bool GA::isSolutionFeasible(
+    const Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
   {
     return this->doesSolutionHaveNoBuildingsOverlapping(solution,
                                                         inputBuildings)

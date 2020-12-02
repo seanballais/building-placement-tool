@@ -88,10 +88,13 @@ namespace bpt
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
-    bool
-    isSolutionFeasible(const Solution& solution,
-                       const corex::core::NPolygon& boundingArea,
-                       const eastl::vector<InputBuilding>& inputBuildings);
+    void applyShakingMutation(
+      Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
+    bool isSolutionFeasible(const Solution& solution,
+                            const corex::core::NPolygon& boundingArea,
+                            const eastl::vector<InputBuilding>& inputBuildings);
     bool doesSolutionHaveNoBuildingsOverlapping(
       const Solution& solution,
       const eastl::vector<InputBuilding>& inputBuildings);
