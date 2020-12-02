@@ -565,8 +565,10 @@ namespace bpt
     std::uniform_int_distribution<int32_t> buddySideDistrib{ 0, 3 };
     std::uniform_int_distribution<int32_t> relOrientationDistrib{ 0, 1 };
 
-    Solution tempSolution = solution;
+    Solution tempSolution;
     do {
+      tempSolution = solution;
+
       // Let's just do the Buddy-Buddy Mutation for now.
       int32_t staticBuddy = 0;
       int32_t dynamicBuddy = 0; // The buddy to be moved.
@@ -575,7 +577,7 @@ namespace bpt
         dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
       } while (staticBuddy == dynamicBuddy);
 
-      corex::core::Rectangle staticBuddyRect = corex::core::Rectangle{
+      auto staticBuddyRect = corex::core::Rectangle{
         solution.getBuildingXPos(staticBuddy),
         solution.getBuildingYPos(staticBuddy),
         inputBuildings[staticBuddy].width,
@@ -617,8 +619,40 @@ namespace bpt
           break;
       }
 
+      auto contactLineVec = corex::core::lineToVec(contactLine);
       const int32_t orientation = corex::core::generateRandomInt(
         relOrientationDistrib);
+      float distContactToBuddyCenter = 0;
+      float contactLineAngle = corex::core::vec2Angle(contactLineVec);
+      float dynamicBuddyAngle;
+      if (orientation == 0) {
+        // The dynamic buddy will be oriented parallel to the contact line, if
+        // width > length. Perpendicular, otherwise.
+        distContactToBuddyCenter = inputBuildings[dynamicBuddy].width / 2.f;
+        dynamicBuddyAngle = contactLineAngle;
+      } else if (orientation == 1) {
+        // The dynamic buddy will be oriented perpendicular to the contact line,
+        // if length > width. Parallel, otherwise.
+        distContactToBuddyCenter = inputBuildings[dynamicBuddy].length / 2.f;
+        dynamicBuddyAngle = contactLineAngle + 45.f;
+      }
+
+      // Adjust the distance of the dynamic buddy centroid to the contact line
+      // by a small amount to prevent intersection of buildings.
+      distContactToBuddyCenter += 0.0001f;
+
+      corex::core::Point dynamicBuddyPos{
+        ((contactLineVec * 0.5f)
+          + corex::core::vec2Perp(
+              corex::core::rotateVec2(
+                corex::core::Vec2{0.f, distContactToBuddyCenter },
+                contactLineAngle)))
+        + contactLine.start
+      };
+
+      tempSolution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
+      tempSolution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
+      tempSolution.setBuildingRotation(dynamicBuddy, dynamicBuddyAngle);
     } while (!this->isSolutionFeasible(tempSolution,
                                        boundingArea,
                                        inputBuildings));

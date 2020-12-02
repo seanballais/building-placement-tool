@@ -270,10 +270,7 @@ namespace corex::core
 
     float rotDelta = radiansToDegrees(
       std::atanf(static_cast<float>(p.y / p.x)));
-    if (floatGreater(p.x, 0.f) && floatGreater(p.y, 0.f)) {
-      // Quadrant I
-      return rotDelta;
-    } else if (floatLessThan(p.x, 0.f) && floatGreater(p.y, 0.f)) {
+    if (floatLessThan(p.x, 0.f) && floatGreater(p.y, 0.f)) {
       // Quadrant II
       return 90 + rotDelta;
     } else if (floatLessThan(p.x, 0.f) && floatLessThan(p.y, 0.f)) {
@@ -281,6 +278,9 @@ namespace corex::core
       return 180 + rotDelta;
     } else if (floatGreater(p.x, 0.f) && floatLessThan(p.y, 0.f)) {
       return 270 + rotDelta;
+    } else {
+      // Quadrant I
+      return rotDelta;
     }
   }
 
