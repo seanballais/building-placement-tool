@@ -84,6 +84,10 @@ namespace bpt
       eastl::vector<corex::core::NPolygon> landslideProneAreas,
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty);
+    void applyBuddyBuddyMutation(
+      Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
     bool
     isSolutionFeasible(const Solution& solution,
                        const corex::core::NPolygon& boundingArea,
