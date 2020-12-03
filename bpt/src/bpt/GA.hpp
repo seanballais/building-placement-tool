@@ -75,20 +75,15 @@ namespace bpt
     void mutateSolution(Solution& solution,
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings);
-    void applyLocalSearch1(
-      Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const eastl::vector<eastl::vector<float>>& flowRates,
-      eastl::vector<corex::core::NPolygon> floodProneAreas,
-      eastl::vector<corex::core::NPolygon> landslideProneAreas,
-      const float floodProneAreaPenalty,
-      const float landslideProneAreaPenalty);
     void applyBuddyBuddyMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
     void applyShakingMutation(
+      Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
+    void applyJiggleMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
