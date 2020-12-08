@@ -3,6 +3,8 @@
 
 #include <cstdlib>
 
+#include <bpt/SelectionType.hpp>
+
 namespace bpt
 {
   struct GASettings
@@ -16,6 +18,7 @@ namespace bpt
     float landslideProneAreaPenalty;
     float buildingDistanceWeight;
     bool isLocalSearchEnabled;
+    SelectionType selectionType;
   };
 }
 

@@ -44,7 +44,8 @@ namespace bpt
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
-    const bool isLocalSearchEnabled)
+    const bool isLocalSearchEnabled,
+    const SelectionType selectionType)
   {
     assert(flowRates.size() == inputBuildings.size());
 
@@ -116,8 +117,8 @@ namespace bpt
       while (numOffsprings < numOffspringsToMake) {
         // Standard Tournament Selection.
         auto parents = this->selectParents(population,
-                                           populationSize,
-                                           tournamentSize);
+                                           tournamentSize,
+                                           selectionType);
         Solution parentA = parents[0];
         Solution parentB = parents[1];
 
@@ -289,11 +290,74 @@ namespace bpt
 
   eastl::array<Solution, 2> GA::selectParents(
     const eastl::vector<Solution>& population,
-    const int32_t& populationSize,
+    const int32_t& tournamentSize,
+    const SelectionType& selectionType)
+  {
+    eastl::array<Solution, 2> parents;
+    switch (selectionType) {
+      case SelectionType::RWS:
+        parents = this->runRouletteWheelSelection(population);
+      case SelectionType::TS:
+        parents = this->runTournamentSelection(population, tournamentSize);
+      default:
+        break;
+    }
+
+    return parents;
+  }
+
+  eastl::array<Solution, 2> GA::runRouletteWheelSelection(
+    const eastl::vector<Solution>& population)
+  {
+    // Let's try roulette wheel selection. Code based from:
+    //   https://stackoverflow.com/a/26316267/1116098
+    eastl::vector<double> popFitnesses;
+    for (int32_t i = 0; i < population.size(); i++) {
+      popFitnesses.push_back(population[i].getFitness());
+    }
+
+    double fitnessSum = std::accumulate(popFitnesses.begin(),
+                                        popFitnesses.end(),
+                                        0);
+    double maxFitness = *std::max_element(
+      popFitnesses.begin(),
+      popFitnesses.end(),
+      [](double a, double b) {
+        return corex::core::floatLessEqual(a, b);
+      });
+    double minFitness = *std::min_element(
+      popFitnesses.begin(),
+      popFitnesses.end(),
+      [](double a, double b) {
+        return corex::core::floatLessEqual(a, b);
+      });
+    double upperBound = maxFitness + minFitness;
+
+    std::uniform_real_distribution<double> fitnessDistrib {0, fitnessSum };
+
+    eastl::array<Solution, 2> parents;
+    for (int32_t i = 0; i < parents.size(); i++) {
+      double p = corex::core::generateRandomReal(fitnessDistrib);
+      parents[i] = population[0]; // Default selection.
+      for (int32_t j = 0; j < popFitnesses.size(); j++) {
+        p -= upperBound - popFitnesses[i];
+
+        if (corex::core::floatLessEqual(p, 0.f)) {
+          parents[i] = population[j];
+          break;
+        }
+      }
+    }
+
+    return parents;
+  }
+
+  eastl::array<Solution, 2> GA::runTournamentSelection(
+    const eastl::vector<Solution>& population,
     const int32_t& tournamentSize)
   {
     std::uniform_int_distribution<int32_t> chromosomeDistribution{
-      0, populationSize - 1
+      0, static_cast<int32_t>(population.size() - 1)
     };
 
     eastl::array<Solution, 2> parents;

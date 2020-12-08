@@ -7,6 +7,7 @@
 
 #include <corex/core/ds/NPolygon.hpp>
 
+#include <bpt/SelectionType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
@@ -30,7 +31,8 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
-      const bool isLocalSearchEnabled);
+      const bool isLocalSearchEnabled,
+      const SelectionType selectionType);
     double getSolutionFitness(
       const Solution& solution,
       const eastl::vector<InputBuilding>& inputBuildings,
@@ -47,7 +49,12 @@ namespace bpt
   private:
     eastl::array<Solution, 2> selectParents(
       const eastl::vector<Solution>& population,
-      const int32_t& populationSize,
+      const int32_t& tournamentSize,
+      const SelectionType& selectionType);
+    eastl::array<Solution, 2> runRouletteWheelSelection(
+      const eastl::vector<Solution>& population);
+    eastl::array<Solution, 2> runTournamentSelection(
+      const eastl::vector<Solution>& population,
       const int32_t& tournamentSize);
     void makeTwoParentsBreed(
       const Solution& parentA,

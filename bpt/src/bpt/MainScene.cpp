@@ -39,7 +39,10 @@
 #include <corex/core/systems/MouseButtonType.hpp>
 
 #include <bpt/Context.hpp>
+#include <bpt/json_specializations.hpp>
 #include <bpt/MainScene.hpp>
+#include <bpt/SelectionType.hpp>
+#include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 
 namespace bpt
@@ -59,7 +62,8 @@ namespace bpt
         5.f,
         5.f,
         1.0f,
-        true
+        true,
+        SelectionType::NONE
       })
     , currentSolution(nullptr)
     , solutions()
@@ -229,6 +233,8 @@ namespace bpt
               gaSettingsJSON["buildingDistanceWeight"].get<float>();
             this->gaSettings.isLocalSearchEnabled =
               gaSettingsJSON["isLocalSearchEnabled"].get<bool>();
+            this->gaSettings.selectionType =
+              gaSettingsJSON["selectionType"].get<SelectionType>();
 
             this->doesGASettingsFieldExist = true;
           }
@@ -664,6 +670,8 @@ namespace bpt
         this->gaSettings.buildingDistanceWeight;
       this->inputData["gaSettings"]["isLocalSearchEnabled"] =
         this->gaSettings.isLocalSearchEnabled;
+      this->inputData["gaSettings"]["selectionType"] =
+        this->gaSettings.selectionType;
 
       this->inputData["floodProneAreas"] = nlohmann::json::array();
       for (corex::core::NPolygon& area : this->floodProneAreas) {
@@ -1052,7 +1060,6 @@ namespace bpt
     ImGui::InputFloat("Mutation Rate", &(this->gaSettings.mutationRate));
     ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
     ImGui::InputInt("No. of Generations", &(this->gaSettings.numGenerations));
-    ImGui::InputInt("Tournament Size", &(this->gaSettings.tournamentSize));
     ImGui::InputInt("No. of Prev. Offsprings to Keep",
                     &(this->gaSettings.numPrevGenOffsprings));
     ImGui::InputFloat("Flood Penalty",
@@ -1061,6 +1068,39 @@ namespace bpt
                       &(this->gaSettings.landslideProneAreaPenalty));
     ImGui::InputFloat("Building Distance Weight",
                       &(this->gaSettings.buildingDistanceWeight));
+
+    if (ImGui::BeginCombo("Selection Type",
+                          castToCString(this->gaSettings.selectionType))) {
+      // Gah. Let's hardcode the selection types for now. This is going
+      // to be ugly.
+      if (ImGui::Selectable(
+            "Roulette Wheel",
+            this->gaSettings.selectionType == SelectionType::RWS)) {
+        this->gaSettings.selectionType = SelectionType::RWS;
+
+        if (this->gaSettings.selectionType == SelectionType::RWS) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      if (ImGui::Selectable(
+        "Tournament",
+        this->gaSettings.selectionType == SelectionType::TS)) {
+        this->gaSettings.selectionType = SelectionType::TS;
+
+        if (this->gaSettings.selectionType == SelectionType::TS) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      ImGui::EndCombo();
+    }
+
+    if (this->gaSettings.selectionType == SelectionType::TS) {
+      ImGui::InputInt("Tournament Size",
+                      &(this->gaSettings.tournamentSize));
+    }
+
     ImGui::Checkbox("Enable Local Search",
                     &(this->gaSettings.isLocalSearchEnabled));
 
@@ -1096,7 +1136,8 @@ namespace bpt
               this->gaSettings.floodProneAreaPenalty,
               this->gaSettings.landslideProneAreaPenalty,
               this->gaSettings.buildingDistanceWeight,
-              this->gaSettings.isLocalSearchEnabled
+              this->gaSettings.isLocalSearchEnabled,
+              this->gaSettings.selectionType
             );
             this->currSelectedGen = this->gaSettings.numGenerations;
             this->currSelectedGenSolution = 0;
