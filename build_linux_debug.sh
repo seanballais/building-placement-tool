@@ -8,7 +8,7 @@ cd build
 
 # TODO: Add feature that will allow selecting the build type: debug or release.
 BUILD_ACTION_TYPE=""
-if [ -n $1 ]
+if [ -n "$1" ]
 then
     BUILD_ACTION_TYPE=$1
 else
@@ -26,8 +26,8 @@ then
 
     # Hello, CMake. And we gonna use Clang 10.
     echo "[::] Running CMake for a debug build..."
-    export CC=/usr/bin/clang-10
-    export CXX=/usr/bin/clang++-10
+    export CC=/usr/bin/clang-11
+    export CXX=/usr/bin/clang++-11
     cmake -DCMAKE_BUILD_TYPE=Debug .. \
         && echo "[::] CMake ran successfully. Time to compile..." \
         && make

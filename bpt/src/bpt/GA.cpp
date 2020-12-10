@@ -589,27 +589,43 @@ namespace bpt
                          const eastl::vector<InputBuilding>& inputBuildings)
   {
     // We're doing uniform crossover.
-    std::uniform_int_distribution<int32_t> parentDistribution{ 0, 1 };
-    int32_t numGenes = solutionA.getNumBuildings();
+    std::uniform_int_distribution<int32_t> parentDistrib{0, 1 };
+    int32_t numBuildings = solutionA.getNumBuildings();
 
     // Prevent unnecessary copying of the parents.
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
+    eastl::array<
+      eastl::function<void(Solution&, const Solution&, const int32_t)>,
+      3> solutionFuncs = {
+        [](Solution& solution,
+           const Solution& source,
+           const int32_t buildingIndex) -> void {
+          solution.setBuildingXPos(buildingIndex,
+                                   source.getBuildingXPos(buildingIndex));
+        },
+        [](Solution& solution,
+           const Solution& source,
+           const int32_t buildingIndex) -> void {
+          solution.setBuildingYPos(buildingIndex,
+                                   source.getBuildingYPos(buildingIndex));
+        },
+        [](Solution& solution,
+           const Solution& source,
+           const int32_t buildingIndex) -> void {
+          solution.setBuildingRotation(
+            buildingIndex,
+            source.getBuildingRotation(buildingIndex));
+        }
+    };
 
     eastl::array<Solution, 2> children{ solutionA, solutionB };
     for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
       do {      
-        for (int32_t geneIdx = 0; geneIdx < numGenes; geneIdx++) {
-          int32_t parentIdx = corex::core::generateRandomInt(
-            parentDistribution);
-          const Solution* const parent = parents[parentIdx];
-
-          children[childIdx].setBuildingXPos(geneIdx,
-                                             parent->getBuildingXPos(geneIdx));
-          children[childIdx].setBuildingYPos(geneIdx,
-                                             parent->getBuildingYPos(geneIdx));
-          children[childIdx].setBuildingRotation(
-            geneIdx,
-            parent->getBuildingRotation(geneIdx));
+        for (int32_t i = 0; i < numBuildings; i++) {
+          for (auto& f : solutionFuncs) {
+            int32_t parentIdx = corex::core::generateRandomInt(parentDistrib);
+            f(children[childIdx], *parents[parentIdx], i);
+          }
         }
       } while (!this->isSolutionFeasible(children[childIdx],
                                          boundingArea,
