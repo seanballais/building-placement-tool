@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdlib>
 
@@ -158,14 +159,14 @@ namespace corex::core
 
   float setDecPlaces(float n, int32_t numDecPlaces)
   {
-    // We're using a custom pow() because std::pow() is slow.
-    int32_t multiplier = intPow(10, numDecPlaces);
+    // We're using a custom cx::pow() because std::pow() is slow.
+    int32_t multiplier = cx::pow(10, numDecPlaces);
     return roundf(n * multiplier) / multiplier;
   }
 
   double setDecPlaces(double n, int32_t numDecPlaces)
   {
-    int32_t multiplier = intPow(10, numDecPlaces);
+    int32_t multiplier = cx::pow(10, numDecPlaces);
     return roundf(n * multiplier) / multiplier;
   }
 
@@ -194,14 +195,44 @@ namespace corex::core
     return (divisor + (x % divisor)) % divisor;
   }
 
-  int32_t intPow(int32_t base, int32_t exponent)
+  int32_t pow(int32_t base, int32_t exponent)
   {
-    int32_t result = 1;
-    for (int32_t i = 0; i < exponent; i++) {
-      result *= base;
-    }
+    assert(exponent >= 0);
 
-    return result;
+    // Note that std::pow() is slow. So, we're using a custom implementation
+    // of a basic pow() for integers.
+    if (exponent == 0) {
+      return 1;
+    } else if (base == 0) {
+      return 0;
+    } else {
+      int result = 1;
+      for (int i = 0; i < exponent; i++) {
+        result *= base;
+      }
+
+      return result;
+    }
+  }
+
+  float pow(float base, int32_t exponent)
+  {
+    assert(exponent >= 0);
+
+    // Note that std::pow() is slow. So, we're using a custom implementation
+    // of a basic pow() for integers.
+    if (exponent == 0) {
+      return 1.f;
+    } else if (floatEquals(base, 0.f)) {
+      return 0.f;
+    } else {
+      double result = 1; // Let's not lose precision during computation.
+      for (int i = 0; i < exponent; i++) {
+        result *= static_cast<double>(base);
+      }
+
+      return static_cast<float>(result);
+    }
   }
 
   float degreesToRadians(float degrees)
@@ -216,7 +247,7 @@ namespace corex::core
 
   float distance2D(const Point& start, const Point& end)
   {
-    return sqrt(pow(end.x - start.x, 2) + pow(end.y - start.y, 2));
+    return sqrt(cx::pow(end.x - start.x, 2) + cx::pow(end.y - start.y, 2));
   }
 
   float lineLength(const Line& line)
@@ -312,7 +343,7 @@ namespace corex::core
 
   Vec2 projectVec2(const Vec2& p, const Vec2& q)
   {
-    return static_cast<float>(dotProduct(p, q) / pow(vec2Magnitude(q), 2)) * q;
+    return static_cast<float>(dotProduct(p, q) / cx::pow(vec2Magnitude(q), 2)) * q;
   }
 
   Vec2 vec2Perp(const Vec2& p)

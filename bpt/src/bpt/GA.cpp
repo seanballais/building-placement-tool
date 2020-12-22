@@ -14,11 +14,12 @@
 #include <corex/core/ds/NPolygon.hpp>
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/ds/Rectangle.hpp>
+#include <corex/core/utils.hpp>
+
+#include <iprof/iprof.hpp>
 
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
-
-#include <corex/core/utils.hpp>
 
 #include <bpt/GA.hpp>
 
@@ -198,6 +199,10 @@ namespace bpt
 
       this->recentRunWorstFitnesses.push_back(static_cast<float>(
         worstSolution.getFitness()));
+
+      InternalProfiler::aggregateEntries();
+      std::cout << "The latest internal profiler stats:\n"
+                << InternalProfiler::stats << std::endl;
     }
 
     this->currRunGenerationNumber = -1;
@@ -394,6 +399,7 @@ namespace bpt
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight)
   {
+    IPROF_FUNC;
     std::uniform_real_distribution<float> mutationChanceDistribution{
       0.f, 1.f
     };
@@ -588,6 +594,7 @@ namespace bpt
                          const corex::core::NPolygon& boundingArea,
                          const eastl::vector<InputBuilding>& inputBuildings)
   {
+    IPROF_FUNC;
     // We're doing uniform crossover.
     std::uniform_int_distribution<int32_t> parentDistrib{0, 1 };
     int32_t numBuildings = solutionA.getNumBuildings();
@@ -620,7 +627,8 @@ namespace bpt
 
     eastl::array<Solution, 2> children{ solutionA, solutionB };
     for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
-      do {      
+      IPROF("Crossover Main");
+      do {
         for (int32_t i = 0; i < numBuildings; i++) {
           for (auto& f : solutionFuncs) {
             int32_t parentIdx = corex::core::generateRandomInt(parentDistrib);
@@ -639,6 +647,7 @@ namespace bpt
                           const corex::core::NPolygon& boundingArea,
                           const eastl::vector<InputBuilding>& inputBuildings)
   {
+    IPROF_FUNC;
     eastl::array<eastl::function<void(Solution&,
                                  const corex::core::NPolygon&,
                                  const eastl::vector<InputBuilding>&)>,
@@ -1001,6 +1010,7 @@ namespace bpt
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings)
   {
+    IPROF_FUNC;
     return this->doesSolutionHaveNoBuildingsOverlapping(solution,
                                                         inputBuildings)
            && this->areSolutionBuildingsWithinBounds(solution,

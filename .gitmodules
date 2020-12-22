@@ -19,3 +19,9 @@
 [submodule "libs/EABase"]
 	path = libs/EABase
 	url = https://github.com/electronicarts/EABase.git
+[submodule "libs/pcg-cpp"]
+	path = libs/pcg-cpp
+	url = https://github.com/imneme/pcg-cpp.git
+[submodule "libs/iprof"]
+	path = libs/iprof
+	url = git@github.com:seanballais/iprof.git

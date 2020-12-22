@@ -25,12 +25,14 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/EAStdC/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/sdl_gpu/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/pcg-cpp/include)
 
 add_subdirectory(libs/)
 add_subdirectory(corex/)
 add_subdirectory(bpt/)
 
 target_link_libraries(bpt
+    iprof
     corex-core
     imgui-impls
     implot

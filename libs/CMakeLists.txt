@@ -13,3 +13,5 @@ add_subdirectory(sdl_gpu/)
 set(BUILD_IMPLOT_SHARED OFF CACHE BOOL "Build implot shared library")
 set(BUILD_IMPLOT_DEMO ON CACHE BOOL "Build implot demo")
 add_subdirectory(implot/)
+
+add_subdirectory(iprof/)

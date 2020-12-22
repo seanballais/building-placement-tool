@@ -8,6 +8,7 @@
 
 #include <EASTL/string.h>
 #include <nlohmann/json.hpp>
+#include <pcg_random.hpp>
 
 #include <corex/core/Camera.hpp>
 #include <corex/core/ds/Point.hpp>
@@ -36,19 +37,19 @@ namespace corex::core
   template <class T>
   T generateRandomInt(std::uniform_int_distribution<T> distribution)
   {
-    std::random_device randDevice;
-    std::mt19937 mt(randDevice());
+    pcg_extras::seed_seq_from<std::random_device> seedSource;
+    pcg32 rng(seedSource);
 
-    return distribution(mt);
+    return distribution(rng);
   }
 
   template <class T>
   T generateRandomReal(std::uniform_real_distribution<T> distribution)
   {
-    std::random_device randDevice;
-    std::mt19937 mt(randDevice());
+    pcg_extras::seed_seq_from<std::random_device> seedSource;
+    pcg32 rng(seedSource);
 
-    return distribution(mt);
+    return distribution(rng);
   }
 
   float metersToPixels(float meters, float ppmRatio);

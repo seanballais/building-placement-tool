@@ -63,7 +63,8 @@ namespace corex::core
 
   int32_t factorial(int32_t n);
   int32_t pyModInt32(int32_t x, int32_t divisor);
-  int32_t intPow(int32_t base, int32_t exponent);
+  int32_t pow(int32_t base, int32_t exponent);
+  float pow(float base, int32_t exponent);
 
   float degreesToRadians(float degrees);
   float radiansToDegrees(float radians);
@@ -156,6 +157,11 @@ namespace corex::core
 
     return nPolygon;
   }
+}
+
+namespace cx
+{
+  using namespace corex::core;
 }
 
 #endif
