@@ -31,6 +31,8 @@
     <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EAStdC" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/EAThread/test/packages/EATest" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/implot" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/iprof" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/pcg-cpp" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/sdl_gpu" vcs="Git" />
   </component>
 </project>

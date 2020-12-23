@@ -628,6 +628,8 @@ namespace bpt
     eastl::array<Solution, 2> children{ solutionA, solutionB };
     for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
       IPROF("Crossover Main");
+      // TODO: Experiment with gene repair so that we don't have to re-run
+      //       crossover multiple times until we get a feasible solution.
       do {
         for (int32_t i = 0; i < numBuildings; i++) {
           for (auto& f : solutionFuncs) {
