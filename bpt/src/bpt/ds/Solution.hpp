@@ -15,6 +15,7 @@ namespace bpt
     Solution();
     Solution(const Solution& other);
     Solution(int32_t numBuildings);
+    Solution(int32_t numBuildings, Solution* parentA, Solution* parentB);
 
     void setBuildingXPos(int32_t buildingIndex, float xPos);
     void setBuildingYPos(int32_t buildingIndex, float yPos);
@@ -25,6 +26,8 @@ namespace bpt
     float getBuildingRotation(int32_t buildingIndex) const;
     int32_t getNumBuildings() const;
     double getFitness() const;
+    Solution* const getParentA();
+    Solution* const getParentB();
 
     bool operator==(const Solution& other);
     bool operator!=(const Solution& other);
@@ -33,6 +36,16 @@ namespace bpt
     int32_t numBuildings;
     double fitness;
     bool hasFitnessSet;
+
+    // Not setting the pointers below to const because it'll implicitly delete
+    // the copy constructor, which is used a lot in the GA code. Note that these
+    // pointers were added after the GA code was written. Sure, I can go ahead
+    // and refactor the GA code to use unique pointers to let me be able to set
+    // the pointers below to const, but that may introduce bugs and take up time
+    // that would be better used to finish the GA, and meet the deadline for
+    // this thesis.
+    Solution* parentA;
+    Solution* parentB;
   };
 }
 

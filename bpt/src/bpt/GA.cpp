@@ -7,6 +7,7 @@
 
 #include <EASTL/array.h>
 #include <EASTL/functional.h>
+#include <EASTL/set.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
@@ -407,9 +408,8 @@ namespace bpt
                                              parentB,
                                              boundingArea,
                                              inputBuildings);
-    offsprings[numOffsprings] = children[0];
-    offsprings[numOffsprings].setFitness(this->getSolutionFitness(
-      offsprings[numOffsprings],
+    children[0].setFitness(this->getSolutionFitness(
+      children[0],
       inputBuildings,
       flowRates,
       floodProneAreas,
@@ -417,6 +417,17 @@ namespace bpt
       floodProneAreaPenalty,
       landslideProneAreaPenalty,
       buildingDistanceWeight));
+    children[1].setFitness(this->getSolutionFitness(
+      children[1],
+      inputBuildings,
+      flowRates,
+      floodProneAreas,
+      landslideProneAreas,
+      floodProneAreaPenalty,
+      landslideProneAreaPenalty,
+      buildingDistanceWeight));
+
+    offsprings[numOffsprings] = children[0];
 
     // Mutation
     float mutationProbability = corex::core::generateRandomReal(
@@ -583,7 +594,11 @@ namespace bpt
         solution.setBuildingYPos(i, buildingPos.y);
         solution.setBuildingRotation(i, buildingRotation);
       }
-    } while (!this->isSolutionFeasible(solution, boundingArea, inputBuildings));
+    } while (!this->doesSolutionHaveNoBuildingsOverlapping(solution,
+                                                                 inputBuildings)
+                    && !this->areSolutionBuildingsWithinBounds(solution,
+                                                              boundingArea,
+                                                              inputBuildings));
 
     return solution;
   }
@@ -625,17 +640,40 @@ namespace bpt
         }
     };
 
-    eastl::array<Solution, 2> children{ solutionA, solutionB };
+    // We're const-casting the references here because the pointers to the
+    // parents are not const. See bpt/Solution.hpp to find out why they are so.
+    eastl::array<Solution, 2> children{
+      Solution(solutionA.getNumBuildings(),
+               const_cast<Solution*>(&solutionA),
+               const_cast<Solution*>(&solutionB)),
+      Solution(solutionA.getNumBuildings(),
+               const_cast<Solution*>(&solutionA),
+               const_cast<Solution*>(&solutionB))
+    };
     for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
       IPROF("Crossover Main");
-      // TODO: Experiment with gene repair so that we don't have to re-run
-      //       crossover multiple times until we get a feasible solution.
       do {
         for (int32_t i = 0; i < numBuildings; i++) {
           for (auto& f : solutionFuncs) {
             int32_t parentIdx = corex::core::generateRandomInt(parentDistrib);
             f(children[childIdx], *parents[parentIdx], i);
           }
+        }
+
+        auto faultyGenes = this->findFaultyGenes(children[childIdx],
+                                                 boundingArea,
+                                                 inputBuildings);
+        for (int32_t &i : faultyGenes) {
+          std::cout << i << "| (w: " << inputBuildings[i].width
+                    << ", l: " << inputBuildings[i].length
+                    << ", x: " << children[childIdx].getBuildingXPos(i)
+                    << ", y: " << children[childIdx].getBuildingYPos(i)
+                    << ")"
+                    << std::endl;
+        }
+
+        if (!faultyGenes.empty()) {
+          std::cout << "---" << std::endl;
         }
       } while (!this->isSolutionFeasible(children[childIdx],
                                          boundingArea,
@@ -1007,17 +1045,78 @@ namespace bpt
     solution = tempSolution;
   }
 
+  eastl::vector<int32_t> GA::findFaultyGenes(
+    const Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    eastl::set<int32_t> faultyGenes;
+
+    // Find overlapping buildings.
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      auto building0 = corex::core::Rectangle{
+        solution.getBuildingXPos(i),
+        solution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        solution.getBuildingRotation(i)
+      };
+
+      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+        auto building1 = corex::core::Rectangle{
+          solution.getBuildingXPos(j),
+          solution.getBuildingYPos(j),
+          inputBuildings[j].width,
+          inputBuildings[j].length,
+          solution.getBuildingRotation(j)
+        };
+        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
+          faultyGenes.insert(i);
+          faultyGenes.insert(j);
+        }
+      }
+    }
+
+    // Find buildings overlapping the bounding area.
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      auto buildingRect = corex::core::Rectangle{
+        solution.getBuildingXPos(i),
+        solution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        solution.getBuildingRotation(i)
+      };
+
+      if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
+        faultyGenes.insert(i);
+      }
+    }
+
+    return eastl::vector<int32_t>{ faultyGenes.begin(), faultyGenes.end() };
+  }
+
   bool GA::isSolutionFeasible(
     const Solution& solution,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings)
   {
     IPROF_FUNC;
-    return this->doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                        inputBuildings)
-           && this->areSolutionBuildingsWithinBounds(solution,
-                                                     boundingArea,
-                                                     inputBuildings);
+    if (!this->doesSolutionHaveNoBuildingsOverlapping(solution,
+                                                      inputBuildings)) {
+      std::cout << "Buildings are overlapping." << std::endl;
+    }
+
+    if (!this->areSolutionBuildingsWithinBounds(solution,
+                                               boundingArea,
+                                               inputBuildings)) {
+      std::cout << "Buildings are not within bounds." << std::endl;
+    }
+//    return this->doesSolutionHaveNoBuildingsOverlapping(solution,
+//                                                        inputBuildings)
+//           && this->areSolutionBuildingsWithinBounds(solution,
+//                                                     boundingArea,
+//                                                     inputBuildings);
+    return true;
   }
 
   bool GA::doesSolutionHaveNoBuildingsOverlapping(

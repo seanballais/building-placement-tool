@@ -11,19 +11,33 @@ namespace bpt
     : genes()
     , numBuildings(0)
     , fitness(0)
-    , hasFitnessSet(false) {}
+    , hasFitnessSet(false)
+    , parentA(nullptr)
+    , parentB(nullptr) {}
 
   Solution::Solution(const Solution& other)
     : genes(other.genes)
     , numBuildings(other.numBuildings)
     , fitness(other.fitness)
-    , hasFitnessSet(other.hasFitnessSet) {}
+    , hasFitnessSet(other.hasFitnessSet)
+    , parentA(other.parentA)
+    , parentB(other.parentB) {}
 
   Solution::Solution(int32_t numBuildings)
     : genes(numBuildings * 3, 0.f)
     , numBuildings(numBuildings)
     , fitness(0)
-    , hasFitnessSet(false) {}
+    , hasFitnessSet(false)
+    , parentA(nullptr)
+    , parentB(nullptr) {}
+
+  Solution::Solution(int32_t numBuildings, Solution* parentA, Solution* parentB)
+    : genes(numBuildings * 3, 0.f)
+    , numBuildings(numBuildings)
+    , fitness(0)
+    , hasFitnessSet(false)
+    , parentA(parentA)
+    , parentB(parentB) {}
 
   void Solution::setBuildingXPos(int32_t buildingIndex, float xPos)
   {
@@ -70,6 +84,16 @@ namespace bpt
   {
     assert(this->hasFitnessSet);
     return this->fitness;
+  }
+
+  Solution* const Solution::getParentA()
+  {
+    return this->parentA;
+  }
+
+  Solution* const Solution::getParentB()
+  {
+    return this->parentB;
   }
 
   bool Solution::operator==(const Solution& other)

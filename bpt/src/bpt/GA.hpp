@@ -94,6 +94,10 @@ namespace bpt
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
+    eastl::vector<int32_t> findFaultyGenes(
+      const Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
     bool isSolutionFeasible(const Solution& solution,
                             const corex::core::NPolygon& boundingArea,
                             const eastl::vector<InputBuilding>& inputBuildings);
