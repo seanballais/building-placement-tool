@@ -92,12 +92,14 @@ namespace bpt
     , wipBoundingArea()
     , wipHazardArea()
     , boundingArea()
+    , boundingAreaTriangles()
     , floodProneAreas()
     , landslideProneAreas()
     , wipBoundingAreaEntity(entt::null)
     , wipHazardAreaEntity(entt::null)
     , boundingAreaEntity(entt::null)
     , closeAreaTriggerEntity(entt::null)
+    , boundingAreaTriangleEntities()
     , floodProneAreaEntities()
     , landslideProneAreaEntities()
     , inputBuildings()
@@ -146,6 +148,10 @@ namespace bpt
                 vertex[0].get<float>(), vertex[1].get<float>()
               });
             }
+
+            this->boundingAreaTriangles = cx::earClipTriangulate(
+              this->boundingArea);
+
             this->doesInputBoundingAreaFieldExist = true;
           }
 
@@ -353,6 +359,25 @@ namespace bpt
             eastl::vector<corex::core::Point>{},
             SDL_Color{ 64, 64, 64, 255},
             false);
+
+          for (auto& triangle : this->boundingAreaTriangles) {
+            entt::entity triangleEntity = this->registry.create();
+            this->registry.emplace<cx::Position>(triangleEntity,
+                                                 0.f,
+                                                 0.f,
+                                                 1.f,
+                                                 static_cast<int8_t>(2));
+            this->registry.emplace<cx::Renderable>(
+              triangleEntity,
+              cx::RenderableType::PRIMITIVE_POLYGON);
+            this->registry.emplace<cx::RenderPolygon>(
+              triangleEntity,
+              eastl::vector<corex::core::Point>{},
+              SDL_Color{ 64, 64, 64, 255 },
+              false);
+
+            this->boundingAreaTriangleEntities.push_back(triangleEntity);
+          }
         } else {
           this->registry.patch<corex::core::RenderPolygon>(
             this->boundingAreaEntity,
@@ -360,6 +385,20 @@ namespace bpt
               poly.vertices = this->boundingArea.vertices;
             }
           );
+
+          for (int32_t i = 0; i < this->boundingAreaTriangles.size(); i++) {
+            eastl::vector<cx::Point> triangleVertices;
+            for (auto& v : this->boundingAreaTriangles[i].vertices) {
+              triangleVertices.push_back(v);
+            }
+
+            this->registry.patch<corex::core::RenderPolygon>(
+              this->boundingAreaTriangleEntities[i],
+              [&triangleVertices](corex::core::RenderPolygon& poly) {
+                poly.vertices = triangleVertices;
+              }
+            );
+          }
         }
 
         // Draw hazard areas.
@@ -536,6 +575,14 @@ namespace bpt
 
         if (this->registry.valid(this->boundingAreaEntity)) {
           this->boundingArea.vertices.clear();
+          this->boundingAreaTriangles.clear();
+
+          for (auto& e : this->boundingAreaTriangleEntities) {
+            this->registry.destroy(e);
+          }
+
+          this->boundingAreaTriangleEntities.clear();
+
           this->registry.destroy(this->boundingAreaEntity);
         }
       } break;
@@ -1455,6 +1502,10 @@ namespace bpt
             }
 
             switch (this->currentContext) {
+              case Context::DRAW_AREA_BOUND:
+                this->boundingAreaTriangles = cx::earClipTriangulate(
+                  this->boundingArea);
+                break;
               case Context::DRAW_FLOOD_PRONE_AREA:
                 this->floodProneAreaEntities.push_back(entt::null);
                 this->floodProneAreaTextEntities.push_back(entt::null);

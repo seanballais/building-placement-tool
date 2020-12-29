@@ -13,6 +13,7 @@
 #include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/LineSegments.hpp>
 #include <corex/core/ds/NPolygon.hpp>
+#include <corex/core/ds/Polygon.hpp>
 #include <corex/core/events/KeyboardEvent.hpp>
 #include <corex/core/events/MouseButtonEvent.hpp>
 #include <corex/core/events/MouseMovementEvent.hpp>
@@ -84,12 +85,14 @@ namespace bpt
     corex::core::LineSegments wipBoundingArea;
     corex::core::LineSegments wipHazardArea;
     corex::core::NPolygon boundingArea;
+    eastl::vector<corex::core::Polygon<3>> boundingAreaTriangles;
     eastl::vector<corex::core::NPolygon> floodProneAreas;
     eastl::vector<corex::core::NPolygon> landslideProneAreas;
     entt::entity wipBoundingAreaEntity;
     entt::entity wipHazardAreaEntity;
     entt::entity boundingAreaEntity;
     entt::entity closeAreaTriggerEntity;
+    eastl::vector<entt::entity> boundingAreaTriangleEntities;
     eastl::vector<entt::entity> floodProneAreaEntities;
     eastl::vector<entt::entity> landslideProneAreaEntities;
     eastl::vector<InputBuilding> inputBuildings;
