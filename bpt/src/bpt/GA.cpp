@@ -583,7 +583,11 @@ namespace bpt
         solution.setBuildingYPos(i, buildingPos.y);
         solution.setBuildingRotation(i, buildingRotation);
       }
-    } while (!this->isSolutionFeasible(solution, boundingArea, inputBuildings));
+    } while (!this->doesSolutionHaveNoBuildingsOverlapping(solution,
+                                                          inputBuildings)
+             || !this->areSolutionBuildingsWithinBounds(solution,
+                                                        boundingArea,
+                                                        inputBuildings));
 
     return solution;
   }
@@ -788,7 +792,7 @@ namespace bpt
         + contactLine.start;
 
       const float lineWidthModifier = corex::core::generateRandomReal(
-        normalizedDistrib); 
+        normalizedDistrib);
 
       corex::core::Point dynamicBuddyPos{
         ((buddyMidptRelContactLine * lineWidthModifier)

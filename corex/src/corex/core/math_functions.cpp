@@ -3,11 +3,13 @@
 #include <cmath>
 #include <cstdlib>
 
+#include <EASTL/set.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
 #include <corex/core/ReturnState.hpp>
 #include <corex/core/ReturnValue.hpp>
+#include <corex/core/utils.hpp>
 #include <corex/core/ds/Line.hpp>
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/ds/Rectangle.hpp>
@@ -189,7 +191,7 @@ namespace corex::core
     return total;
   }
 
-  int32_t pyModInt32(int32_t x, int32_t divisor)
+  int32_t mod(int32_t x, int32_t divisor)
   {
     // From: https://stackoverflow.com/a/44197900/1116098
     return (divisor + (x % divisor)) % divisor;
@@ -253,6 +255,11 @@ namespace corex::core
   float lineLength(const Line& line)
   {
     return distance2D(line.start, line.end);
+  }
+
+  float lineSlope(const Line& line)
+  {
+    return (line.end.y - line.start.y) / (line.end.x - line.start.x);
   }
 
   Line longestLine(const eastl::vector<Line*> lines)
@@ -323,6 +330,12 @@ namespace corex::core
   float crossProduct(const Vec2& p, const Vec2& q)
   {
     return (p.x * p.y) - (p.y * q.x);
+  }
+
+  float angleBetweenTwoVectors(const Vec2& p, const Vec2& q)
+  {
+    return radiansToDegrees(
+      acos(dotProduct(p, q) / (vec2Magnitude(p) * vec2Magnitude(q))));
   }
 
   Vec2 rotateVec2(const Vec2& p, float angle)
@@ -651,14 +664,14 @@ namespace corex::core
         // Polygon is oriented counterclockwise when the origin is in the
         // center.
         currVertIndex = i;
-        nextVertIndex = corex::core::pyModInt32(currVertIndex + 1,
-                                                vertices.size());
+        nextVertIndex = corex::core::mod(currVertIndex + 1,
+                                         vertices.size());
       } else {
         // Polygon is oriented clockwise when the origin is in the
         // center.
         currVertIndex = vertices.size() - (i + 1);
-        nextVertIndex = corex::core::pyModInt32(currVertIndex - 1,
-                                                vertices.size());
+        nextVertIndex = corex::core::mod(currVertIndex - 1,
+                                         vertices.size());
       }
 
       centroidX += (vertices[currVertIndex].x + vertices[nextVertIndex].x)
@@ -702,6 +715,11 @@ namespace corex::core
     }
 
     return fabs(area) / 2.0;
+  }
+
+  int32_t getNumNPolygonSides(const NPolygon& polygon)
+  {
+    return polygon.vertices.size();
   }
 
   bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon)
@@ -789,5 +807,212 @@ namespace corex::core
     }
 
     return isPointWithinNPolygon(rectPoly.vertices[0], polygon);
+  }
+
+  eastl::vector<Polygon<3>> earClipTriangulate(NPolygon polygon)
+  {
+    // We are iterating through the vertices in a counterclockwise manner when
+    // the origin is on the bottom right.
+    eastl::vector<Polygon<3>> triangles;
+    auto& vertices = polygon.vertices;
+    int32_t numTriangles = vertices.size() - 2;
+
+    // It's triangulation time!
+    auto earVertexIndexes = findEarVertexIndexes(polygon);
+    auto convexVertexIndexes = findConvexVertexIndexes(polygon);
+    auto reflexVertexIndexes = findReflexVertexIndexes(polygon);
+    eastl::set<int32_t> earVertexIndexesSet(earVertexIndexes.begin(),
+                                            earVertexIndexes.end());
+    eastl::set<int32_t> convexVertexIndexesSet(convexVertexIndexes.begin(),
+                                               convexVertexIndexes.end());
+    eastl::set<int32_t> reflexVertexIndexesSet(reflexVertexIndexes.begin(),
+                                               reflexVertexIndexes.end());
+    while (triangles.size() < numTriangles) {
+      // Using ears from the back removes the need for us to the update the
+      // vertex indexes in the ear vertex indexes vector when deleting ears.
+      int32_t targetEarIndex = earVertexIndexes.back();
+
+      // Add triangle.
+      int32_t prevVertexIndex = mod(targetEarIndex - 1, vertices.size());
+      int32_t nextVertexIndex = mod(targetEarIndex + 1, vertices.size());
+
+      triangles.push_back({
+        {
+          vertices[targetEarIndex],
+          vertices[nextVertexIndex],
+          vertices[prevVertexIndex]
+        }
+      });
+
+      // Remove ear.
+      earVertexIndexes.pop_back();
+      earVertexIndexesSet.erase(targetEarIndex);
+      convexVertexIndexesSet.erase(targetEarIndex);
+      vertices.erase(vertices.begin() + targetEarIndex);
+
+      // Update status of adjacent vertices of newly-removed ear.
+      if (nextVertexIndex != 0) {
+        // The last vertex in the polygon is not an ear.
+        nextVertexIndex--;
+      }
+
+      eastl::array<int32_t, 2> adjacentIndexes = {
+        prevVertexIndex,
+        nextVertexIndex
+      };
+      for (int32_t idx : adjacentIndexes) {
+        if (isKeyInEASTLSet(earVertexIndexesSet, idx)) {
+          // Vertex is an ear. It might still be an ear or not. Check to
+          // confirm.
+          if (!isVertexAnEarInPolygon(idx, polygon)) {
+            // Oh, no. It's no longer an ear. No need to remove the vertex from
+            // the set of convex vertices though. Even though it is no longer an
+            // ear, a convex vertex will remain a convex.
+            // Yep, it's that loyal (unlike your ex).
+            earVertexIndexes.erase(earVertexIndexes.begin() + idx);
+            earVertexIndexesSet.erase(idx);
+          }
+        } else if (isKeyInEASTLSet(convexVertexIndexesSet, idx)) {
+          // Vertex is a convex but not an ear. It will still be convex, but
+          // let's check if it has turned into an ear.
+          if (isVertexAnEarInPolygon(idx, polygon)) {
+            // Let's make sure that we add duplicates to the data structures
+            // holding information about ear vertices.
+            if (!isKeyInEASTLSet(earVertexIndexesSet, idx)) {
+              earVertexIndexes.push_back(idx);
+              earVertexIndexesSet.insert(idx);
+            }
+          }
+        } else if (isKeyInEASTLSet(reflexVertexIndexesSet, idx)) {
+          // Vertex is a reflex. It might have turned into an ear or a convex.
+          // Check to confirm. Check first if the vertex has turned into a
+          // convex vertex.
+          int32_t prevVertIdx = mod(idx - 1, vertices.size());
+          int32_t nextVertIdx = mod(idx + 1, vertices.size());
+          float angle = angleBetweenTwoVectors(
+            lineToVec(Line{ vertices[idx], vertices[prevVertIdx] }),
+            lineToVec(Line{ vertices[idx], vertices[nextVertIdx] }));
+          if (floatLessThan(angle, 180)) {
+            // The vertex has become a convex vertex.
+            convexVertexIndexesSet.insert(idx);
+            reflexVertexIndexesSet.erase(idx);
+
+            // Let's check if it's an ear now.
+            if (isVertexAnEarInPolygon(idx, polygon)) {
+              // Let's make sure that we add duplicates to the data structures
+              // holding information about ear vertices.
+              if (!isKeyInEASTLSet(earVertexIndexesSet, idx)) {
+                earVertexIndexes.push_back(idx);
+                earVertexIndexesSet.insert(idx);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return triangles;
+  }
+
+  eastl::vector<int32_t> findEarVertexIndexes(const NPolygon& polygon)
+  {
+    eastl::vector<int32_t> earVertexIndexes;
+    auto& vertices = polygon.vertices;
+    auto convexVertexIndexes = findConvexVertexIndexes(polygon);
+    for (int32_t i = 0; i < convexVertexIndexes.size(); i++) {
+      int32_t currVertIndex = i;
+      int32_t prevVertIndex = mod(currVertIndex - 1, vertices.size());
+      int32_t nextVertIndex = mod(currVertIndex + 1, vertices.size());
+
+      auto triangle = NPolygon{
+        {
+          vertices[prevVertIndex],
+          vertices[currVertIndex],
+          vertices[nextVertIndex]
+        }
+      };
+
+      if (isVertexAnEarInPolygon(currVertIndex, polygon)) {
+        earVertexIndexes.push_back(i);
+      }
+    }
+
+    return earVertexIndexes;
+  }
+
+  eastl::vector<int32_t> findConvexVertexIndexes(const NPolygon& polygon)
+  {
+    eastl::vector<int32_t> convexVertexIndexes;
+    auto vertexInteriorAngles = computeVertexInteriorAngles(polygon);
+    for (int32_t i = 0; i < vertexInteriorAngles.size(); i++) {
+      if (floatLessThan(vertexInteriorAngles[i], 180)) {
+        convexVertexIndexes.push_back(i);
+      }
+    }
+
+    return convexVertexIndexes;
+  }
+
+  eastl::vector<int32_t> findReflexVertexIndexes(const NPolygon& polygon)
+  {
+    eastl::vector<int32_t> reflexVertexIndexes;
+    auto vertexInteriorAngles = computeVertexInteriorAngles(polygon);
+    for (int32_t i = 0; i < vertexInteriorAngles.size(); i++) {
+      if (floatGreEqual(vertexInteriorAngles[i], 180)) {
+        reflexVertexIndexes.push_back(i);
+      }
+    }
+
+    return reflexVertexIndexes;
+  }
+
+  eastl::vector<float> computeVertexInteriorAngles(const NPolygon& polygon)
+  {
+    // We are iterating through the vertices in a counterclockwise manner when
+    // the origin is on the bottom right.
+    eastl::vector<float> angles;
+    auto& vertices = polygon.vertices;
+
+    for (int32_t i = 0; i < vertices.size(); i++) {
+      int32_t currVertIndex = i;
+      int32_t prevVertIndex = mod(currVertIndex - 1, vertices.size());
+      int32_t nextVertIndex = mod(currVertIndex + 1, vertices.size());
+
+      Line pLine = Line{ vertices[currVertIndex], vertices[prevVertIndex] };
+      Line qLine = Line{ vertices[currVertIndex], vertices[nextVertIndex] };
+      Vec2&& p = lineToVec(pLine);
+      Vec2&& q = lineToVec(qLine);
+      angles.push_back(angleBetweenTwoVectors(p, q));
+    }
+
+    return angles;
+  }
+
+  bool isVertexAnEarInPolygon(const int32_t & vertexIndex,
+                              const NPolygon& polygon)
+  {
+    auto& vertices = polygon.vertices;
+    int32_t currVertIndex = vertexIndex;
+    int32_t prevVertIndex = mod(currVertIndex - 1, vertices.size());
+    int32_t nextVertIndex = mod(currVertIndex + 1, vertices.size());
+
+    auto triangle = NPolygon{
+      {
+        vertices[prevVertIndex],
+        vertices[currVertIndex],
+        vertices[nextVertIndex]
+      }
+    };
+
+    // Check if a vertex from the polygon is in the triangle.
+    for (int32_t j = mod(nextVertIndex + 1, vertices.size());
+         j != prevVertIndex;
+         j = mod(j + 1, vertices.size())) {
+      if (isPointWithinNPolygon(vertices[j], triangle)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

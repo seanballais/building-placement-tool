@@ -62,7 +62,7 @@ namespace corex::core
   bool isFloatInclusiveBetween(float a, float val, float b);
 
   int32_t factorial(int32_t n);
-  int32_t pyModInt32(int32_t x, int32_t divisor);
+  int32_t mod(int32_t x, int32_t divisor);
   int32_t pow(int32_t base, int32_t exponent);
   float pow(float base, int32_t exponent);
 
@@ -70,6 +70,7 @@ namespace corex::core
   float radiansToDegrees(float radians);
   float distance2D(const Point& start, const Point& end);
   float lineLength(const Line& line);
+  float lineSlope(const Line& line);
   Line longestLine(const eastl::vector<Line*> lines);
 
   float det3x3(const Vec2& v0, const Vec2& v1, const Vec2& v2);
@@ -77,6 +78,7 @@ namespace corex::core
   float vec2Angle(const Vec2& p);
   float dotProduct(const Vec2& p, const Vec2& q);
   float crossProduct(const Vec2& p, const Vec2& q);
+  float angleBetweenTwoVectors(const Vec2& p, const Vec2& q);
   Vec2 rotateVec2(const Vec2& p, float angle);
   Vec2 projectVec2(const Vec2& p, const Vec2& q);
   Vec2 vec2Perp(const Vec2& p);
@@ -127,10 +129,18 @@ namespace corex::core
                                       const Rectangle& clippingRect);
   Point getPolygonCentroid(const NPolygon& polygon);
   double getPolygonArea(const NPolygon& polygon);
+  int32_t getNumNPolygonSides(const NPolygon& polygon);
   bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon);
   bool isRectWithinNPolygon(const Rectangle& rect, const NPolygon& polygon);
   bool isRectIntersectingNPolygon(const Rectangle& rect,
                                   const NPolygon& polygon);
+  eastl::vector<Polygon<3>> earClipTriangulate(NPolygon polygon);
+  eastl::vector<int32_t> findEarVertexIndexes(const NPolygon& polygon);
+  eastl::vector<int32_t> findConvexVertexIndexes(const NPolygon& polygon);
+  eastl::vector<int32_t> findReflexVertexIndexes(const NPolygon& polygon);
+  eastl::vector<float> computeVertexInteriorAngles(const NPolygon& polygon);
+  bool isVertexAnEarInPolygon(const int32_t & vertexIndex,
+                              const NPolygon& polygon);
 
   template <uint32_t numVertices>
   eastl::array<Line, numVertices>

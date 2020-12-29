@@ -1221,7 +1221,7 @@ namespace bpt
 
     if (ImGui::Button("Previous Generation")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGen = corex::core::pyModInt32(
+        this->currSelectedGen = corex::core::mod(
           this->currSelectedGen - 1,
           this->solutions.size());
         this->hasSolutionBeenSetup = false;
@@ -1232,7 +1232,7 @@ namespace bpt
 
     if (ImGui::Button("Next Generation")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGen = corex::core::pyModInt32(
+        this->currSelectedGen = corex::core::mod(
           this->currSelectedGen + 1,
           this->solutions.size());
         this->hasSolutionBeenSetup = false;
@@ -1243,7 +1243,7 @@ namespace bpt
 
     if (ImGui::Button("Previous Solution")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGenSolution = corex::core::pyModInt32(
+        this->currSelectedGenSolution = corex::core::mod(
           this->currSelectedGenSolution - 1,
           this->solutions[currSelectedGen].size());
         this->hasSolutionBeenSetup = false;
@@ -1254,7 +1254,7 @@ namespace bpt
 
     if (ImGui::Button("Next Solution")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGenSolution = corex::core::pyModInt32(
+        this->currSelectedGenSolution = corex::core::mod(
           this->currSelectedGenSolution + 1,
           this->solutions[currSelectedGen].size());
         this->hasSolutionBeenSetup = false;
@@ -1332,7 +1332,7 @@ namespace bpt
 
       const float timePerGeneration = 0.15f / this->gaTimelinePlaybackSpeed;
       if (corex::core::floatGreEqual(timeElapsed, timePerGeneration)) {
-        this->currSelectedGen = corex::core::pyModInt32(
+        this->currSelectedGen = corex::core::mod(
           this->currSelectedGen + 1,
           this->solutions.size());
         this->hasSolutionBeenSetup = false;

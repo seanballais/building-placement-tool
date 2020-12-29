@@ -6,6 +6,7 @@
 #include <string>
 #include <random>
 
+#include <EASTL/set.h>
 #include <EASTL/string.h>
 #include <nlohmann/json.hpp>
 #include <pcg_random.hpp>
@@ -33,6 +34,13 @@ namespace corex::core
 
   std::string eaStrToStdStr(const eastl::string& str);
   eastl::string stdStrToEAStr(const std::string& str);
+
+  template <class K, class Compare, class Allocator>
+  bool isKeyInEASTLSet(eastl::set<K, Compare, Allocator> s, K key)
+  {
+    auto search = s.find(key);
+    return search != s.end();
+  }
 
   template <class T>
   T generateRandomInt(std::uniform_int_distribution<T> distribution)
