@@ -54,4 +54,14 @@ namespace corex::core
   {
     return Vec2{ setDecPlaces(p.x / a, 6), setDecPlaces(p.y / a, 6) };
   }
+
+  bool operator==(const Vec2& p, const Vec2& q)
+  {
+    return floatEquals(p.x, q.x) && floatEquals(p.y, q.x);
+  }
+
+  bool operator!=(const Vec2& p, const Vec2& q)
+  {
+    return !(p == q);
+  }
 }

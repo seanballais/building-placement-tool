@@ -35,8 +35,12 @@ namespace corex::core
   std::string eaStrToStdStr(const eastl::string& str);
   eastl::string stdStrToEAStr(const std::string& str);
 
-  template <class K, class Compare, class Allocator>
-  bool isKeyInEASTLSet(eastl::set<K, Compare, Allocator> s, K key)
+  template <
+    template<class, class, class> class S,
+    class K,
+    class Compare,
+    class Allocator
+  > bool isKeyInSet(S<K, Compare, Allocator> s, K key)
   {
     auto search = s.find(key);
     return search != s.end();

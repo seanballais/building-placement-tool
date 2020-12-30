@@ -329,7 +329,7 @@ namespace corex::core
 
   float crossProduct(const Vec2& p, const Vec2& q)
   {
-    return (p.x * p.y) - (p.y * q.x);
+    return (p.x * q.y) - (p.y * q.x);
   }
 
   float angleBetweenTwoVectors(const Vec2& p, const Vec2& q)
@@ -811,6 +811,7 @@ namespace corex::core
 
   eastl::vector<Polygon<3>> earClipTriangulate(NPolygon polygon)
   {
+    // TODO: Tweak this triangulation method.
     // We are iterating through the vertices in a counterclockwise manner when
     // the origin is on the bottom right.
     eastl::vector<Polygon<3>> triangles;
@@ -818,16 +819,44 @@ namespace corex::core
     int32_t numTriangles = vertices.size() - 2;
 
     // It's triangulation time!
+    auto vertexAngles = computePolygonInteriorAngles(polygon);
     auto earVertexIndexes = findEarVertexIndexes(polygon);
-    auto convexVertexIndexes = findConvexVertexIndexes(polygon);
-    auto reflexVertexIndexes = findReflexVertexIndexes(polygon);
+    const auto convexVertexIndexes = findConvexVertexIndexes(polygon);
+    const auto reflexVertexIndexes = findReflexVertexIndexes(polygon);
     eastl::set<int32_t> earVertexIndexesSet(earVertexIndexes.begin(),
                                             earVertexIndexes.end());
     eastl::set<int32_t> convexVertexIndexesSet(convexVertexIndexes.begin(),
                                                convexVertexIndexes.end());
     eastl::set<int32_t> reflexVertexIndexesSet(reflexVertexIndexes.begin(),
                                                reflexVertexIndexes.end());
-    while (triangles.size() < numTriangles) {
+
+    while (true) {
+      std::cout << "---" << std::endl;
+      std::cout << "Polygon Vertices" << std::endl;
+      for (auto& v : vertices) {
+        std::cout << "(" << v.x << ", " << v.y << ")" << std::endl;
+      }
+
+      std::cout << "Interior Angles" << std::endl;
+      for (auto& theta : vertexAngles) {
+        std::cout << theta << "°" << std::endl;
+      }
+
+      std::cout << "Ear Vertices" << std::endl;
+      for (auto& i : earVertexIndexes) {
+        std::cout << "Idx: " << i << " (" << vertices[i].x << ", " << vertices[i].y << ")\n";
+      }
+
+      std::cout << "Convex Vertices" << std::endl;
+      for (auto& i : convexVertexIndexesSet) {
+        std::cout << "Idx: " << i << " (" << vertices[i].x << ", " << vertices[i].y << ")\n";
+      }
+
+      std::cout << "Reflex Vertices" << std::endl;
+      for (auto& i : reflexVertexIndexesSet) {
+        std::cout << "Idx: " << i << " (" << vertices[i].x << ", " << vertices[i].y << ")\n";
+      }
+
       // Using ears from the back removes the need for us to the update the
       // vertex indexes in the ear vertex indexes vector when deleting ears.
       int32_t targetEarIndex = earVertexIndexes.back();
@@ -850,18 +879,53 @@ namespace corex::core
       convexVertexIndexesSet.erase(targetEarIndex);
       vertices.erase(vertices.begin() + targetEarIndex);
 
-      // Update status of adjacent vertices of newly-removed ear.
+      if (triangles.size() == numTriangles) {
+        break;
+      }
+
+      // Update the indexes of the vertices succeeding the newly-removed ear, if
+      // the ear is not the last vertex of the polygon, because the vertex
+      // indexes will remain the same post-removal if it is so.
       if (nextVertexIndex != 0) {
-        // The last vertex in the polygon is not an ear.
+        for (int32_t i = nextVertexIndex; i < vertices.size(); i++) {
+          if (isKeyInSet(reflexVertexIndexesSet, i)) {
+            reflexVertexIndexesSet.erase(i);
+            reflexVertexIndexesSet.insert(i - 1);
+          } else if (isKeyInSet(convexVertexIndexesSet, i)) {
+            convexVertexIndexesSet.erase(i);
+            convexVertexIndexesSet.insert(i - 1);
+
+            // NOTE: An ear is always a convex, but a convex vertex is not always
+            //       an ear.
+            if (isKeyInSet(earVertexIndexesSet, i)) {
+              earVertexIndexesSet.erase(i);
+              earVertexIndexesSet.insert(i - 1);
+
+              auto iter = eastl::find(earVertexIndexes.begin(),
+                                      earVertexIndexes.end(),
+                                      i);
+              if (iter != earVertexIndexes.end()) {
+                (*iter)--;
+              }
+            }
+          }
+        }
+
         nextVertexIndex--;
       }
 
+      // Update vertex angles.
+      // TODO: Optimize this so that only the angles of the vertices adjacent
+      //       to the newly-removed ear vertex are recomputed.
+      vertexAngles = computePolygonInteriorAngles(polygon);
+
+      // Update status of adjacent vertices of newly-removed ear.
       eastl::array<int32_t, 2> adjacentIndexes = {
         prevVertexIndex,
         nextVertexIndex
       };
       for (int32_t idx : adjacentIndexes) {
-        if (isKeyInEASTLSet(earVertexIndexesSet, idx)) {
+        if (isKeyInSet(earVertexIndexesSet, idx)) {
           // Vertex is an ear. It might still be an ear or not. Check to
           // confirm.
           if (!isVertexAnEarInPolygon(idx, polygon)) {
@@ -869,39 +933,40 @@ namespace corex::core
             // the set of convex vertices though. Even though it is no longer an
             // ear, a convex vertex will remain a convex.
             // Yep, it's that loyal (unlike your ex).
-            earVertexIndexes.erase(earVertexIndexes.begin() + idx);
+
             earVertexIndexesSet.erase(idx);
+            auto iter = eastl::find(earVertexIndexes.begin(),
+                                    earVertexIndexes.end(),
+                                    idx);
+            if (iter != earVertexIndexes.end()) {
+              earVertexIndexes.erase(iter);
+            }
           }
-        } else if (isKeyInEASTLSet(convexVertexIndexesSet, idx)) {
+        } else if (isKeyInSet(convexVertexIndexesSet, idx)) {
           // Vertex is a convex but not an ear. It will still be convex, but
           // let's check if it has turned into an ear.
           if (isVertexAnEarInPolygon(idx, polygon)) {
-            // Let's make sure that we add duplicates to the data structures
-            // holding information about ear vertices.
-            if (!isKeyInEASTLSet(earVertexIndexesSet, idx)) {
+            // Let's make sure that we do not add duplicates to the data
+            // structures holding information about ear vertices.
+            if (!isKeyInSet(earVertexIndexesSet, idx)) {
               earVertexIndexes.push_back(idx);
               earVertexIndexesSet.insert(idx);
             }
           }
-        } else if (isKeyInEASTLSet(reflexVertexIndexesSet, idx)) {
+        } else if (isKeyInSet(reflexVertexIndexesSet, idx)) {
           // Vertex is a reflex. It might have turned into an ear or a convex.
           // Check to confirm. Check first if the vertex has turned into a
           // convex vertex.
-          int32_t prevVertIdx = mod(idx - 1, vertices.size());
-          int32_t nextVertIdx = mod(idx + 1, vertices.size());
-          float angle = angleBetweenTwoVectors(
-            lineToVec(Line{ vertices[idx], vertices[prevVertIdx] }),
-            lineToVec(Line{ vertices[idx], vertices[nextVertIdx] }));
-          if (floatLessThan(angle, 180)) {
+          if (floatLessThan(vertexAngles[idx], 180)) {
             // The vertex has become a convex vertex.
-            convexVertexIndexesSet.insert(idx);
             reflexVertexIndexesSet.erase(idx);
+            convexVertexIndexesSet.insert(idx);
 
             // Let's check if it's an ear now.
             if (isVertexAnEarInPolygon(idx, polygon)) {
-              // Let's make sure that we add duplicates to the data structures
-              // holding information about ear vertices.
-              if (!isKeyInEASTLSet(earVertexIndexesSet, idx)) {
+              // Let's make sure that we do not add duplicates to the data
+              // structures holding information about ear vertices.
+              if (!isKeyInSet(earVertexIndexesSet, idx)) {
                 earVertexIndexes.push_back(idx);
                 earVertexIndexesSet.insert(idx);
               }
@@ -919,21 +984,9 @@ namespace corex::core
     eastl::vector<int32_t> earVertexIndexes;
     auto& vertices = polygon.vertices;
     auto convexVertexIndexes = findConvexVertexIndexes(polygon);
-    for (int32_t i = 0; i < convexVertexIndexes.size(); i++) {
-      int32_t currVertIndex = i;
-      int32_t prevVertIndex = mod(currVertIndex - 1, vertices.size());
-      int32_t nextVertIndex = mod(currVertIndex + 1, vertices.size());
-
-      auto triangle = NPolygon{
-        {
-          vertices[prevVertIndex],
-          vertices[currVertIndex],
-          vertices[nextVertIndex]
-        }
-      };
-
+    for (int32_t& currVertIndex : convexVertexIndexes) {
       if (isVertexAnEarInPolygon(currVertIndex, polygon)) {
-        earVertexIndexes.push_back(i);
+        earVertexIndexes.push_back(currVertIndex);
       }
     }
 
@@ -943,7 +996,7 @@ namespace corex::core
   eastl::vector<int32_t> findConvexVertexIndexes(const NPolygon& polygon)
   {
     eastl::vector<int32_t> convexVertexIndexes;
-    auto vertexInteriorAngles = computeVertexInteriorAngles(polygon);
+    auto vertexInteriorAngles = computePolygonInteriorAngles(polygon);
     for (int32_t i = 0; i < vertexInteriorAngles.size(); i++) {
       if (floatLessThan(vertexInteriorAngles[i], 180)) {
         convexVertexIndexes.push_back(i);
@@ -956,7 +1009,7 @@ namespace corex::core
   eastl::vector<int32_t> findReflexVertexIndexes(const NPolygon& polygon)
   {
     eastl::vector<int32_t> reflexVertexIndexes;
-    auto vertexInteriorAngles = computeVertexInteriorAngles(polygon);
+    auto vertexInteriorAngles = computePolygonInteriorAngles(polygon);
     for (int32_t i = 0; i < vertexInteriorAngles.size(); i++) {
       if (floatGreEqual(vertexInteriorAngles[i], 180)) {
         reflexVertexIndexes.push_back(i);
@@ -966,23 +1019,62 @@ namespace corex::core
     return reflexVertexIndexes;
   }
 
-  eastl::vector<float> computeVertexInteriorAngles(const NPolygon& polygon)
+  eastl::vector<float> computePolygonInteriorAngles(const NPolygon& polygon)
   {
     // We are iterating through the vertices in a counterclockwise manner when
     // the origin is on the bottom right.
-    eastl::vector<float> angles;
     auto& vertices = polygon.vertices;
+    eastl::vector<float> angles(vertices.size());
 
+    // Find three vertices that is representative of the polygon's convex hull.
+    // Refer to: https://en.wikipedia.org/wiki/
+    //                   Curve_orientation#Practical_considerations
+    auto chVertexIter = std::min_element(
+      vertices.begin(),
+      vertices.end(),
+      [](const Point& a, const Point& b) -> bool {
+        return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+      }
+    );
+    int32_t chVertexIndex = chVertexIter - vertices.begin();
+    int32_t prevCHVertexIndex = mod(chVertexIndex - 1, vertices.size());
+    int32_t nextCHVertexIndex = mod(chVertexIndex + 1, vertices.size());
+
+    float determinant = det3x3(vertices[prevCHVertexIndex],
+                               vertices[chVertexIndex],
+                               vertices[nextCHVertexIndex]);
     for (int32_t i = 0; i < vertices.size(); i++) {
-      int32_t currVertIndex = i;
-      int32_t prevVertIndex = mod(currVertIndex - 1, vertices.size());
-      int32_t nextVertIndex = mod(currVertIndex + 1, vertices.size());
+      // Ensure that we are iterating through the polygon counterclockwise.
+      int32_t currVertIndex = 0;
+      int32_t prevVertIndex = 0;
+      int32_t nextVertIndex = 0;
+      if (floatGreEqual(determinant, 0.f)) {
+        // Polygon is oriented counterclockwise when the origin is in the
+        // center.
+        currVertIndex = i;
+        prevVertIndex = mod(currVertIndex - 1, vertices.size());
+        nextVertIndex = mod(currVertIndex + 1, vertices.size());
+      } else {
+        // Polygon is oriented clockwise when the origin is in the
+        // center.
+        currVertIndex = vertices.size() - (i + 1);
+        prevVertIndex = mod(currVertIndex + 1, vertices.size());
+        nextVertIndex = mod(currVertIndex - 1, vertices.size());
+      }
 
-      Line pLine = Line{ vertices[currVertIndex], vertices[prevVertIndex] };
-      Line qLine = Line{ vertices[currVertIndex], vertices[nextVertIndex] };
-      Vec2&& p = lineToVec(pLine);
-      Vec2&& q = lineToVec(qLine);
-      angles.push_back(angleBetweenTwoVectors(p, q));
+      Vec2 p;
+      Vec2 q;
+      p = lineToVec(Line{ vertices[currVertIndex], vertices[prevVertIndex] });
+      q = lineToVec(Line{ vertices[currVertIndex], vertices[nextVertIndex] });
+      float angle = angleBetweenTwoVectors(p, q);
+
+      if (floatGreater(crossProduct(p, q), 0)) {
+        // The angle we calculated is actually the exterior angle. Adjust angle
+        // to get the interior angle.
+        angle = 360.f - angle;
+      }
+
+      angles[currVertIndex] = angle;
     }
 
     return angles;

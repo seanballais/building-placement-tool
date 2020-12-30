@@ -138,7 +138,7 @@ namespace corex::core
   eastl::vector<int32_t> findEarVertexIndexes(const NPolygon& polygon);
   eastl::vector<int32_t> findConvexVertexIndexes(const NPolygon& polygon);
   eastl::vector<int32_t> findReflexVertexIndexes(const NPolygon& polygon);
-  eastl::vector<float> computeVertexInteriorAngles(const NPolygon& polygon);
+  eastl::vector<float> computePolygonInteriorAngles(const NPolygon& polygon);
   bool isVertexAnEarInPolygon(const int32_t & vertexIndex,
                               const NPolygon& polygon);
 

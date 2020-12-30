@@ -349,7 +349,7 @@ namespace bpt
             this->boundingAreaEntity,
             0.f,
             0.f,
-            1.f,
+            3.f,
             static_cast<int8_t>(2));
           this->registry.emplace<corex::core::Renderable>(
             this->boundingAreaEntity,
@@ -365,7 +365,7 @@ namespace bpt
             this->registry.emplace<cx::Position>(triangleEntity,
                                                  0.f,
                                                  0.f,
-                                                 1.f,
+                                                 2.f,
                                                  static_cast<int8_t>(2));
             this->registry.emplace<cx::Renderable>(
               triangleEntity,
@@ -373,7 +373,7 @@ namespace bpt
             this->registry.emplace<cx::RenderPolygon>(
               triangleEntity,
               eastl::vector<corex::core::Point>{},
-              SDL_Color{ 64, 64, 64, 255 },
+              SDL_Color{ 255, 0, 0, 255 },
               false);
 
             this->boundingAreaTriangleEntities.push_back(triangleEntity);

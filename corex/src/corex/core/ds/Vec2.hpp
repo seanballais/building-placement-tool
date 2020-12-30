@@ -23,6 +23,8 @@ namespace corex::core
   Vec2 operator*(const float& a, const Vec2& p);
   Vec2 operator/(const Vec2& p, const int32_t& a);
   Vec2 operator/(const Vec2& p, const float& a);
+  bool operator==(const Vec2& p, const Vec2& q);
+  bool operator!=(const Vec2& p, const Vec2& q);
 }
 
 #endif
