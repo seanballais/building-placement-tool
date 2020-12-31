@@ -51,28 +51,21 @@ namespace bpt
     assert(flowRates.size() == inputBuildings.size());
 
     eastl::vector<eastl::vector<Solution>> solutions;
-    eastl::vector<Solution> population(populationSize);
 
     this->recentRunAvgFitnesses.clear();
     this->recentRunBestFitnesses.clear();
     this->recentRunWorstFitnesses.clear();
 
-    std::cout << "|| Generating Initial Population..." << std::endl;
-    for (int32_t i = 0; i < populationSize; i++) {
-      std::cout << "Generating solution #" << i << "..." << std::endl;
-      population[i] = this->generateRandomSolution(inputBuildings,
-                                                   boundingArea);
-      population[i].setFitness(
-        this->getSolutionFitness(
-          population[i],
-          inputBuildings,
-          flowRates,
-          floodProneAreas,
-          landslideProneAreas,
-          floodProneAreaPenalty,
-          landslideProneAreaPenalty,
-          buildingDistanceWeight));
-    }
+    eastl::vector<Solution> population(populationSize);
+    population = this->generateInitialPopulation(populationSize,
+                                                 inputBuildings,
+                                                 boundingArea,
+                                                 flowRates,
+                                                 floodProneAreas,
+                                                 landslideProneAreas,
+                                                 floodProneAreaPenalty,
+                                                 landslideProneAreaPenalty,
+                                                 buildingDistanceWeight);
 
     // Add the initial population.
     solutions.push_back(population);
@@ -291,6 +284,49 @@ namespace bpt
   eastl::vector<float> GA::getRecentRunWorstFitnesses()
   {
     return this->recentRunWorstFitnesses;
+  }
+
+  eastl::vector<Solution>
+  GA::generateInitialPopulation(
+    const int32_t populationSize,
+    const eastl::vector<InputBuilding> &inputBuildings,
+    const corex::core::NPolygon &boundingArea,
+    const eastl::vector<eastl::vector<float>> &flowRates,
+    const eastl::vector<corex::core::NPolygon> &floodProneAreas,
+    const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight)
+  {
+    auto boundingAreaTriangles = cx::earClipTriangulate(boundingArea);
+    eastl::vector<float> triangleAreas(boundingAreaTriangles.size());
+    std::cout << "Triangle Areas\n";
+    for (int32_t i = 0; i < boundingAreaTriangles.size(); i++) {
+      triangleAreas[i] = cx::getPolygonArea(boundingAreaTriangles[i]);
+      std::cout << triangleAreas[i] << "\n";
+    }
+
+    eastl::vector<Solution> population(populationSize);
+    std::cout << "|| Generating Initial Population..." << std::endl;
+    for (int32_t i = 0; i < populationSize; i++) {
+      std::cout << "Generating solution #" << i << "..." << std::endl;
+      population[i] = this->generateRandomSolution(inputBuildings,
+                                                   boundingArea,
+                                                   boundingAreaTriangles,
+                                                   triangleAreas);
+      population[i].setFitness(
+        this->getSolutionFitness(
+          population[i],
+          inputBuildings,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
+    }
+
+    return population;
   }
 
   eastl::array<Solution, 2> GA::selectParents(
@@ -522,7 +558,9 @@ namespace bpt
   Solution
   GA::generateRandomSolution(
     const eastl::vector<InputBuilding>& inputBuildings,
-    const corex::core::NPolygon& boundingArea)
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<cx::Polygon<3>>& boundingAreaTriangles,
+    const eastl::vector<float>& triangleAreas)
   {
     float minX = std::min_element(
       boundingArea.vertices.begin(),
@@ -553,8 +591,6 @@ namespace bpt
       }
     )->y;
 
-    std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
-    std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
@@ -570,8 +606,13 @@ namespace bpt
           buildingRotation
         };
         do {
-          buildingPos.x = corex::core::generateRandomReal(xPosDistribution);
-          buildingPos.y = corex::core::generateRandomReal(yPosDistribution);
+          const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
+            boundingAreaTriangles,
+            triangleAreas);
+          cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
+
+          buildingPos.x = newBuildingPos.x;
+          buildingPos.y = newBuildingPos.y;
           buildingRotation = corex::core::generateRandomReal(
             rotationDistribution);
           buildingRect.x = buildingPos.x;

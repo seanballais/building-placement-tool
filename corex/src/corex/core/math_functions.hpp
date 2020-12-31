@@ -1,15 +1,19 @@
 #ifndef COREX_CORE_MATH_FUNCTIONS_HPP
 #define COREX_CORE_MATH_FUNCTIONS_HPP
 
+#include <cassert>
 #include <cstdlib>
 #include <limits>
+#include <type_traits>
 
+#include <EASTL/algorithm.h>
 #include <EASTL/array.h>
 #include <EASTL/vector.h>
 #include <EASTL/utility.h>
 #include <SDL_gpu.h>
 
 #include <corex/core/ReturnValue.hpp>
+#include <corex/core/utils.hpp>
 #include <corex/core/ds/Line.hpp>
 #include <corex/core/ds/NPolygon.hpp>
 #include <corex/core/ds/Point.hpp>
@@ -127,8 +131,8 @@ namespace corex::core
   bool areTwoLinesIntersecting(const Line& line0, const Line& line1);
   NPolygon clippedPolygonFromTwoRects(const Rectangle& targetRect,
                                       const Rectangle& clippingRect);
+  Point getRandomPointInTriangle(const Polygon<3>& triangle);
   Point getPolygonCentroid(const NPolygon& polygon);
-  double getPolygonArea(const NPolygon& polygon);
   int32_t getNumNPolygonSides(const NPolygon& polygon);
   bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon);
   bool isRectWithinNPolygon(const Rectangle& rect, const NPolygon& polygon);
@@ -141,6 +145,63 @@ namespace corex::core
   eastl::vector<float> computePolygonInteriorAngles(const NPolygon& polygon);
   bool isVertexAnEarInPolygon(const int32_t & vertexIndex,
                               const NPolygon& polygon);
+
+  template <class P>
+  eastl::array<Point, 3> findConvexHull(const P& polygon)
+  {
+    // Find three vertices that is representative of the polygon's convex hull.
+    // Refer to: https://en.wikipedia.org/wiki/
+    //                   Curve_orientation#Practical_considerations
+    auto& vertices = polygon.vertices;
+    auto chVertexIter = eastl::min_element(
+      vertices.begin(),
+      vertices.end(),
+      [](const Point& a, const Point& b) -> bool {
+        return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+      }
+    );
+    int32_t chVertexIndex = chVertexIter - vertices.begin();
+    int32_t prevCHVertexIndex = mod(chVertexIndex - 1, vertices.size());
+    int32_t nextCHVertexIndex = mod(chVertexIndex + 1, vertices.size());
+
+    return {
+      vertices[prevCHVertexIndex],
+      vertices[chVertexIndex],
+      vertices[nextCHVertexIndex]
+    };
+  }
+
+  template <class P>
+  double getPolygonArea(const P& polygon)
+  {
+    // Let's use the Shoelace algorithm.
+    double area = 0.f;
+    auto& vertices = polygon.vertices;
+    auto convexHull = findConvexHull(polygon);
+    float determinant = det3x3(convexHull[0], convexHull[1], convexHull[2]);
+    for (int32_t i = 0; i < polygon.vertices.size(); i++) {
+      int32_t currVertIndex = 0;
+      int32_t nextVertIndex = 0;
+      if (floatGreEqual(determinant, 0.f)) {
+        // Polygon is oriented counterclockwise when the origin is in the
+        // center.
+        currVertIndex = i;
+        nextVertIndex = mod(currVertIndex + 1, vertices.size());
+      } else {
+        // Polygon is oriented clockwise when the origin is in the
+        // center.
+        currVertIndex = vertices.size() - (i + 1);
+        nextVertIndex = mod(currVertIndex - 1, vertices.size());
+      }
+      area +=
+        (static_cast<double>(vertices[currVertIndex].x)
+         * static_cast<double>(vertices[nextVertIndex].y))
+        - (static_cast<double>(vertices[nextVertIndex].x)
+           * static_cast<double>(vertices[currVertIndex].y));
+    }
+
+    return fabs(area) / 2.0;
+  }
 
   template <uint32_t numVertices>
   eastl::array<Line, numVertices>
@@ -166,6 +227,46 @@ namespace corex::core
     }
 
     return nPolygon;
+  }
+
+  template <
+    template<class, class> class V, class T, class VAllocator,
+    template<class, class> class W, class U, class WAllocator
+  > const T& selectRandomItemWithWeights(
+      const V<T, VAllocator>& items,
+      const W<U, WAllocator>& weights) = delete;
+
+  // We should not allow rvalues for the items parameter, because we're
+  // returning a reference to an item there.
+  template <
+    template<class, class> class V, class T, class VAllocator,
+    template<class, class> class W, class U, class WAllocator
+  > const T& selectRandomItemWithWeights(
+      const V<T, VAllocator>&& items,
+      const W<U, WAllocator>& weights) = delete;
+
+  template <
+    template<class, class> class V, class T, class VAllocator,
+    template<class, class> class W, class WAllocator
+  > const T& selectRandomItemWithWeights(const V<T, VAllocator>& items,
+                                         const W<float, WAllocator>& weights)
+  {
+    // Algorithm based on:
+    //   https://softwareengineering.stackexchange.com/a/150618/208923
+    float weightSum = std::accumulate(weights.begin(), weights.end(), 0);
+    std::uniform_real_distribution nDistrib{ 0.f, weightSum };
+    float n = generateRandomReal(nDistrib);
+    int32_t currIntervalVal = 0;
+    int32_t selectedItemIndex = 0;
+    for (int32_t i = 0; i < weights.size(); i++) {
+      currIntervalVal += weights[i];
+      if (floatGreEqual(currIntervalVal, n)) {
+        selectedItemIndex = i;
+        break;
+      }
+    }
+
+    return items[selectedItemIndex];
   }
 }
 

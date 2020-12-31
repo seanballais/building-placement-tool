@@ -47,6 +47,16 @@ namespace bpt
     eastl::vector<float> getRecentRunBestFitnesses();
     eastl::vector<float> getRecentRunWorstFitnesses();
   private:
+    eastl::vector<Solution> generateInitialPopulation(
+      const int32_t populationSize,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<eastl::vector<float>>& flowRates,
+      const eastl::vector<corex::core::NPolygon>& floodProneAreas,
+      const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
+      const float floodProneAreaPenalty,
+      const float landslideProneAreaPenalty,
+      const float buildingDistanceWeight);
     eastl::array<Solution, 2> selectParents(
       const eastl::vector<Solution>& population,
       const int32_t& tournamentSize,
@@ -72,8 +82,11 @@ namespace bpt
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight);
     Solution
-    generateRandomSolution(const eastl::vector<InputBuilding>& inputBuildings,
-                           const corex::core::NPolygon& boundingArea);
+    generateRandomSolution(
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<corex::core::Polygon<3>>& boundingAreaTriangles,
+      const eastl::vector<float>& triangleAreas);
     eastl::array<Solution, 2>
     crossoverSolutions(const Solution& solutionA,
                        const Solution& solutionB,

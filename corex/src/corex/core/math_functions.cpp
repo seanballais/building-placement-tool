@@ -637,6 +637,29 @@ namespace corex::core
     return NPolygon{ clippedPolyVerts };
   }
 
+  Point getRandomPointInTriangle(const Polygon<3>& triangle)
+  {
+    // Algorithm based on the algorithm in:
+    //   https://blogs.sas.com
+    //          /content/iml/2020/10/19/random-points-in-triangle.html
+    const Point p0 = triangle.vertices[0];
+    const Point p1 = triangle.vertices[1];
+    const Point p2 = triangle.vertices[2];
+
+    Vec2 a = p1 - p0;
+    Vec2 b = p2 - p0;
+
+    std::uniform_real_distribution<float> normalizedDistrib{ 0.f, 1.f };
+    float u0 = generateRandomReal(normalizedDistrib);
+    float u1 = generateRandomReal(normalizedDistrib);
+    if (floatGreater(u0 + u1, 1.f)) {
+      u0 = 1 - u0;
+      u1 = 1 - u1;
+    }
+
+    return ((u0 * a) + (u1 * b)) + p0;
+  }
+
   Point getPolygonCentroid(const NPolygon& polygon)
   {
     // From "Calculating the area and centroid of a polygon" by Paul Bourke.
@@ -690,31 +713,6 @@ namespace corex::core
       static_cast<float>(centroidX),
       static_cast<float>(centroidY)
     };
-  }
-
-  double getPolygonArea(const NPolygon& polygon)
-  {
-    // Let's use the Shoelace algorithm.
-    double area = 0.f;
-    auto& vertices = polygon.vertices;
-    for (int32_t i = 0; i < polygon.vertices.size(); i++) {
-      // Our polygon vertices, whose container list is accessed from left to
-      // right, are arranged in a clockwise manner in a coordinate system where
-      // the origin is on the top left corner, like what we are using. However
-      // when using an origin that is situated on the bottom left corner, the
-      // polygon will be arranged in a counterclockwise manner. The Shoelace
-      // Algorithm assumes that the origin is anchored on the bottom right
-      // corner. As such, we can simply iterate through the list of vertices
-      // from left to right.
-      int32_t nextIndex = (i + 1) % polygon.vertices.size();
-      area += 
-        (static_cast<double>(vertices[i].x)
-         * static_cast<double>(vertices[nextIndex].y))
-        - (static_cast<double>(vertices[nextIndex].x)
-           * static_cast<double>(vertices[i].y));
-    }
-
-    return fabs(area) / 2.0;
   }
 
   int32_t getNumNPolygonSides(const NPolygon& polygon)
@@ -831,32 +829,6 @@ namespace corex::core
                                                reflexVertexIndexes.end());
 
     while (true) {
-      std::cout << "---" << std::endl;
-      std::cout << "Polygon Vertices" << std::endl;
-      for (auto& v : vertices) {
-        std::cout << "(" << v.x << ", " << v.y << ")" << std::endl;
-      }
-
-      std::cout << "Interior Angles" << std::endl;
-      for (auto& theta : vertexAngles) {
-        std::cout << theta << "°" << std::endl;
-      }
-
-      std::cout << "Ear Vertices" << std::endl;
-      for (auto& i : earVertexIndexes) {
-        std::cout << "Idx: " << i << " (" << vertices[i].x << ", " << vertices[i].y << ")\n";
-      }
-
-      std::cout << "Convex Vertices" << std::endl;
-      for (auto& i : convexVertexIndexesSet) {
-        std::cout << "Idx: " << i << " (" << vertices[i].x << ", " << vertices[i].y << ")\n";
-      }
-
-      std::cout << "Reflex Vertices" << std::endl;
-      for (auto& i : reflexVertexIndexesSet) {
-        std::cout << "Idx: " << i << " (" << vertices[i].x << ", " << vertices[i].y << ")\n";
-      }
-
       // Using ears from the back removes the need for us to the update the
       // vertex indexes in the ear vertex indexes vector when deleting ears.
       int32_t targetEarIndex = earVertexIndexes.back();
@@ -1026,23 +998,8 @@ namespace corex::core
     auto& vertices = polygon.vertices;
     eastl::vector<float> angles(vertices.size());
 
-    // Find three vertices that is representative of the polygon's convex hull.
-    // Refer to: https://en.wikipedia.org/wiki/
-    //                   Curve_orientation#Practical_considerations
-    auto chVertexIter = std::min_element(
-      vertices.begin(),
-      vertices.end(),
-      [](const Point& a, const Point& b) -> bool {
-        return (a.x < b.x) || (a.x == b.x && a.y < b.y);
-      }
-    );
-    int32_t chVertexIndex = chVertexIter - vertices.begin();
-    int32_t prevCHVertexIndex = mod(chVertexIndex - 1, vertices.size());
-    int32_t nextCHVertexIndex = mod(chVertexIndex + 1, vertices.size());
-
-    float determinant = det3x3(vertices[prevCHVertexIndex],
-                               vertices[chVertexIndex],
-                               vertices[nextCHVertexIndex]);
+    auto convexHull = findConvexHull(polygon);
+    float determinant = det3x3(convexHull[0], convexHull[1], convexHull[2]);
     for (int32_t i = 0; i < vertices.size(); i++) {
       // Ensure that we are iterating through the polygon counterclockwise.
       int32_t currVertIndex = 0;
