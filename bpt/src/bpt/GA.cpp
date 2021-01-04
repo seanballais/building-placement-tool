@@ -618,21 +618,14 @@ namespace bpt
           buildingRect.x = buildingPos.x;
           buildingRect.y = buildingPos.y;
           buildingRect.angle = buildingRotation;
-        } while (!isRectWithinNPolygon(buildingRect, boundingArea));
 
-        solution.setBuildingXPos(i, buildingPos.x);
-        solution.setBuildingYPos(i, buildingPos.y);
-        solution.setBuildingRotation(i, buildingRotation);
-      }
-
-      if (!this->doesSolutionHaveNoBuildingsOverlapping(solution, inputBuildings)) {
-        std::cout << "---\n";
-        for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-          std::cout << "Building #" << i << "\n";
-          std::cout << "  Position: (" << solution.getBuildingXPos(i) << ", "
-                    << solution.getBuildingYPos(i) << ")\n";
-          std::cout << "  Angle: " << solution.getBuildingRotation(i) << "\n";
-        }
+          solution.setBuildingXPos(i, buildingPos.x);
+          solution.setBuildingYPos(i, buildingPos.y);
+          solution.setBuildingRotation(i, buildingRotation);
+        } while (!isRectWithinNPolygon(buildingRect, boundingArea)
+                 || !this->doesSolutionHaveNoBuildingsOverlapping(
+                      solution,
+                      inputBuildings));
       }
     } while (!this->isSolutionFeasible(solution, boundingArea, inputBuildings));
 
@@ -1076,6 +1069,10 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings)
   {
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      if (!solution.isBuildingDataUsable(i)) {
+        continue;
+      }
+
       corex::core::Rectangle building0 = corex::core::Rectangle{
         solution.getBuildingXPos(i),
         solution.getBuildingYPos(i),
@@ -1085,6 +1082,10 @@ namespace bpt
       };
 
       for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+        if (!solution.isBuildingDataUsable(j)) {
+          continue;
+        }
+
         corex::core::Rectangle building1 = corex::core::Rectangle{
           solution.getBuildingXPos(j),
           solution.getBuildingYPos(j),

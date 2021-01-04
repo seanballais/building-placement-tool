@@ -20,6 +20,7 @@ namespace bpt
     void setBuildingYPos(int32_t buildingIndex, float yPos);
     void setBuildingRotation(int32_t buildingIndex, float rotation);
     void setFitness(double fitness);
+    bool isBuildingDataUsable(int32_t buildingIndex) const;
     float getBuildingXPos(int32_t buildingIndex) const;
     float getBuildingYPos(int32_t buildingIndex) const;
     float getBuildingRotation(int32_t buildingIndex) const;
@@ -30,6 +31,7 @@ namespace bpt
     bool operator!=(const Solution& other);
   private:
     eastl::vector<float> genes;
+    eastl::vector<bool> genesAssignmentStatus;
     int32_t numBuildings;
     double fitness;
     bool hasFitnessSet;

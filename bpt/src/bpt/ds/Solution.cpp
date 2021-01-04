@@ -9,18 +9,21 @@ namespace bpt
 {
   Solution::Solution()
     : genes()
+    , genesAssignmentStatus()
     , numBuildings(0)
     , fitness(0)
     , hasFitnessSet(false) {}
 
   Solution::Solution(const Solution& other)
     : genes(other.genes)
+    , genesAssignmentStatus(other.genesAssignmentStatus)
     , numBuildings(other.numBuildings)
     , fitness(other.fitness)
     , hasFitnessSet(other.hasFitnessSet) {}
 
   Solution::Solution(int32_t numBuildings)
     : genes(numBuildings * 3, 0.f)
+    , genesAssignmentStatus(numBuildings, false)
     , numBuildings(numBuildings)
     , fitness(0)
     , hasFitnessSet(false) {}
@@ -28,16 +31,19 @@ namespace bpt
   void Solution::setBuildingXPos(int32_t buildingIndex, float xPos)
   {
     this->genes[(buildingIndex * 3)] = xPos;
+    this->genesAssignmentStatus[buildingIndex] = true;
   }
 
   void Solution::setBuildingYPos(int32_t buildingIndex, float yPos)
   {
     this->genes[(buildingIndex * 3) + 1] = yPos;
+    this->genesAssignmentStatus[buildingIndex] = true;
   }
 
   void Solution::setBuildingRotation(int32_t buildingIndex, float rotation)
   {
     this->genes[(buildingIndex * 3) + 2] = rotation;
+    this->genesAssignmentStatus[buildingIndex] = true;
   }
 
   void Solution::setFitness(double fitness)
@@ -46,18 +52,26 @@ namespace bpt
     this->hasFitnessSet = true;
   }
 
+  bool Solution::isBuildingDataUsable(int32_t buildingIndex) const
+  {
+    return this->genesAssignmentStatus[buildingIndex];
+  }
+
   float Solution::getBuildingXPos(int32_t buildingIndex) const
   {
+    assert(this->isBuildingDataUsable(buildingIndex));
     return this->genes[(buildingIndex * 3)];
   }
 
   float Solution::getBuildingYPos(int32_t buildingIndex) const
   {
+    assert(this->isBuildingDataUsable(buildingIndex));
     return this->genes[(buildingIndex * 3) + 1];
   }
 
   float Solution::getBuildingRotation(int32_t buildingIndex) const
   {
+    assert(this->isBuildingDataUsable(buildingIndex));
     return this->genes[(buildingIndex * 3) + 2];
   }
 
