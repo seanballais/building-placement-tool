@@ -48,6 +48,7 @@ namespace bpt
     void buildFlowRateWindow();
     void buildGAControlsWindow();
     void buildGAResultsWindow();
+    void buildDebugSolutionWindow();
     void handleGATimelinePlayback(float timeDelta);
     void handleWindowEvents(const corex::core::WindowEvent& e);
     void handleKeyboardEvents(const corex::core::KeyboardEvent& e);

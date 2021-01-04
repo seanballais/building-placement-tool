@@ -667,6 +667,7 @@ namespace bpt
     this->buildFlowRateWindow();
     this->buildGAControlsWindow();
     this->buildGAResultsWindow();
+    this->buildDebugSolutionWindow();
   }
 
   void MainScene::dispose()
@@ -1039,7 +1040,7 @@ namespace bpt
     for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
       ImGui::Separator();
 
-      ImGui::Text("Buidling #%d", i);
+      ImGui::Text("Building #%d", i);
 
       // Should be good enough for 9,999 input buildings.
       char lengthText[12];
@@ -1366,6 +1367,50 @@ namespace bpt
     ImGui::Checkbox("Show Average Fitness", &(this->showGAResultsAverage));
     ImGui::Checkbox("Show Best Fitness", &(this->showGAResultsBest));
     ImGui::Checkbox("Show Worst Fitness", &(this->showGAResultsWorst));
+
+    ImGui::EndChild();
+    ImGui::End();
+  }
+
+  void MainScene::buildDebugSolutionWindow()
+  {
+    ImGui::Begin("Solution Debugger");
+    ImGui::BeginChild("Solution Debugger Content");
+
+    float floatInputBuffer;
+
+    if (this->hasSolutionBeenSetup && !this->isGATimelinePlaying) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        ImGui::Text("Building #%d", i);
+
+        // Should be good enough for 9,999 input buildings.
+        char xPosText[8];
+        char yPosText[8];
+        char angleText[12];
+
+        sprintf(xPosText, "X##%d", i);
+        sprintf(yPosText, "Y##%d", i);
+        sprintf(angleText, "Angle##%d", i);
+
+        floatInputBuffer = this->currentSolution->getBuildingXPos(i);
+        if (ImGui::InputFloat(xPosText, &floatInputBuffer)) {
+          this->currentSolution->setBuildingXPos(i, floatInputBuffer);
+          this->hasSolutionBeenSetup = false;
+        }
+
+        floatInputBuffer = this->currentSolution->getBuildingYPos(i);
+        if (ImGui::InputFloat(yPosText, &floatInputBuffer)) {
+          this->currentSolution->setBuildingYPos(i, floatInputBuffer);
+          this->hasSolutionBeenSetup = false;
+        }
+
+        floatInputBuffer = this->currentSolution->getBuildingRotation(i);
+        if (ImGui::InputFloat(angleText, &floatInputBuffer)) {
+          this->currentSolution->setBuildingRotation(i, floatInputBuffer);
+          this->hasSolutionBeenSetup = false;
+        }
+      }
+    }
 
     ImGui::EndChild();
     ImGui::End();

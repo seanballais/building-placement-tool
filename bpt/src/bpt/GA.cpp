@@ -624,11 +624,17 @@ namespace bpt
         solution.setBuildingYPos(i, buildingPos.y);
         solution.setBuildingRotation(i, buildingRotation);
       }
-    } while (!this->doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                          inputBuildings)
-             || !this->areSolutionBuildingsWithinBounds(solution,
-                                                        boundingArea,
-                                                        inputBuildings));
+
+      if (!this->doesSolutionHaveNoBuildingsOverlapping(solution, inputBuildings)) {
+        std::cout << "---\n";
+        for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+          std::cout << "Building #" << i << "\n";
+          std::cout << "  Position: (" << solution.getBuildingXPos(i) << ", "
+                    << solution.getBuildingYPos(i) << ")\n";
+          std::cout << "  Angle: " << solution.getBuildingRotation(i) << "\n";
+        }
+      }
+    } while (!this->isSolutionFeasible(solution, boundingArea, inputBuildings));
 
     return solution;
   }
