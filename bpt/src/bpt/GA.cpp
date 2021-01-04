@@ -7,6 +7,7 @@
 
 #include <EASTL/array.h>
 #include <EASTL/functional.h>
+#include <EASTL/set.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
@@ -109,6 +110,7 @@ namespace bpt
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newOffsprings(numOffspringsToMake);
       while (numOffsprings < numOffspringsToMake) {
+        std::cout << numOffsprings << "\n";
         // Standard Tournament Selection.
         auto parents = this->selectParents(population,
                                            tournamentSize,
@@ -681,6 +683,7 @@ namespace bpt
             f(children[childIdx], *parents[parentIdx], i);
           }
         }
+        this->repairSolution(children[childIdx], boundingArea, inputBuildings);
       } while (!this->isSolutionFeasible(children[childIdx],
                                          boundingArea,
                                          inputBuildings));
@@ -728,10 +731,81 @@ namespace bpt
                                          inputBuildings);
   }
 
+  void GA::repairSolution(Solution& solution,
+                          const corex::core::NPolygon& boundingArea,
+                          const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    IPROF_FUNC;
+    auto faultyGenes = this->findFaultyGenes(solution,
+                                             boundingArea,
+                                             inputBuildings);
+    for (const auto& [ key, value ] : faultyGenes) {
+      // TODO: This mutation won't work if there are still other genes that will
+      //       make the solution still infeasible after mutation. So, fix this
+      //       repair function with this observation in mind.
+      this->applyBuddyBuddyMutation(solution,
+                                    boundingArea,
+                                    inputBuildings,
+                                    key);
+    }
+  }
+
+  eastl::unordered_map<int32_t, eastl::vector<int32_t>>
+  GA::findFaultyGenes(Solution& solution,
+                      const corex::core::NPolygon& boundingArea,
+                      const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    eastl::unordered_map<int32_t, eastl::vector<int32_t>> faultyGenes;
+
+    // Find overlapping buildings.
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      auto building0 = corex::core::Rectangle{
+        solution.getBuildingXPos(i),
+        solution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        solution.getBuildingRotation(i)
+      };
+
+      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+        auto building1 = corex::core::Rectangle{
+          solution.getBuildingXPos(j),
+          solution.getBuildingYPos(j),
+          inputBuildings[j].width,
+          inputBuildings[j].length,
+          solution.getBuildingRotation(j)
+        };
+        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
+          auto iter = faultyGenes.insert(i);
+          iter.first->second.push_back(j);
+        }
+      }
+    }
+
+    // Find buildings overlapping the bounding area.
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      auto buildingRect = corex::core::Rectangle{
+        solution.getBuildingXPos(i),
+        solution.getBuildingYPos(i),
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        solution.getBuildingRotation(i)
+      };
+
+      if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
+        faultyGenes.insert(i);
+      }
+    }
+
+    return faultyGenes;
+  }
+
   void GA::applyBuddyBuddyMutation(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const int32_t staticBuildingIndex,
+    const int32_t dynamicBuildingIndex)
   {
     std::uniform_int_distribution<int32_t> buildingDistrib{
       0, static_cast<int32_t>(inputBuildings.size() - 1)
@@ -748,9 +822,20 @@ namespace bpt
       int32_t staticBuddy = 0;
       int32_t dynamicBuddy = 0; // The buddy to be moved.
       do {
-        staticBuddy = corex::core::generateRandomInt(buildingDistrib);
-        dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
+        if (staticBuildingIndex == -1) {
+          staticBuddy = corex::core::generateRandomInt(buildingDistrib);
+        } else {
+          staticBuddy = staticBuildingIndex;
+        }
+
+        if (dynamicBuildingIndex == -1) {
+          dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
+        } else {
+          dynamicBuddy = dynamicBuildingIndex;
+        }
+        std::cout << staticBuddy << " | " << dynamicBuddy << "eh?\n";
       } while (staticBuddy == dynamicBuddy);
+      std::cout << "Ooooh\n";
 
       auto staticBuddyRect = corex::core::Rectangle{
         solution.getBuildingXPos(staticBuddy),

@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 
+#include <EASTL/unordered_map.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/ds/NPolygon.hpp>
@@ -95,10 +96,19 @@ namespace bpt
     void mutateSolution(Solution& solution,
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings);
+    void repairSolution(Solution& solution,
+                        const corex::core::NPolygon& boundingArea,
+                        const eastl::vector<InputBuilding>& inputBuildings);
+    eastl::unordered_map<int32_t, eastl::vector<int32_t>>
+    findFaultyGenes(Solution& solution,
+                    const corex::core::NPolygon& boundingArea,
+                    const eastl::vector<InputBuilding>& inputBuildings);
     void applyBuddyBuddyMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings);
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const int32_t staticBuildingIndex = -1,
+      const int32_t dynamicBuildingIndex = -1);
     void applyShakingMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
