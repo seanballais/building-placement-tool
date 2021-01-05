@@ -52,6 +52,16 @@ namespace bpt
     this->hasFitnessSet = true;
   }
 
+  void Solution::validateBuildingData(int32_t buildingIndex)
+  {
+    this->genesAssignmentStatus[buildingIndex] = true;
+  }
+
+  void Solution::invalidateBuildingData(int32_t buildingIndex)
+  {
+    this->genesAssignmentStatus[buildingIndex] = false;
+  }
+
   bool Solution::isBuildingDataUsable(int32_t buildingIndex) const
   {
     return this->genesAssignmentStatus[buildingIndex];

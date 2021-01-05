@@ -110,7 +110,6 @@ namespace bpt
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newOffsprings(numOffspringsToMake);
       while (numOffsprings < numOffspringsToMake) {
-        std::cout << numOffsprings << "\n";
         // Standard Tournament Selection.
         auto parents = this->selectParents(population,
                                            tournamentSize,
@@ -739,13 +738,18 @@ namespace bpt
     auto faultyGenes = this->findFaultyGenes(solution,
                                              boundingArea,
                                              inputBuildings);
+    // Invalidate faulty genes first so that they won't have an effect on the
+    // solution's fitness during repair.
     for (const auto& [ key, value ] : faultyGenes) {
-      // TODO: This mutation won't work if there are still other genes that will
-      //       make the solution still infeasible after mutation. So, fix this
-      //       repair function with this observation in mind.
+      solution.invalidateBuildingData(key);
+    }
+
+    for (const auto& [ key, value ] : faultyGenes) {
+      solution.validateBuildingData(key);
       this->applyBuddyBuddyMutation(solution,
                                     boundingArea,
                                     inputBuildings,
+                                    -1,
                                     key);
     }
   }
@@ -807,6 +811,7 @@ namespace bpt
     const int32_t staticBuildingIndex,
     const int32_t dynamicBuildingIndex)
   {
+    IPROF_FUNC;
     std::uniform_int_distribution<int32_t> buildingDistrib{
       0, static_cast<int32_t>(inputBuildings.size() - 1)
     };
@@ -816,6 +821,7 @@ namespace bpt
 
     Solution tempSolution;
     do {
+      IPROF("Buddy-Buddy Mutation Main");
       tempSolution = solution;
 
       // Let's just do the Buddy-Buddy Mutation for now.
@@ -833,9 +839,9 @@ namespace bpt
         } else {
           dynamicBuddy = dynamicBuildingIndex;
         }
-        std::cout << staticBuddy << " | " << dynamicBuddy << "eh?\n";
-      } while (staticBuddy == dynamicBuddy);
-      std::cout << "Ooooh\n";
+      } while (staticBuddy == dynamicBuddy
+               || !solution.isBuildingDataUsable(staticBuddy)
+               || !solution.isBuildingDataUsable(dynamicBuddy));
 
       auto staticBuddyRect = corex::core::Rectangle{
         solution.getBuildingXPos(staticBuddy),
@@ -1193,6 +1199,10 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings)
   {
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      if (!solution.isBuildingDataUsable(i)) {
+        continue;
+      }
+
       corex::core::Rectangle buildingRect = corex::core::Rectangle{
         solution.getBuildingXPos(i),
         solution.getBuildingYPos(i),
