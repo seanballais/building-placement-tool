@@ -110,6 +110,7 @@ namespace bpt
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newOffsprings(numOffspringsToMake);
       while (numOffsprings < numOffspringsToMake) {
+        std::cout << numOffsprings << "\n";
         // Standard Tournament Selection.
         auto parents = this->selectParents(population,
                                            tournamentSize,
