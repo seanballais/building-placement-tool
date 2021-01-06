@@ -641,52 +641,44 @@ namespace bpt
                          const eastl::vector<InputBuilding>& inputBuildings)
   {
     IPROF_FUNC;
-    // We're doing uniform crossover.
-    std::uniform_int_distribution<int32_t> parentDistrib{0, 1 };
+    std::uniform_int_distribution<int32_t> parentDistrib{ 0, 1 };
+    std::uniform_real_distribution<float> normalScaleDistrib{ 0.f, 1.f };
+    std::uniform_real_distribution<float> angleDistrib{ 0.f, 360.f };
     int32_t numBuildings = solutionA.getNumBuildings();
 
     // Prevent unnecessary copying of the parents.
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
-    eastl::array<
-      eastl::function<void(Solution&, const Solution&, const int32_t)>,
-      3> solutionFuncs = {
-        [](Solution& solution,
-           const Solution& source,
-           const int32_t buildingIndex) -> void {
-          solution.setBuildingXPos(buildingIndex,
-                                   source.getBuildingXPos(buildingIndex));
-        },
-        [](Solution& solution,
-           const Solution& source,
-           const int32_t buildingIndex) -> void {
-          solution.setBuildingYPos(buildingIndex,
-                                   source.getBuildingYPos(buildingIndex));
-        },
-        [](Solution& solution,
-           const Solution& source,
-           const int32_t buildingIndex) -> void {
-          solution.setBuildingRotation(
-            buildingIndex,
-            source.getBuildingRotation(buildingIndex));
-        }
+    eastl::array<Solution, 2> children{
+      Solution(numBuildings),
+      Solution(numBuildings)
     };
-
-    eastl::array<Solution, 2> children{ solutionA, solutionB };
     for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
       IPROF("Crossover Main");
-      // TODO: Experiment with gene repair so that we don't have to re-run
-      //       crossover multiple times until we get a feasible solution.
-      do {
-        for (int32_t i = 0; i < numBuildings; i++) {
-          for (auto& f : solutionFuncs) {
-            int32_t parentIdx = corex::core::generateRandomInt(parentDistrib);
-            f(children[childIdx], *parents[parentIdx], i);
-          }
-        }
-        this->repairSolution(children[childIdx], boundingArea, inputBuildings);
-      } while (!this->isSolutionFeasible(children[childIdx],
-                                         boundingArea,
-                                         inputBuildings));
+      for (int32_t i = 0; i < numBuildings; i++) {
+        cx::Point parentAPos{
+          parents[0]->getBuildingXPos(i),
+          parents[0]->getBuildingYPos(i)
+        };
+        cx::Point parentBPos{
+          parents[1]->getBuildingXPos(i),
+          parents[1]->getBuildingYPos(i)
+        };
+        cx::Vec2 parentVec = parentBPos - parentAPos;
+        do {
+          // TODO: Fix a bug here where a building position makes a solution
+          //       infeasible, so it gets stuck in an infinite loop. Maybe
+          //       do a different crossover operator for the building if that
+          //       happens.
+          float scaleFactor = cx::generateRandomReal(normalScaleDistrib);
+          float newAngle = cx::generateRandomReal(angleDistrib);
+          cx::Vec2 childPos = (parentVec * scaleFactor) + parentAPos;
+          children[childIdx].setBuildingXPos(i, childPos.x);
+          children[childIdx].setBuildingYPos(i, childPos.y);
+          children[childIdx].setBuildingRotation(i, newAngle);
+        } while (!this->isSolutionFeasible(children[childIdx],
+                                           boundingArea,
+                                           inputBuildings));
+      }
     }
 
     return children;
