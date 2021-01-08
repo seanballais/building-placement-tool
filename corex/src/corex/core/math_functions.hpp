@@ -65,6 +65,7 @@ namespace corex::core
   double setDecPlaces(double n, int32_t numDecPlaces);
   bool isFloatInclusiveBetween(float a, float val, float b);
 
+  int32_t abs(int32_t n);
   int32_t factorial(int32_t n);
   int32_t mod(int32_t x, int32_t divisor);
   int32_t pow(int32_t base, int32_t exponent);

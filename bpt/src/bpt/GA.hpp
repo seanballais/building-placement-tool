@@ -88,11 +88,11 @@ namespace bpt
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<corex::core::Polygon<3>>& boundingAreaTriangles,
       const eastl::vector<float>& triangleAreas);
-    eastl::array<Solution, 2>
-    crossoverSolutions(const Solution& solutionA,
-                       const Solution& solutionB,
-                       const corex::core::NPolygon& boundingArea,
-                       const eastl::vector<InputBuilding>& inputBuildings);
+    Solution crossoverSolutions(
+      const Solution& solutionA,
+      const Solution& solutionB,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
     void mutateSolution(Solution& solution,
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings);

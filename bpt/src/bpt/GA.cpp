@@ -441,11 +441,10 @@ namespace bpt
     std::uniform_real_distribution<float> mutationChanceDistribution{
       0.f, 1.f
     };
-    auto children = this->crossoverSolutions(parentA,
-                                             parentB,
-                                             boundingArea,
-                                             inputBuildings);
-    offsprings[numOffsprings] = children[0];
+    offsprings[numOffsprings] = this->crossoverSolutions(parentA,
+                                                         parentB,
+                                                         boundingArea,
+                                                         inputBuildings);
     offsprings[numOffsprings].setFitness(this->getSolutionFitness(
       offsprings[numOffsprings],
       inputBuildings,
@@ -475,86 +474,6 @@ namespace bpt
     }
 
     numOffsprings++;
-
-    // In cases where the population size is not an even number, a child
-    // will have to be dropped. As such, we'll only add the second
-    // generated child if it has a fitness better than the worst solution
-    // in the new generation.
-    if (numOffsprings == numOffspringsToMake) {
-      auto weakestSolutionIter = std::max_element(
-        offsprings.begin(),
-        offsprings.end(),
-        [](Solution solutionA, Solution solutionB) -> bool {
-          return corex::core::floatLessThan(solutionA.getFitness(),
-                                            solutionB.getFitness());
-        }
-      );
-
-      if (corex::core::floatLessThan(children[1].getFitness(),
-                                     weakestSolutionIter->getFitness())) {
-        int32_t weakestSolutionIndex = std::distance(offsprings.begin(),
-                                                     weakestSolutionIter);
-        offsprings[weakestSolutionIndex] = children[1];
-        offsprings[weakestSolutionIndex].setFitness(
-          this->getSolutionFitness(
-            offsprings[weakestSolutionIndex],
-            inputBuildings,
-            flowRates,
-            floodProneAreas,
-            landslideProneAreas,
-            floodProneAreaPenalty,
-            landslideProneAreaPenalty,
-            buildingDistanceWeight));
-
-        float mutationProbability = corex::core::generateRandomReal(
-          mutationChanceDistribution);
-        if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-          this->mutateSolution(offsprings[weakestSolutionIndex],
-                               boundingArea,
-                               inputBuildings);
-          offsprings[weakestSolutionIndex].setFitness(
-            this->getSolutionFitness(
-              offsprings[weakestSolutionIndex],
-              inputBuildings,
-              flowRates,
-              floodProneAreas,
-              landslideProneAreas,
-              floodProneAreaPenalty,
-              landslideProneAreaPenalty,
-              buildingDistanceWeight));
-        }
-      }
-    } else {
-      offsprings[numOffsprings] = children[1];
-      offsprings[numOffsprings].setFitness(this->getSolutionFitness(
-        offsprings[numOffsprings],
-        inputBuildings,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty,
-        buildingDistanceWeight));
-
-      float mutationProbability = corex::core::generateRandomReal(
-        mutationChanceDistribution);
-      if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-        this->mutateSolution(offsprings[numOffsprings],
-                             boundingArea,
-                             inputBuildings);
-        offsprings[numOffsprings].setFitness(this->getSolutionFitness(
-          offsprings[numOffsprings],
-          inputBuildings,
-          flowRates,
-          floodProneAreas,
-          landslideProneAreas,
-          floodProneAreaPenalty,
-          landslideProneAreaPenalty,
-          buildingDistanceWeight));
-      }
-
-      numOffsprings++;
-    }
   }
 
   Solution
@@ -634,11 +553,11 @@ namespace bpt
     return solution;
   }
 
-  eastl::array<Solution, 2>
-  GA::crossoverSolutions(const Solution& solutionA,
-                         const Solution& solutionB,
-                         const corex::core::NPolygon& boundingArea,
-                         const eastl::vector<InputBuilding>& inputBuildings)
+  Solution GA::crossoverSolutions(
+    const Solution& solutionA,
+    const Solution& solutionB,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
   {
     IPROF_FUNC;
     std::uniform_int_distribution<int32_t> parentDistrib{ 0, 1 };
@@ -648,40 +567,45 @@ namespace bpt
 
     // Prevent unnecessary copying of the parents.
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
-    eastl::array<Solution, 2> children{
-      Solution(numBuildings),
-      Solution(numBuildings)
-    };
-    for (int32_t childIdx = 0; childIdx < children.size(); childIdx++) {
+    Solution child{numBuildings};
+    do {
       IPROF("Crossover Main");
+      // Perform Inversed Bi-segmented Average Crossover.
+      int32_t pairDist = (numBuildings / 2) - 1;
       for (int32_t i = 0; i < numBuildings; i++) {
-        cx::Point parentAPos{
-          parents[0]->getBuildingXPos(i),
-          parents[0]->getBuildingYPos(i)
-        };
-        cx::Point parentBPos{
-          parents[1]->getBuildingXPos(i),
-          parents[1]->getBuildingYPos(i)
-        };
-        cx::Vec2 parentVec = parentBPos - parentAPos;
-        do {
-          // TODO: Fix a bug here where a building position makes a solution
-          //       infeasible, so it gets stuck in an infinite loop. Maybe
-          //       do a different crossover operator for the building if that
-          //       happens.
-          float scaleFactor = cx::generateRandomReal(normalScaleDistrib);
-          float newAngle = cx::generateRandomReal(angleDistrib);
-          cx::Vec2 childPos = (parentVec * scaleFactor) + parentAPos;
-          children[childIdx].setBuildingXPos(i, childPos.x);
-          children[childIdx].setBuildingYPos(i, childPos.y);
-          children[childIdx].setBuildingRotation(i, newAngle);
-        } while (!this->isSolutionFeasible(children[childIdx],
-                                           boundingArea,
-                                           inputBuildings));
-      }
-    }
+        int32_t otherGeneIndex = std::min(i + pairDist, numBuildings - 1);
+        float x = (
+          (
+            parents[0]->getBuildingXPos(i)
+            + parents[1]->getBuildingXPos(otherGeneIndex)
+          ) / 2
+        );
+        float y = (
+          (
+            parents[0]->getBuildingYPos(i)
+            + parents[1]->getBuildingYPos(otherGeneIndex)
+          ) / 2
+        );
+        float angle = (
+          (
+            parents[0]->getBuildingRotation(i)
+            + parents[1]->getBuildingRotation(i)
+          ) / 2
+        );
 
-    return children;
+        child.setBuildingXPos(i, x);
+        child.setBuildingYPos(i, y);
+        child.setBuildingRotation(i, angle);
+
+        if (pairDist == -((numBuildings / 2) - 1)) {
+          pairDist = (numBuildings / 2) - 1;
+        } else {
+          pairDist -= 2;
+        }
+      }
+    } while (!this->isSolutionFeasible(child, boundingArea, inputBuildings));
+
+    return child;
   }
 
   void GA::mutateSolution(Solution& solution,

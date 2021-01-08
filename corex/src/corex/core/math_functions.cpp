@@ -181,6 +181,15 @@ namespace corex::core
     return floatLessEqual(a, val) && floatLessEqual(val, b);
   }
 
+  int32_t abs(int32_t n)
+  {
+    if (n < 0) {
+      return n * -1;
+    } else {
+      return n;
+    }
+  }
+
   int32_t factorial(int32_t n)
   {
     int32_t total = 1;
