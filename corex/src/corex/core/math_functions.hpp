@@ -70,6 +70,7 @@ namespace corex::core
   int32_t mod(int32_t x, int32_t divisor);
   int32_t pow(int32_t base, int32_t exponent);
   float pow(float base, int32_t exponent);
+  double pow(double base, int32_t exponent);
 
   float degreesToRadians(float degrees);
   float radiansToDegrees(float radians);
@@ -268,6 +269,22 @@ namespace corex::core
     }
 
     return items[selectedItemIndex];
+  }
+
+  template <class RealType>
+  std::normal_distribution<RealType> multiplyDistributions(
+      const std::normal_distribution<RealType>& distribA,
+      const std::normal_distribution<RealType>& distribB) {
+    double newMean = (
+      ((distribA.mean() * pow(distribB.stddev(), 2))
+      + ((distribB.mean() * pow(distribA.stddev(), 2))))
+      / (pow(distribB.stddev(), 2) + pow(distribA.stddev(), 2))
+    );
+    double newStdDev = sqrt(
+      (pow(distribA.stddev(), 2) * pow(distribB.stddev(), 2))
+      / (pow(distribA.stddev(), 2) + pow(distribB.stddev(), 2))
+    );
+    return std::normal_distribution<RealType>{ newMean, newStdDev };
   }
 }
 

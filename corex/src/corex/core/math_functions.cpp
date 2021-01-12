@@ -246,6 +246,26 @@ namespace corex::core
     }
   }
 
+  double pow(double base, int32_t exponent)
+  {
+    assert(exponent >= 0);
+
+    // Note that std::pow() is slow. So, we're using a custom implementation
+    // of a basic pow() for integers.
+    if (exponent == 0) {
+      return 1.f;
+    } else if (floatEquals(base, 0.f)) {
+      return 0.f;
+    } else {
+      double result = 1; // Let's not lose precision during computation.
+      for (int i = 0; i < exponent; i++) {
+        result *= static_cast<double>(base);
+      }
+
+      return static_cast<float>(result);
+    }
+  }
+
   float degreesToRadians(float degrees)
   {
     return setDecPlaces(degrees * (pi / 180.0), 6);

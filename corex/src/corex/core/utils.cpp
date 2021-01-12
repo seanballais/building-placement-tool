@@ -45,6 +45,11 @@ namespace corex::core
     return eastl::string(str.c_str());
   }
 
+  float getRandomRealUniformly(float a, float b)
+  {
+    return generateRandomReal(std::uniform_real_distribution{ a, b });
+  }
+
   float metersToPixels(float meters, float ppmRatio)
   {
     return meters * ppmRatio;

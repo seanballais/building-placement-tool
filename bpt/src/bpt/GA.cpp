@@ -570,38 +570,52 @@ namespace bpt
     Solution child{numBuildings};
     do {
       IPROF("Crossover Main");
-      // Perform Inversed Bi-segmented Average Crossover.
-      int32_t pairDist = (numBuildings / 2) - 1;
+      // Perform Box Crossover.
       for (int32_t i = 0; i < numBuildings; i++) {
-        int32_t otherGeneIndex = std::min(i + pairDist, numBuildings - 1);
-        float x = (
-          (
-            parents[0]->getBuildingXPos(i)
-            + parents[1]->getBuildingXPos(otherGeneIndex)
-          ) / 2
-        );
-        float y = (
-          (
-            parents[0]->getBuildingYPos(i)
-            + parents[1]->getBuildingYPos(otherGeneIndex)
-          ) / 2
-        );
-        float angle = (
-          (
-            parents[0]->getBuildingRotation(i)
-            + parents[1]->getBuildingRotation(i)
-          ) / 2
-        );
+        // Compute child's new x position.
+        float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
+                                     parents[1]->getBuildingXPos(i));
+        float upperXBound = std::max(parents[0]->getBuildingXPos(i),
+                                     parents[1]->getBuildingXPos(i));
+        child.setBuildingXPos(
+          i,
+          cx::getRandomRealUniformly(lowerXBound, upperXBound));
 
-        child.setBuildingXPos(i, x);
-        child.setBuildingYPos(i, y);
-        child.setBuildingRotation(i, angle);
+        // Compute child's new y position.
+        float lowerYBound = std::min(parents[0]->getBuildingYPos(i),
+                                     parents[1]->getBuildingYPos(i));
+        float upperYBound = std::max(parents[0]->getBuildingYPos(i),
+                                     parents[1]->getBuildingYPos(i));
+        child.setBuildingYPos(
+          i,
+          cx::getRandomRealUniformly(lowerYBound, upperYBound));
 
-        if (pairDist == -((numBuildings / 2) - 1)) {
-          pairDist = (numBuildings / 2) - 1;
-        } else {
-          pairDist -= 2;
+        // Compute child's new angle.
+        float lowerAngleBound = std::min(parents[0]->getBuildingRotation(i),
+                                         parents[1]->getBuildingRotation(i));
+        float upperAngleBound = std::max(parents[0]->getBuildingRotation(i),
+                                         parents[1]->getBuildingRotation(i));
+        child.setBuildingRotation(
+          i,
+          cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
+      }
+
+      std::cout << "-------------\n";
+      for (const auto& [ k, _ ] : this->findFaultyGenes(child, boundingArea,
+                                                        inputBuildings)) {
+        std::cout << k << ", ";
+      }
+      std::cout << "\n";
+
+      if (!this->isSolutionFeasible(child, boundingArea, inputBuildings)) {
+        std::cout << "######################\n";
+        for (int32_t i = 0; i < child.getNumBuildings(); i++) {
+          std::cout << "x: " << child.getBuildingXPos(i) << "\n"
+                    << "y: " << child.getBuildingYPos(i) << "\n"
+                    << "angle: " << child.getBuildingRotation(i) << "\n";
+          std::cout << "*****************************\n";
         }
+        std::cout << "######################\n";
       }
     } while (!this->isSolutionFeasible(child, boundingArea, inputBuildings));
 

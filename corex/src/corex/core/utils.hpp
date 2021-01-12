@@ -64,6 +64,8 @@ namespace corex::core
     return distribution(rng);
   }
 
+  float getRandomRealUniformly(float a, float b);
+
   float metersToPixels(float meters, float ppmRatio);
   float pixelsToMeters(float pixels, float ppmRatio);
   Point screenToWorldCoordinates(const Point&& point, Camera& camera);
