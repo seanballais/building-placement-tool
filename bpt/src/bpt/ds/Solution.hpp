@@ -18,14 +18,14 @@ namespace bpt
 
     void setBuildingXPos(int32_t buildingIndex, float xPos);
     void setBuildingYPos(int32_t buildingIndex, float yPos);
-    void setBuildingRotation(int32_t buildingIndex, float rotation);
+    void setBuildingAngle(int32_t buildingIndex, float rotation);
     void setFitness(double fitness);
     void validateBuildingData(int32_t buildingIndex);
     void invalidateBuildingData(int32_t buildingIndex);
     bool isBuildingDataUsable(int32_t buildingIndex) const;
     float getBuildingXPos(int32_t buildingIndex) const;
     float getBuildingYPos(int32_t buildingIndex) const;
-    float getBuildingRotation(int32_t buildingIndex) const;
+    float getBuildingAngle(int32_t buildingIndex) const;
     int32_t getNumBuildings() const;
     double getFitness() const;
 

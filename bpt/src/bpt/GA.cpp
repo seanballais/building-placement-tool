@@ -170,6 +170,7 @@ namespace bpt
       bestSolution.setFitness(this->getSolutionFitness(
         bestSolution,
         inputBuildings,
+        boundingArea,
         flowRates,
         floodProneAreas,
         landslideProneAreas,
@@ -208,6 +209,7 @@ namespace bpt
   double GA::getSolutionFitness(
     const Solution& solution,
     const eastl::vector<InputBuilding>& inputBuildings,
+    const corex::core::NPolygon& boundingArea,
     const eastl::vector<eastl::vector<float>>& flowRates,
     const eastl::vector<corex::core::NPolygon>& floodProneAreas,
     const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
@@ -248,7 +250,7 @@ namespace bpt
         solution.getBuildingYPos(i),
         inputBuildings[i].width,
         inputBuildings[i].length,
-        solution.getBuildingRotation(i)
+        solution.getBuildingAngle(i)
       };
       // Compute penalty for placing a building in a flood-prone area.
       for (const corex::core::NPolygon& area : floodProneAreas) {
@@ -261,6 +263,58 @@ namespace bpt
       for (const corex::core::NPolygon& area : landslideProneAreas) {
         if (corex::core::isRectIntersectingNPolygon(building, area)) {
           fitness += landslideProneAreaPenalty;
+        }
+      }
+    }
+
+    // Compute penalty for infeasible solutions.
+    if (!this->isSolutionFeasible(solution, boundingArea, inputBuildings)) {
+      for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+        if (!solution.isBuildingDataUsable(i)) {
+          continue;
+        }
+
+        corex::core::Rectangle building0 = corex::core::Rectangle{
+          solution.getBuildingXPos(i),
+          solution.getBuildingYPos(i),
+          inputBuildings[i].width,
+          inputBuildings[i].length,
+          solution.getBuildingAngle(i)
+        };
+
+        for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+          if (!solution.isBuildingDataUsable(j)) {
+            continue;
+          }
+
+          corex::core::Rectangle building1 = corex::core::Rectangle{
+            solution.getBuildingXPos(j),
+            solution.getBuildingYPos(j),
+            inputBuildings[j].width,
+            inputBuildings[j].length,
+            solution.getBuildingAngle(j)
+          };
+          if (corex::core::areTwoRectsIntersecting(building0, building1)) {
+            fitness += 100000.0;
+          }
+        }
+      }
+
+      for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+        if (!solution.isBuildingDataUsable(i)) {
+          continue;
+        }
+
+        corex::core::Rectangle buildingRect = corex::core::Rectangle{
+          solution.getBuildingXPos(i),
+          solution.getBuildingYPos(i),
+          inputBuildings[i].width,
+          inputBuildings[i].length,
+          solution.getBuildingAngle(i)
+        };
+
+        if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
+          fitness += 200000.0;
         }
       }
     }
@@ -320,6 +374,7 @@ namespace bpt
         this->getSolutionFitness(
           population[i],
           inputBuildings,
+          boundingArea,
           flowRates,
           floodProneAreas,
           landslideProneAreas,
@@ -441,19 +496,32 @@ namespace bpt
     std::uniform_real_distribution<float> mutationChanceDistribution{
       0.f, 1.f
     };
-    offsprings[numOffsprings] = this->crossoverSolutions(parentA,
-                                                         parentB,
-                                                         boundingArea,
-                                                         inputBuildings);
-    offsprings[numOffsprings].setFitness(this->getSolutionFitness(
-      offsprings[numOffsprings],
+    auto children = this->crossoverSolutions(parentA,
+                                             parentB,
+                                             boundingArea,
+                                             inputBuildings);
+    children[0].setFitness(this->getSolutionFitness(
+      children[0],
       inputBuildings,
+      boundingArea,
       flowRates,
       floodProneAreas,
       landslideProneAreas,
       floodProneAreaPenalty,
       landslideProneAreaPenalty,
       buildingDistanceWeight));
+    children[1].setFitness(this->getSolutionFitness(
+      children[1],
+      inputBuildings,
+      boundingArea,
+      flowRates,
+      floodProneAreas,
+      landslideProneAreas,
+      floodProneAreaPenalty,
+      landslideProneAreaPenalty,
+      buildingDistanceWeight));
+
+    offsprings[numOffsprings] = children[0];
 
     // Mutation
     float mutationProbability = corex::core::generateRandomReal(
@@ -465,6 +533,7 @@ namespace bpt
       offsprings[numOffsprings].setFitness(this->getSolutionFitness(
         offsprings[numOffsprings],
         inputBuildings,
+        boundingArea,
         flowRates,
         floodProneAreas,
         landslideProneAreas,
@@ -474,6 +543,90 @@ namespace bpt
     }
 
     numOffsprings++;
+
+    // In cases where the population size is not an even number, a child
+    // will have to be dropped. As such, we'll only add the second
+    // generated child if it has a fitness better than the worst solution
+    // in the new generation.
+    if (numOffsprings == numOffspringsToMake) {
+      auto weakestSolutionIter = std::max_element(
+        offsprings.begin(),
+        offsprings.end(),
+        [](Solution solutionA, Solution solutionB) -> bool {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
+        }
+      );
+
+      if (corex::core::floatLessThan(children[1].getFitness(),
+                                     weakestSolutionIter->getFitness())) {
+        int32_t weakestSolutionIndex = std::distance(offsprings.begin(),
+                                                     weakestSolutionIter);
+        offsprings[weakestSolutionIndex] = children[1];
+        offsprings[weakestSolutionIndex].setFitness(
+          this->getSolutionFitness(
+            offsprings[weakestSolutionIndex],
+            inputBuildings,
+            boundingArea,
+            flowRates,
+            floodProneAreas,
+            landslideProneAreas,
+            floodProneAreaPenalty,
+            landslideProneAreaPenalty,
+            buildingDistanceWeight));
+
+        float mutationProbability = corex::core::generateRandomReal(
+          mutationChanceDistribution);
+        if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
+          this->mutateSolution(offsprings[weakestSolutionIndex],
+                               boundingArea,
+                               inputBuildings);
+          offsprings[weakestSolutionIndex].setFitness(
+            this->getSolutionFitness(
+              offsprings[weakestSolutionIndex],
+              inputBuildings,
+              boundingArea,
+              flowRates,
+              floodProneAreas,
+              landslideProneAreas,
+              floodProneAreaPenalty,
+              landslideProneAreaPenalty,
+              buildingDistanceWeight));
+        }
+      }
+    } else {
+      offsprings[numOffsprings] = children[1];
+      offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+        offsprings[numOffsprings],
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight));
+
+      float mutationProbability = corex::core::generateRandomReal(
+        mutationChanceDistribution);
+      if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
+        this->mutateSolution(offsprings[numOffsprings],
+                             boundingArea,
+                             inputBuildings);
+        offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+          offsprings[numOffsprings],
+          inputBuildings,
+          boundingArea,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
+      }
+
+      numOffsprings++;
+    }
   }
 
   Solution
@@ -542,7 +695,7 @@ namespace bpt
 
           solution.setBuildingXPos(i, buildingPos.x);
           solution.setBuildingYPos(i, buildingPos.y);
-          solution.setBuildingRotation(i, buildingRotation);
+          solution.setBuildingAngle(i, buildingRotation);
         } while (!isRectWithinNPolygon(buildingRect, boundingArea)
                  || !this->doesSolutionHaveNoBuildingsOverlapping(
                       solution,
@@ -553,7 +706,7 @@ namespace bpt
     return solution;
   }
 
-  Solution GA::crossoverSolutions(
+  eastl::vector<Solution> GA::crossoverSolutions(
     const Solution& solutionA,
     const Solution& solutionB,
     const corex::core::NPolygon& boundingArea,
@@ -567,59 +720,41 @@ namespace bpt
 
     // Prevent unnecessary copying of the parents.
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
-    Solution child{numBuildings};
-    do {
-      IPROF("Crossover Main");
-      // Perform Box Crossover.
+    eastl::vector<Solution> children{ solutionA, solutionA };
+    // Perform Uniform Crossover.
+    for (Solution& child : children) {
+      int32_t parentIndex = 0;
       for (int32_t i = 0; i < numBuildings; i++) {
-        // Compute child's new x position.
-        float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
-                                     parents[1]->getBuildingXPos(i));
-        float upperXBound = std::max(parents[0]->getBuildingXPos(i),
-                                     parents[1]->getBuildingXPos(i));
-        child.setBuildingXPos(
-          i,
-          cx::getRandomRealUniformly(lowerXBound, upperXBound));
+        parentIndex = cx::getRandomIntUniformly(0, 1);
+        child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
 
-        // Compute child's new y position.
-        float lowerYBound = std::min(parents[0]->getBuildingYPos(i),
-                                     parents[1]->getBuildingYPos(i));
-        float upperYBound = std::max(parents[0]->getBuildingYPos(i),
-                                     parents[1]->getBuildingYPos(i));
-        child.setBuildingYPos(
-          i,
-          cx::getRandomRealUniformly(lowerYBound, upperYBound));
+        parentIndex = cx::getRandomIntUniformly(0, 1);
+        child.setBuildingYPos(i, parents[parentIndex]->getBuildingYPos(i));
 
-        // Compute child's new angle.
-        float lowerAngleBound = std::min(parents[0]->getBuildingRotation(i),
-                                         parents[1]->getBuildingRotation(i));
-        float upperAngleBound = std::max(parents[0]->getBuildingRotation(i),
-                                         parents[1]->getBuildingRotation(i));
-        child.setBuildingRotation(
-          i,
-          cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
+        parentIndex = cx::getRandomIntUniformly(0, 1);
+        child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
       }
+    }
 
-      std::cout << "-------------\n";
-      for (const auto& [ k, _ ] : this->findFaultyGenes(child, boundingArea,
-                                                        inputBuildings)) {
-        std::cout << k << ", ";
-      }
-      std::cout << "\n";
+//    std::cout << "-------------\n";
+//    for (const auto& [ k, _ ] : this->findFaultyGenes(child, boundingArea,
+//                                                      inputBuildings)) {
+//      std::cout << k << ", ";
+//    }
+//    std::cout << "\n";
 
-      if (!this->isSolutionFeasible(child, boundingArea, inputBuildings)) {
-        std::cout << "######################\n";
-        for (int32_t i = 0; i < child.getNumBuildings(); i++) {
-          std::cout << "x: " << child.getBuildingXPos(i) << "\n"
-                    << "y: " << child.getBuildingYPos(i) << "\n"
-                    << "angle: " << child.getBuildingRotation(i) << "\n";
-          std::cout << "*****************************\n";
-        }
-        std::cout << "######################\n";
-      }
-    } while (!this->isSolutionFeasible(child, boundingArea, inputBuildings));
+//    if (!this->isSolutionFeasible(child, boundingArea, inputBuildings)) {
+//      std::cout << "######################\n";
+//      for (int32_t i = 0; i < child.getNumBuildings(); i++) {
+//        std::cout << "x: " << child.getBuildingXPos(i) << "\n"
+//                  << "y: " << child.getBuildingYPos(i) << "\n"
+//                  << "angle: " << child.getBuildingAngle(i) << "\n";
+//        std::cout << "*****************************\n";
+//      }
+//      std::cout << "######################\n";
+//    }
 
-    return child;
+    return children;
   }
 
   void GA::mutateSolution(Solution& solution,
@@ -699,7 +834,7 @@ namespace bpt
         solution.getBuildingYPos(i),
         inputBuildings[i].width,
         inputBuildings[i].length,
-        solution.getBuildingRotation(i)
+        solution.getBuildingAngle(i)
       };
 
       for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
@@ -708,7 +843,7 @@ namespace bpt
           solution.getBuildingYPos(j),
           inputBuildings[j].width,
           inputBuildings[j].length,
-          solution.getBuildingRotation(j)
+          solution.getBuildingAngle(j)
         };
         if (corex::core::areTwoRectsIntersecting(building0, building1)) {
           auto iter = faultyGenes.insert(i);
@@ -724,7 +859,7 @@ namespace bpt
         solution.getBuildingYPos(i),
         inputBuildings[i].width,
         inputBuildings[i].length,
-        solution.getBuildingRotation(i)
+        solution.getBuildingAngle(i)
       };
 
       if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
@@ -751,126 +886,121 @@ namespace bpt
     std::uniform_real_distribution<float> normalizedDistrib{ 0, 1 };
 
     Solution tempSolution;
+    tempSolution = solution;
+
+    // Let's just do the Buddy-Buddy Mutation for now.
+    int32_t staticBuddy = 0;
+    int32_t dynamicBuddy = 0; // The buddy to be moved.
     do {
-      IPROF("Buddy-Buddy Mutation Main");
-      tempSolution = solution;
-
-      // Let's just do the Buddy-Buddy Mutation for now.
-      int32_t staticBuddy = 0;
-      int32_t dynamicBuddy = 0; // The buddy to be moved.
-      do {
-        if (staticBuildingIndex == -1) {
-          staticBuddy = corex::core::generateRandomInt(buildingDistrib);
-        } else {
-          staticBuddy = staticBuildingIndex;
-        }
-
-        if (dynamicBuildingIndex == -1) {
-          dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
-        } else {
-          dynamicBuddy = dynamicBuildingIndex;
-        }
-      } while (staticBuddy == dynamicBuddy
-               || !solution.isBuildingDataUsable(staticBuddy)
-               || !solution.isBuildingDataUsable(dynamicBuddy));
-
-      auto staticBuddyRect = corex::core::Rectangle{
-        solution.getBuildingXPos(staticBuddy),
-        solution.getBuildingYPos(staticBuddy),
-        inputBuildings[staticBuddy].width,
-        inputBuildings[staticBuddy].length,
-        solution.getBuildingRotation(staticBuddy)
-      };
-      auto buddyPoly = corex::core::convertRectangleToPolygon(staticBuddyRect);
-
-      const int32_t buddySide = corex::core::generateRandomInt(
-        buddySideDistrib);
-
-      corex::core::Line contactLine;
-      switch (buddySide) {
-        case 0:
-          contactLine = corex::core::Line{
-            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y },
-            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y }
-          };
-          break;
-        case 1:
-          contactLine = corex::core::Line{
-            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y },
-            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y }
-          };
-          break;
-        case 2:
-          contactLine = corex::core::Line{
-            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y },
-            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y }
-          };
-          break;
-        case 3:
-          contactLine = corex::core::Line{
-            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y },
-            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y }
-          };
-          break;
-        default:
-          break;
+      if (staticBuildingIndex == -1) {
+        staticBuddy = corex::core::generateRandomInt(buildingDistrib);
+      } else {
+        staticBuddy = staticBuildingIndex;
       }
 
-      auto contactLineVec = corex::core::lineToVec(contactLine);
-      const int32_t orientation = corex::core::generateRandomInt(
-        relOrientationDistrib);
-      float distContactToBuddyCenter = 0.f;
-
-      // Length to add to both ends of the contact line vector to allow the
-      // edges in the dynamic buddy perpendicular to contact line to be in line
-      // with those edges parallel to it in the static buddy.
-      float extLength = 0.f;
-
-      float contactLineAngle = corex::core::vec2Angle(contactLineVec);
-      float dynamicBuddyAngle;
-      if (orientation == 0) {
-        // The dynamic buddy will be oriented parallel to the contact line, if
-        // width > length. Perpendicular, otherwise.
-        distContactToBuddyCenter = inputBuildings[dynamicBuddy].width / 2.f;
-        extLength = inputBuildings[dynamicBuddy].length / 2.f;
-        dynamicBuddyAngle = contactLineAngle;
-      } else if (orientation == 1) {
-        // The dynamic buddy will be oriented perpendicular to the contact line,
-        // if length > width. Parallel, otherwise.
-        distContactToBuddyCenter = inputBuildings[dynamicBuddy].length / 2.f;
-        extLength = inputBuildings[dynamicBuddy].width / 2.f;
-        dynamicBuddyAngle = contactLineAngle + 45.f;
+      if (dynamicBuildingIndex == -1) {
+        dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
+      } else {
+        dynamicBuddy = dynamicBuildingIndex;
       }
+    } while (staticBuddy == dynamicBuddy
+             || !solution.isBuildingDataUsable(staticBuddy)
+             || !solution.isBuildingDataUsable(dynamicBuddy));
 
-      // Adjust the distance of the dynamic buddy centroid to the contact line
-      // by a small amount to prevent intersection of buildings.
-      distContactToBuddyCenter += 0.0001f;
+    auto staticBuddyRect = corex::core::Rectangle{
+      solution.getBuildingXPos(staticBuddy),
+      solution.getBuildingYPos(staticBuddy),
+      inputBuildings[staticBuddy].width,
+      inputBuildings[staticBuddy].length,
+      solution.getBuildingAngle(staticBuddy)
+    };
+    auto buddyPoly = corex::core::convertRectangleToPolygon(staticBuddyRect);
 
-      auto buddyMidptRelContactLine = corex::core::rotateVec2(
-        corex::core::Vec2{0.f, extLength * 2 }, contactLineAngle)
-        + contactLineVec;
-      auto buddyMidptRelContactLineStart = corex::core::rotateVec2(
-        corex::core::Vec2{ 0.f, -extLength }, contactLineAngle)
-        + contactLine.start;
+    const int32_t buddySide = corex::core::generateRandomInt(
+      buddySideDistrib);
 
-      const float lineWidthModifier = corex::core::generateRandomReal(
-        normalizedDistrib);
+    corex::core::Line contactLine;
+    switch (buddySide) {
+      case 0:
+        contactLine = corex::core::Line{
+          { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y },
+          { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y }
+        };
+        break;
+      case 1:
+        contactLine = corex::core::Line{
+          { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y },
+          { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y }
+        };
+        break;
+      case 2:
+        contactLine = corex::core::Line{
+          { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y },
+          { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y }
+        };
+        break;
+      case 3:
+        contactLine = corex::core::Line{
+          { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y },
+          { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y }
+        };
+        break;
+      default:
+        break;
+    }
 
-      corex::core::Point dynamicBuddyPos{
-        ((buddyMidptRelContactLine * lineWidthModifier)
-         + corex::core::vec2Perp(
-          corex::core::rotateVec2(
-            corex::core::Vec2{ 0.f, distContactToBuddyCenter },
-            contactLineAngle)))
-        + buddyMidptRelContactLineStart
-      };
+    auto contactLineVec = corex::core::lineToVec(contactLine);
+    const int32_t orientation = corex::core::generateRandomInt(
+      relOrientationDistrib);
+    float distContactToBuddyCenter = 0.f;
 
-      tempSolution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
-      tempSolution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
-      tempSolution.setBuildingRotation(dynamicBuddy, dynamicBuddyAngle);
-    } while (!this->isSolutionFeasible(tempSolution,
-                                       boundingArea,
-                                       inputBuildings));
+    // Length to add to both ends of the contact line vector to allow the
+    // edges in the dynamic buddy perpendicular to contact line to be in line
+    // with those edges parallel to it in the static buddy.
+    float extLength = 0.f;
+
+    float contactLineAngle = corex::core::vec2Angle(contactLineVec);
+    float dynamicBuddyAngle;
+    if (orientation == 0) {
+      // The dynamic buddy will be oriented parallel to the contact line, if
+      // width > length. Perpendicular, otherwise.
+      distContactToBuddyCenter = inputBuildings[dynamicBuddy].width / 2.f;
+      extLength = inputBuildings[dynamicBuddy].length / 2.f;
+      dynamicBuddyAngle = contactLineAngle;
+    } else if (orientation == 1) {
+      // The dynamic buddy will be oriented perpendicular to the contact line,
+      // if length > width. Parallel, otherwise.
+      distContactToBuddyCenter = inputBuildings[dynamicBuddy].length / 2.f;
+      extLength = inputBuildings[dynamicBuddy].width / 2.f;
+      dynamicBuddyAngle = contactLineAngle + 45.f;
+    }
+
+    // Adjust the distance of the dynamic buddy centroid to the contact line
+    // by a small amount to prevent intersection of buildings.
+    distContactToBuddyCenter += 0.0001f;
+
+    auto buddyMidptRelContactLine = corex::core::rotateVec2(
+      corex::core::Vec2{0.f, extLength * 2 }, contactLineAngle)
+                                    + contactLineVec;
+    auto buddyMidptRelContactLineStart = corex::core::rotateVec2(
+      corex::core::Vec2{ 0.f, -extLength }, contactLineAngle)
+                                         + contactLine.start;
+
+    const float lineWidthModifier = corex::core::generateRandomReal(
+      normalizedDistrib);
+
+    corex::core::Point dynamicBuddyPos{
+      ((buddyMidptRelContactLine * lineWidthModifier)
+       + corex::core::vec2Perp(
+        corex::core::rotateVec2(
+          corex::core::Vec2{ 0.f, distContactToBuddyCenter },
+          contactLineAngle)))
+      + buddyMidptRelContactLineStart
+    };
+
+    tempSolution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
+    tempSolution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
+    tempSolution.setBuildingAngle(dynamicBuddy, dynamicBuddyAngle);
     solution = tempSolution;
   }
 
@@ -918,20 +1048,13 @@ namespace bpt
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
-    Solution tempSolution = solution;
-    do {
-      float newXPos = corex::core::generateRandomReal(xPosDistribution);
-      float newYPos = corex::core::generateRandomReal(yPosDistribution);
-      float newRotation = corex::core::generateRandomReal(rotationDistribution);
+    float newXPos = corex::core::generateRandomReal(xPosDistribution);
+    float newYPos = corex::core::generateRandomReal(yPosDistribution);
+    float newRotation = corex::core::generateRandomReal(rotationDistribution);
 
-      tempSolution.setBuildingXPos(targetGeneIndex, newXPos);
-      tempSolution.setBuildingYPos(targetGeneIndex, newYPos);
-      tempSolution.setBuildingRotation(targetGeneIndex, newRotation);
-    } while (!this->isSolutionFeasible(tempSolution,
-                                       boundingArea,
-                                       inputBuildings));
-
-    solution = tempSolution;
+    solution.setBuildingXPos(targetGeneIndex, newXPos);
+    solution.setBuildingYPos(targetGeneIndex, newYPos);
+    solution.setBuildingAngle(targetGeneIndex, newRotation);
   }
 
   void GA::applyJiggleMutation(
@@ -939,138 +1062,129 @@ namespace bpt
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings)
   {
-    Solution tempSolution;
-    do {
-      tempSolution = solution;
+    constexpr int32_t numMovements = 8;
+    constexpr float maxShiftAmount = 1.f;
+    constexpr float maxRotShiftAmount = 5.f;
+    std::uniform_real_distribution<float> shiftDistrib{ 0, maxShiftAmount };
+    std::uniform_int_distribution<int32_t> buildingIndexDistrib{
+      0, static_cast<int32_t>(inputBuildings.size() - 1)
+    };
+    std::uniform_real_distribution<float> rotShiftDistrib{
+      -maxRotShiftAmount,
+      maxRotShiftAmount
+    };
+    static const
+    eastl::array<eastl::function<Solution(Solution, int32_t)>,
+      numMovements> jiggleFunctions = {
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
 
-      constexpr int32_t numMovements = 8;
-      constexpr float maxShiftAmount = 1.f;
-      constexpr float maxRotShiftAmount = 5.f;
-      std::uniform_real_distribution<float> shiftDistrib{ 0, maxShiftAmount };
-      std::uniform_int_distribution<int32_t> buildingIndexDistrib{
-        0, static_cast<int32_t>(inputBuildings.size() - 1)
-      };
-      std::uniform_real_distribution<float> rotShiftDistrib{
-        -maxRotShiftAmount,
-        maxRotShiftAmount
-      };
-      static const
-      eastl::array<eastl::function<Solution(Solution, int32_t)>,
-        numMovements> jiggleFunctions = {
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
-          solution.setBuildingXPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   + shiftAmount);
-          return solution;
-        },
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
-          solution.setBuildingXPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   - shiftAmount);
-          return solution;
-        },
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
 
-          // NOTE: The origin is on the top left corner.
-          solution.setBuildingYPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   - shiftAmount);
-          return solution;
-        },
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
 
-          // NOTE: The origin is on the top left corner.
-          solution.setBuildingYPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   + shiftAmount);
-          return solution;
-        },
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
-          float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
-          solution.setBuildingXPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   + shiftAmountA);
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 - shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
 
-          // NOTE: The origin is on the top left corner.
-          solution.setBuildingYPos(buildingIndex,
-                                   solution.getBuildingYPos(buildingIndex)
-                                   - shiftAmountB);
-          return solution;
-        },
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
-          float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
-          solution.setBuildingXPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   + shiftAmountA);
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 + shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmountA);
 
-          // NOTE: The origin is on the top left corner.
-          solution.setBuildingYPos(buildingIndex,
-                                   solution.getBuildingYPos(buildingIndex)
-                                   + shiftAmountB);
-          return solution;
-        },
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
-          float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
-          solution.setBuildingXPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   - shiftAmountA);
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 - shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
 
-          // NOTE: The origin is on the top left corner.
-          solution.setBuildingYPos(buildingIndex,
-                                   solution.getBuildingYPos(buildingIndex)
-                                   - shiftAmountB);
-          return solution;
-        },
-        [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
-        {
-          float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
-          float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
-          solution.setBuildingXPos(buildingIndex,
-                                   solution.getBuildingXPos(buildingIndex)
-                                   + shiftAmountA);
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 + shiftAmountB);
+        return solution;
+      }
+    };
+    std::uniform_int_distribution<int32_t> jiggleFuncDistrib{
+      0, static_cast<int32_t>(jiggleFunctions.size() - 1)
+    };
 
-          // NOTE: The origin is on the top left corner.
-          solution.setBuildingYPos(buildingIndex,
-                                   solution.getBuildingYPos(buildingIndex)
-                                   + shiftAmountB);
-          return solution;
-        }
-      };
-      std::uniform_int_distribution<int32_t> jiggleFuncDistrib{
-        0, static_cast<int32_t>(jiggleFunctions.size() - 1)
-      };
+    const int32_t targetBuildingIndex = corex::core::generateRandomInt(
+      buildingIndexDistrib);
+    const int32_t jiggleFuncIndex = corex::core::generateRandomInt(
+      jiggleFuncDistrib);
 
-      const int32_t targetBuildingIndex = corex::core::generateRandomInt(
-        buildingIndexDistrib);
-      const int32_t jiggleFuncIndex = corex::core::generateRandomInt(
-        jiggleFuncDistrib);
+    solution = jiggleFunctions[jiggleFuncIndex](solution,
+                                                targetBuildingIndex);
 
-      tempSolution = jiggleFunctions[jiggleFuncIndex](tempSolution,
-                                                      targetBuildingIndex);
-
-      const float rotDelta = corex::core::generateRandomReal(rotShiftDistrib);
-      const float newRot = tempSolution.getBuildingRotation(targetBuildingIndex)
-                           + rotDelta;
-      tempSolution.setBuildingRotation(targetBuildingIndex, newRot);
-    } while (!this->isSolutionFeasible(tempSolution,
-                                       boundingArea,
-                                       inputBuildings));
-
-    solution = tempSolution;
+    const float rotDelta = corex::core::generateRandomReal(rotShiftDistrib);
+    const float newRot = solution.getBuildingAngle(targetBuildingIndex)
+                         + rotDelta;
+    solution.setBuildingAngle(targetBuildingIndex, newRot);
   }
 
   bool GA::isSolutionFeasible(
@@ -1078,7 +1192,17 @@ namespace bpt
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings)
   {
-    IPROF_FUNC;
+    if (!this->doesSolutionHaveNoBuildingsOverlapping(solution,
+                                                      inputBuildings)) {
+      std::cout << "Buildings overlapping\n";
+    }
+
+    if (!this->areSolutionBuildingsWithinBounds(solution,
+                                                boundingArea,
+                                                inputBuildings)) {
+      std::cout << "Buildings not within bounds.\n";
+    }
+
     return this->doesSolutionHaveNoBuildingsOverlapping(solution,
                                                         inputBuildings)
            && this->areSolutionBuildingsWithinBounds(solution,
@@ -1100,7 +1224,7 @@ namespace bpt
         solution.getBuildingYPos(i),
         inputBuildings[i].width,
         inputBuildings[i].length,
-        solution.getBuildingRotation(i)
+        solution.getBuildingAngle(i)
       };
 
       for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
@@ -1113,7 +1237,7 @@ namespace bpt
           solution.getBuildingYPos(j),
           inputBuildings[j].width,
           inputBuildings[j].length,
-          solution.getBuildingRotation(j)
+          solution.getBuildingAngle(j)
         };
         if (corex::core::areTwoRectsIntersecting(building0, building1)) {
           return false;
@@ -1139,7 +1263,7 @@ namespace bpt
         solution.getBuildingYPos(i),
         inputBuildings[i].width,
         inputBuildings[i].length,
-        solution.getBuildingRotation(i)
+        solution.getBuildingAngle(i)
       };
 
       if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {

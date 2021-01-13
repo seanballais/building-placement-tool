@@ -65,10 +65,16 @@ namespace corex::core
   }
 
   float getRandomRealUniformly(float a, float b);
+  int32_t getRandomIntUniformly(int32_t a, int32_t b);
 
   float metersToPixels(float meters, float ppmRatio);
   float pixelsToMeters(float pixels, float ppmRatio);
   Point screenToWorldCoordinates(const Point&& point, Camera& camera);
+}
+
+namespace cx
+{
+  using namespace corex::core;
 }
 
 #endif

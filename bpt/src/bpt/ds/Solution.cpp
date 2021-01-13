@@ -40,7 +40,7 @@ namespace bpt
     this->genesAssignmentStatus[buildingIndex] = true;
   }
 
-  void Solution::setBuildingRotation(int32_t buildingIndex, float rotation)
+  void Solution::setBuildingAngle(int32_t buildingIndex, float rotation)
   {
     this->genes[(buildingIndex * 3) + 2] = rotation;
     this->genesAssignmentStatus[buildingIndex] = true;
@@ -79,7 +79,7 @@ namespace bpt
     return this->genes[(buildingIndex * 3) + 1];
   }
 
-  float Solution::getBuildingRotation(int32_t buildingIndex) const
+  float Solution::getBuildingAngle(int32_t buildingIndex) const
   {
     assert(this->isBuildingDataUsable(buildingIndex));
     return this->genes[(buildingIndex * 3) + 2];

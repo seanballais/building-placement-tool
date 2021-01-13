@@ -7,6 +7,7 @@
 #include <EASTL/vector.h>
 
 #include <corex/core/ds/NPolygon.hpp>
+#include <corex/core/utils.hpp>
 
 #include <bpt/SelectionType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
@@ -37,6 +38,7 @@ namespace bpt
     double getSolutionFitness(
       const Solution& solution,
       const eastl::vector<InputBuilding>& inputBuildings,
+      const corex::core::NPolygon& boundingArea,
       const eastl::vector<eastl::vector<float>>& flowRates,
       const eastl::vector<corex::core::NPolygon>& floodProneAreas,
       const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
@@ -88,7 +90,7 @@ namespace bpt
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<corex::core::Polygon<3>>& boundingAreaTriangles,
       const eastl::vector<float>& triangleAreas);
-    Solution crossoverSolutions(
+    eastl::vector<Solution> crossoverSolutions(
       const Solution& solutionA,
       const Solution& solutionB,
       const corex::core::NPolygon& boundingArea,
@@ -127,6 +129,17 @@ namespace bpt
       const Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
+
+    template <
+      typename RealType,
+      typename
+      std::enable_if<std::is_floating_point<RealType>::value, bool>::type = true
+    > RealType blendTwoValues(RealType a, RealType b)
+    {
+      RealType contribAmount = cx::getRandomRealUniformly(0, 1);
+      return (contribAmount * a) + ((1 - contribAmount) * b);
+    }
+
     int32_t currRunGenerationNumber;
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;

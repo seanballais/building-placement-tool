@@ -50,6 +50,11 @@ namespace corex::core
     return generateRandomReal(std::uniform_real_distribution{ a, b });
   }
 
+  int32_t getRandomIntUniformly(int32_t a, int32_t b)
+  {
+    return generateRandomInt(std::uniform_int_distribution{ a, b });
+  }
+
   float metersToPixels(float meters, float ppmRatio)
   {
     return meters * ppmRatio;

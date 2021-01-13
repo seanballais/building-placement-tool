@@ -282,7 +282,7 @@ namespace bpt
           this->currentSolution->getBuildingYPos(i),
           this->inputBuildings[i].width,
           this->inputBuildings[i].length,
-          this->currentSolution->getBuildingRotation(i),
+          this->currentSolution->getBuildingAngle(i),
           SDL_Color{0, 102, 51, 255},
           true);
 
@@ -316,6 +316,7 @@ namespace bpt
         this->geneticAlgo.getSolutionFitness(
           *(this->currentSolution),
           this->inputBuildings,
+          this->boundingArea,
           this->flowRates,
           this->floodProneAreas,
           this->landslideProneAreas,
@@ -1404,9 +1405,9 @@ namespace bpt
           this->hasSolutionBeenSetup = false;
         }
 
-        floatInputBuffer = this->currentSolution->getBuildingRotation(i);
+        floatInputBuffer = this->currentSolution->getBuildingAngle(i);
         if (ImGui::InputFloat(angleText, &floatInputBuffer)) {
-          this->currentSolution->setBuildingRotation(i, floatInputBuffer);
+          this->currentSolution->setBuildingAngle(i, floatInputBuffer);
           this->hasSolutionBeenSetup = false;
         }
       }
@@ -1754,7 +1755,7 @@ namespace bpt
     for (int32_t i = 0; i < this->solutions.back()[0].getNumBuildings(); i++) {
       resultsFile << this->solutions.back()[0].getBuildingXPos(i) << ","
                   << this->solutions.back()[0].getBuildingYPos(i) << ","
-                  << this->solutions.back()[0].getBuildingRotation(i) << "\n";
+                  << this->solutions.back()[0].getBuildingAngle(i) << "\n";
     }
 
     resultsFile.close();
