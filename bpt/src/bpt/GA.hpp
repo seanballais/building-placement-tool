@@ -10,7 +10,8 @@
 #include <corex/core/Timer.hpp>
 #include <corex/core/utils.hpp>
 
-#include <bpt/SelectionType.hpp>
+#include <bpt/ds/CrossoverType.hpp>
+#include <bpt/ds/SelectionType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
@@ -35,6 +36,7 @@ namespace bpt
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
       const bool isLocalSearchEnabled,
+      const CrossoverType crossoverType,
       const SelectionType selectionType);
     double getSolutionFitness(
       const Solution& solution,
@@ -72,6 +74,7 @@ namespace bpt
       const eastl::vector<Solution>& population,
       const int32_t& tournamentSize);
     void makeTwoParentsBreed(
+      const CrossoverType& crossoverType,
       const Solution& parentA,
       const Solution& parentB,
       eastl::vector<Solution>& offsprings,
@@ -93,6 +96,7 @@ namespace bpt
       const eastl::vector<corex::core::Polygon<3>>& boundingAreaTriangles,
       const eastl::vector<float>& triangleAreas);
     eastl::vector<Solution> crossoverSolutions(
+      const CrossoverType& type,
       const Solution& solutionA,
       const Solution& solutionB,
       const corex::core::NPolygon& boundingArea,
@@ -107,6 +111,16 @@ namespace bpt
     findFaultyGenes(Solution& solution,
                     const corex::core::NPolygon& boundingArea,
                     const eastl::vector<InputBuilding>& inputBuildings);
+    eastl::vector<Solution> performUniformCrossover(
+      const Solution& solutionA,
+      const Solution& solutionB,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
+    eastl::vector<Solution> performBoxCrossover(
+      const Solution& solutionA,
+      const Solution& solutionB,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
     void applyBuddyBuddyMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,

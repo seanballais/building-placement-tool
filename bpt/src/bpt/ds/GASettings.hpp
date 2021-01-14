@@ -3,7 +3,8 @@
 
 #include <cstdlib>
 
-#include <bpt/SelectionType.hpp>
+#include <bpt/ds/CrossoverType.hpp>
+#include <bpt/ds/SelectionType.hpp>
 
 namespace bpt
 {
@@ -18,6 +19,7 @@ namespace bpt
     float landslideProneAreaPenalty;
     float buildingDistanceWeight;
     bool isLocalSearchEnabled;
+    CrossoverType crossoverType;
     SelectionType selectionType;
   };
 }

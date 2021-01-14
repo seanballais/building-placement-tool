@@ -1,4 +1,4 @@
-#include <bpt/SelectionType.hpp>
+#include <bpt/ds/SelectionType.hpp>
 #include <bpt/utils.hpp>
 
 namespace bpt
@@ -12,6 +12,18 @@ namespace bpt
         return "Roulette Wheel";
       case SelectionType::TS:
         return "Tournament";
+    }
+  }
+
+  const char* castToCString(CrossoverType type)
+  {
+    switch (type) {
+      case CrossoverType::NONE:
+        return "None";
+      case CrossoverType::UNIFORM:
+        return "Uniform";
+      case CrossoverType::BOX:
+        return "Box";
     }
   }
 }

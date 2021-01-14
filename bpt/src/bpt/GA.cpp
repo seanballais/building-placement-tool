@@ -49,6 +49,7 @@ namespace bpt
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
     const bool isLocalSearchEnabled,
+    const CrossoverType crossoverType,
     const SelectionType selectionType)
   {
     assert(flowRates.size() == inputBuildings.size());
@@ -128,7 +129,8 @@ namespace bpt
         assert(parentB.getNumBuildings() != 0);
 
         // Breeding time.
-        this->makeTwoParentsBreed(parentA,
+        this->makeTwoParentsBreed(crossoverType,
+                                  parentA,
                                   parentB,
                                   newOffsprings,
                                   numOffsprings,
@@ -490,6 +492,7 @@ namespace bpt
   }
 
   void GA::makeTwoParentsBreed(
+    const CrossoverType& crossoverType,
     const Solution& parentA,
     const Solution& parentB,
     eastl::vector<Solution>& offsprings,
@@ -509,7 +512,8 @@ namespace bpt
     std::uniform_real_distribution<float> mutationChanceDistribution{
       0.f, 1.f
     };
-    auto children = this->crossoverSolutions(parentA,
+    auto children = this->crossoverSolutions(crossoverType,
+                                             parentA,
                                              parentB,
                                              boundingArea,
                                              inputBuildings);
@@ -720,34 +724,28 @@ namespace bpt
   }
 
   eastl::vector<Solution> GA::crossoverSolutions(
+    const CrossoverType& type,
     const Solution& solutionA,
     const Solution& solutionB,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings)
   {
     IPROF_FUNC;
-    int32_t numBuildings = solutionA.getNumBuildings();
+    assert(type != CrossoverType::NONE);
 
-    // Prevent unnecessary copying of the parents.
-    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
-    eastl::vector<Solution> children{ solutionA, solutionA };
-    // Perform Uniform Crossover.
-    for (Solution& child : children) {
-      IPROF("Crossover Main");
-      int32_t parentIndex = 0;
-      for (int32_t i = 0; i < numBuildings; i++) {
-        parentIndex = cx::getRandomIntUniformly(0, 1);
-        child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
-
-        parentIndex = cx::getRandomIntUniformly(0, 1);
-        child.setBuildingYPos(i, parents[parentIndex]->getBuildingYPos(i));
-
-        parentIndex = cx::getRandomIntUniformly(0, 1);
-        child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
-      }
+    switch (type) {
+      case CrossoverType::UNIFORM:
+        return this->performUniformCrossover(solutionA, solutionB,
+                                             boundingArea, inputBuildings);
+      case CrossoverType::BOX:
+        return this->performBoxCrossover(solutionA, solutionB,
+                                         boundingArea, inputBuildings);
+      default:
+        // TODO: Raise an error since we did not choose a crossover operator.
+        break;
     }
 
-    return children;
+    return {};
   }
 
   void GA::mutateSolution(Solution& solution,
@@ -861,6 +859,86 @@ namespace bpt
     }
 
     return faultyGenes;
+  }
+
+  eastl::vector<Solution> GA::performUniformCrossover(
+    const Solution& solutionA,
+    const Solution& solutionB,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    IPROF_FUNC;
+    int32_t numBuildings = solutionA.getNumBuildings();
+
+    // Prevent unnecessary copying of the parents.
+    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
+    eastl::vector<Solution> children{ solutionA, solutionA };
+    // Perform Uniform Crossover.
+    for (Solution& child : children) {
+      IPROF("Crossover Main");
+      int32_t parentIndex = 0;
+      for (int32_t i = 0; i < numBuildings; i++) {
+        parentIndex = cx::getRandomIntUniformly(0, 1);
+        child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
+
+        parentIndex = cx::getRandomIntUniformly(0, 1);
+        child.setBuildingYPos(i, parents[parentIndex]->getBuildingYPos(i));
+
+        parentIndex = cx::getRandomIntUniformly(0, 1);
+        child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
+      }
+    }
+
+    return children;
+  }
+
+  eastl::vector<Solution> GA::performBoxCrossover(
+    const Solution& solutionA,
+    const Solution& solutionB,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    IPROF_FUNC;
+    int32_t numBuildings = solutionA.getNumBuildings();
+
+    // Prevent unnecessary copying of the parents.
+    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
+    eastl::vector<Solution> children{ solutionA, solutionA };
+    // Perform Uniform Crossover.
+    for (Solution& child : children) {
+      IPROF("Crossover Main");
+      // Perform Box Crossover.
+      for (int32_t i = 0; i < numBuildings; i++) {
+        // Compute child's new x position.
+        float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
+                                     parents[1]->getBuildingXPos(i));
+        float upperXBound = std::max(parents[0]->getBuildingXPos(i),
+                                     parents[1]->getBuildingXPos(i));
+        child.setBuildingXPos(
+          i,
+          cx::getRandomRealUniformly(lowerXBound, upperXBound));
+
+        // Compute child's new y position.
+        float lowerYBound = std::min(parents[0]->getBuildingYPos(i),
+                                     parents[1]->getBuildingYPos(i));
+        float upperYBound = std::max(parents[0]->getBuildingYPos(i),
+                                     parents[1]->getBuildingYPos(i));
+        child.setBuildingYPos(
+          i,
+          cx::getRandomRealUniformly(lowerYBound, upperYBound));
+
+        // Compute child's new angle.
+        float lowerAngleBound = std::min(parents[0]->getBuildingAngle(i),
+                                         parents[1]->getBuildingAngle(i));
+        float upperAngleBound = std::max(parents[0]->getBuildingAngle(i),
+                                         parents[1]->getBuildingAngle(i));
+        child.setBuildingAngle(
+          i,
+          cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
+      }
+    }
+
+    return children;
   }
 
   void GA::applyBuddyBuddyMutation(

@@ -42,7 +42,8 @@
 #include <bpt/Context.hpp>
 #include <bpt/json_specializations.hpp>
 #include <bpt/MainScene.hpp>
-#include <bpt/SelectionType.hpp>
+#include <bpt/ds/CrossoverType.hpp>
+#include <bpt/ds/SelectionType.hpp>
 #include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Time.hpp>
@@ -65,6 +66,7 @@ namespace bpt
         5.f,
         1.0f,
         true,
+        CrossoverType::NONE,
         SelectionType::NONE
       })
     , currentSolution(nullptr)
@@ -241,6 +243,8 @@ namespace bpt
               gaSettingsJSON["buildingDistanceWeight"].get<float>();
             this->gaSettings.isLocalSearchEnabled =
               gaSettingsJSON["isLocalSearchEnabled"].get<bool>();
+            this->gaSettings.crossoverType =
+              gaSettingsJSON["crossoverType"].get<CrossoverType>();
             this->gaSettings.selectionType =
               gaSettingsJSON["selectionType"].get<SelectionType>();
 
@@ -721,6 +725,8 @@ namespace bpt
         this->gaSettings.buildingDistanceWeight;
       this->inputData["gaSettings"]["isLocalSearchEnabled"] =
         this->gaSettings.isLocalSearchEnabled;
+      this->inputData["gaSettings"]["crossoverType"] =
+        this->gaSettings.crossoverType;
       this->inputData["gaSettings"]["selectionType"] =
         this->gaSettings.selectionType;
 
@@ -1147,6 +1153,33 @@ namespace bpt
       ImGui::EndCombo();
     }
 
+    if (ImGui::BeginCombo("Crossover Type",
+                          castToCString(this->gaSettings.crossoverType))) {
+      // Gah. Let's hardcode the selection types for now. This is going
+      // to be ugly.
+      if (ImGui::Selectable(
+        "Uniform",
+        this->gaSettings.crossoverType == CrossoverType::UNIFORM)) {
+        this->gaSettings.crossoverType = CrossoverType::UNIFORM;
+
+        if (this->gaSettings.crossoverType == CrossoverType::UNIFORM) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      if (ImGui::Selectable(
+        "Box",
+        this->gaSettings.crossoverType == CrossoverType::BOX)) {
+        this->gaSettings.crossoverType = CrossoverType::BOX;
+
+        if (this->gaSettings.crossoverType == CrossoverType::BOX) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      ImGui::EndCombo();
+    }
+
     if (this->gaSettings.selectionType == SelectionType::TS) {
       ImGui::InputInt("Tournament Size",
                       &(this->gaSettings.tournamentSize));
@@ -1188,6 +1221,7 @@ namespace bpt
               this->gaSettings.landslideProneAreaPenalty,
               this->gaSettings.buildingDistanceWeight,
               this->gaSettings.isLocalSearchEnabled,
+              this->gaSettings.crossoverType,
               this->gaSettings.selectionType
             );
             this->currSelectedGen = this->gaSettings.numGenerations;
