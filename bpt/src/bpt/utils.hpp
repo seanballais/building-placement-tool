@@ -6,6 +6,8 @@
 namespace bpt
 {
   const char* castToCString(SelectionType type);
+
+
 }
 
 #endif

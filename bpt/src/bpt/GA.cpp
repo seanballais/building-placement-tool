@@ -30,7 +30,9 @@ namespace bpt
     : currRunGenerationNumber(-1)
     , recentRunAvgFitnesses()
     , recentRunBestFitnesses()
-    , recentRunWorstFitnesses() {}
+    , recentRunWorstFitnesses()
+    , runTimer()
+    , recentRunElapsedTime(0.0) {}
 
   eastl::vector<eastl::vector<Solution>> GA::generateSolutions(
     const eastl::vector<InputBuilding>& inputBuildings,
@@ -50,6 +52,8 @@ namespace bpt
     const SelectionType selectionType)
   {
     assert(flowRates.size() == inputBuildings.size());
+
+    this->runTimer.start();
 
     eastl::vector<eastl::vector<Solution>> solutions;
 
@@ -203,6 +207,9 @@ namespace bpt
 
     this->currRunGenerationNumber = -1;
 
+    this->recentRunElapsedTime = this->runTimer.getElapsedTime();
+    this->runTimer.stop();
+
     return solutions;
   }
 
@@ -340,6 +347,12 @@ namespace bpt
   eastl::vector<float> GA::getRecentRunWorstFitnesses()
   {
     return this->recentRunWorstFitnesses;
+  }
+
+  double GA::getRecentRunElapsedTime()
+  {
+    // We're gonna return in terms of seconds.
+    return this->recentRunElapsedTime;
   }
 
   eastl::vector<Solution>
@@ -713,9 +726,6 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings)
   {
     IPROF_FUNC;
-    std::uniform_int_distribution<int32_t> parentDistrib{ 0, 1 };
-    std::uniform_real_distribution<float> normalScaleDistrib{ 0.f, 1.f };
-    std::uniform_real_distribution<float> angleDistrib{ 0.f, 360.f };
     int32_t numBuildings = solutionA.getNumBuildings();
 
     // Prevent unnecessary copying of the parents.
@@ -723,6 +733,7 @@ namespace bpt
     eastl::vector<Solution> children{ solutionA, solutionA };
     // Perform Uniform Crossover.
     for (Solution& child : children) {
+      IPROF("Crossover Main");
       int32_t parentIndex = 0;
       for (int32_t i = 0; i < numBuildings; i++) {
         parentIndex = cx::getRandomIntUniformly(0, 1);
@@ -735,24 +746,6 @@ namespace bpt
         child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
       }
     }
-
-//    std::cout << "-------------\n";
-//    for (const auto& [ k, _ ] : this->findFaultyGenes(child, boundingArea,
-//                                                      inputBuildings)) {
-//      std::cout << k << ", ";
-//    }
-//    std::cout << "\n";
-
-//    if (!this->isSolutionFeasible(child, boundingArea, inputBuildings)) {
-//      std::cout << "######################\n";
-//      for (int32_t i = 0; i < child.getNumBuildings(); i++) {
-//        std::cout << "x: " << child.getBuildingXPos(i) << "\n"
-//                  << "y: " << child.getBuildingYPos(i) << "\n"
-//                  << "angle: " << child.getBuildingAngle(i) << "\n";
-//        std::cout << "*****************************\n";
-//      }
-//      std::cout << "######################\n";
-//    }
 
     return children;
   }

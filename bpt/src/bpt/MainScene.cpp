@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -44,6 +45,7 @@
 #include <bpt/SelectionType.hpp>
 #include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
+#include <bpt/ds/Time.hpp>
 
 namespace bpt
 {
@@ -1225,6 +1227,17 @@ namespace bpt
                 (this->currentSolution) ? this->currentSolution->getFitness()
                                         : 0.f);
 
+    double elapsedTime = this->geneticAlgo.getRecentRunElapsedTime();
+    int32_t hours = elapsedTime / 3600;
+
+    elapsedTime = fmod(elapsedTime, 3600.0);
+    int32_t minutes = elapsedTime / 60;
+
+    elapsedTime = fmod(elapsedTime, 60.0);
+    int32_t seconds = static_cast<int32_t>(elapsedTime);
+
+    ImGui::Text("Elapsed Time: %02d:%02d:%02d", hours, minutes, seconds);
+
     // Display combo box for selecting the generation and solution.
     if (ImGui::BeginCombo("Generation",
                           eastl::to_string(currSelectedGen).c_str())) {
@@ -1757,6 +1770,15 @@ namespace bpt
                   << this->solutions.back()[0].getBuildingYPos(i) << ","
                   << this->solutions.back()[0].getBuildingAngle(i) << "\n";
     }
+
+    Time elapsedTime{ this->geneticAlgo.getRecentRunElapsedTime() };
+
+    resultsFile << "\n";
+    resultsFile << "Run Elapsed Time: "
+                << std::setfill('0') << std::setw(2) << elapsedTime.hours << ":"
+                << std::setfill('0') << std::setw(2) << elapsedTime.minutes
+                << ":" << std::setfill('0') << std::setw(2)
+                << elapsedTime.seconds << "\n";
 
     resultsFile.close();
   }

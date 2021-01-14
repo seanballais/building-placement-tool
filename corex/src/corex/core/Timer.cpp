@@ -44,14 +44,14 @@ namespace corex::core
     this->start();
   }
 
-  double Timer::getElapsedTime()
+  double Timer::getElapsedTime() const
   {
     uint64_t timeNow = SDL_GetPerformanceCounter();
 
     // Get elapsed time in seconds. Code based from here:
     //   https://gamedev.stackexchange.com/a/110831/93942
     return static_cast<double>(
-      (timeNow - this->startTime)
+      static_cast<double>(timeNow - this->startTime)
       / static_cast<double>(SDL_GetPerformanceFrequency())
     );
   }

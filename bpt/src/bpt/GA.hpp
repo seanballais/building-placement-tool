@@ -7,6 +7,7 @@
 #include <EASTL/vector.h>
 
 #include <corex/core/ds/NPolygon.hpp>
+#include <corex/core/Timer.hpp>
 #include <corex/core/utils.hpp>
 
 #include <bpt/SelectionType.hpp>
@@ -49,6 +50,7 @@ namespace bpt
     eastl::vector<float> getRecentRunAverageFitnesses();
     eastl::vector<float> getRecentRunBestFitnesses();
     eastl::vector<float> getRecentRunWorstFitnesses();
+    double getRecentRunElapsedTime();
   private:
     eastl::vector<Solution> generateInitialPopulation(
       const int32_t populationSize,
@@ -144,6 +146,8 @@ namespace bpt
     eastl::vector<float> recentRunAvgFitnesses;
     eastl::vector<float> recentRunBestFitnesses;
     eastl::vector<float> recentRunWorstFitnesses;
+    cx::Timer runTimer;
+    double recentRunElapsedTime;
   };
 }
 

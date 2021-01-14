@@ -15,13 +15,18 @@ namespace corex::core
     void resume();
     void stop();
     void reset();
-    double getElapsedTime();
+    [[nodiscard]] double getElapsedTime() const;
 
   private:
     uint64_t startTime;
     bool isRunning;
     bool isStopped;
   };
+}
+
+namespace cx
+{
+  using namespace corex::core;
 }
 
 #endif
