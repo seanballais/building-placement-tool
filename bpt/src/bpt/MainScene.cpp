@@ -67,7 +67,8 @@ namespace bpt
         1.0f,
         true,
         CrossoverType::NONE,
-        SelectionType::NONE
+        SelectionType::NONE,
+        true
       })
     , currentSolution(nullptr)
     , solutions()
@@ -247,6 +248,8 @@ namespace bpt
               gaSettingsJSON["crossoverType"].get<CrossoverType>();
             this->gaSettings.selectionType =
               gaSettingsJSON["selectionType"].get<SelectionType>();
+            this->gaSettings.keepInfeasibleSolutions =
+              gaSettingsJSON["keepInfeasibleSolutions"].get<bool>();
 
             this->doesGASettingsFieldExist = true;
           }
@@ -729,6 +732,8 @@ namespace bpt
         this->gaSettings.crossoverType;
       this->inputData["gaSettings"]["selectionType"] =
         this->gaSettings.selectionType;
+      this->inputData["gaSettings"]["keepInfeasibleSolutions"] =
+        this->gaSettings.keepInfeasibleSolutions;
 
       this->inputData["floodProneAreas"] = nlohmann::json::array();
       for (corex::core::NPolygon& area : this->floodProneAreas) {
@@ -1188,6 +1193,9 @@ namespace bpt
     ImGui::Checkbox("Enable Local Search",
                     &(this->gaSettings.isLocalSearchEnabled));
 
+    ImGui::Checkbox("Keep Infeasible Solutions",
+                    &(this->gaSettings.keepInfeasibleSolutions));
+
     if (this->isGAThreadRunning) {
       ImGui::Text("Running GA... (Generation %d out of %d)",
                   this->geneticAlgo.getCurrentRunGenerationNumber() + 1,
@@ -1222,7 +1230,8 @@ namespace bpt
               this->gaSettings.buildingDistanceWeight,
               this->gaSettings.isLocalSearchEnabled,
               this->gaSettings.crossoverType,
-              this->gaSettings.selectionType
+              this->gaSettings.selectionType,
+              this->gaSettings.keepInfeasibleSolutions
             );
             this->currSelectedGen = this->gaSettings.numGenerations;
             this->currSelectedGenSolution = 0;

@@ -37,7 +37,8 @@ namespace bpt
       const float buildingDistanceWeight,
       const bool isLocalSearchEnabled,
       const CrossoverType crossoverType,
-      const SelectionType selectionType);
+      const SelectionType selectionType,
+      const bool& keepInfeasibleSolutions);
     double getSolutionFitness(
       const Solution& solution,
       const eastl::vector<InputBuilding>& inputBuildings,
@@ -88,7 +89,8 @@ namespace bpt
       const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
-      const float buildingDistanceWeight);
+      const float buildingDistanceWeight,
+      const bool& keepInfeasibleSolutions);
     Solution
     generateRandomSolution(
       const eastl::vector<InputBuilding>& inputBuildings,
@@ -100,13 +102,12 @@ namespace bpt
       const Solution& solutionA,
       const Solution& solutionB,
       const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings);
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const bool& keepInfeasibleSolutions);
     void mutateSolution(Solution& solution,
                         const corex::core::NPolygon& boundingArea,
-                        const eastl::vector<InputBuilding>& inputBuildings);
-    void repairSolution(Solution& solution,
-                        const corex::core::NPolygon& boundingArea,
-                        const eastl::vector<InputBuilding>& inputBuildings);
+                        const eastl::vector<InputBuilding>& inputBuildings,
+                        const bool& keepInfeasibleSolutions);
     eastl::unordered_map<int32_t, eastl::vector<int32_t>>
     findFaultyGenes(Solution& solution,
                     const corex::core::NPolygon& boundingArea,
@@ -115,26 +116,31 @@ namespace bpt
       const Solution& solutionA,
       const Solution& solutionB,
       const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings);
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const bool& keepInfeasibleSolutions);
     eastl::vector<Solution> performBoxCrossover(
       const Solution& solutionA,
       const Solution& solutionB,
       const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings);
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const bool& keepInfeasibleSolutions);
     void applyBuddyBuddyMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const int32_t staticBuildingIndex = -1,
-      const int32_t dynamicBuildingIndex = -1);
+      const int32_t dynamicBuildingIndex = -1,
+      const bool& keepInfeasibleSolutions = true);
     void applyShakingMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings);
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const bool& keepInfeasibleSolutions);
     void applyJiggleMutation(
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings);
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const bool& keepInfeasibleSolutions);
     bool isSolutionFeasible(const Solution& solution,
                             const corex::core::NPolygon& boundingArea,
                             const eastl::vector<InputBuilding>& inputBuildings);

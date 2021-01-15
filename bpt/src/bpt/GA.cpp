@@ -50,7 +50,8 @@ namespace bpt
     const float buildingDistanceWeight,
     const bool isLocalSearchEnabled,
     const CrossoverType crossoverType,
-    const SelectionType selectionType)
+    const SelectionType selectionType,
+    const bool& keepInfeasibleSolutions)
   {
     assert(flowRates.size() == inputBuildings.size());
 
@@ -143,7 +144,8 @@ namespace bpt
                                   landslideProneAreas,
                                   floodProneAreaPenalty,
                                   landslideProneAreaPenalty,
-                                  buildingDistanceWeight);
+                                  buildingDistanceWeight,
+                                  keepInfeasibleSolutions);
       }
 
       std::sort(
@@ -506,7 +508,8 @@ namespace bpt
     const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
-    const float buildingDistanceWeight)
+    const float buildingDistanceWeight,
+    const bool& keepInfeasibleSolutions)
   {
     IPROF_FUNC;
     std::uniform_real_distribution<float> mutationChanceDistribution{
@@ -516,7 +519,8 @@ namespace bpt
                                              parentA,
                                              parentB,
                                              boundingArea,
-                                             inputBuildings);
+                                             inputBuildings,
+                                             keepInfeasibleSolutions);
     children[0].setFitness(this->getSolutionFitness(
       children[0],
       inputBuildings,
@@ -546,7 +550,8 @@ namespace bpt
     if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
       this->mutateSolution(offsprings[numOffsprings],
                            boundingArea,
-                           inputBuildings);
+                           inputBuildings,
+                           keepInfeasibleSolutions);
       offsprings[numOffsprings].setFitness(this->getSolutionFitness(
         offsprings[numOffsprings],
         inputBuildings,
@@ -597,7 +602,8 @@ namespace bpt
         if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
           this->mutateSolution(offsprings[weakestSolutionIndex],
                                boundingArea,
-                               inputBuildings);
+                               inputBuildings,
+                               keepInfeasibleSolutions);
           offsprings[weakestSolutionIndex].setFitness(
             this->getSolutionFitness(
               offsprings[weakestSolutionIndex],
@@ -629,7 +635,8 @@ namespace bpt
       if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
         this->mutateSolution(offsprings[numOffsprings],
                              boundingArea,
-                             inputBuildings);
+                             inputBuildings,
+                             keepInfeasibleSolutions);
         offsprings[numOffsprings].setFitness(this->getSolutionFitness(
           offsprings[numOffsprings],
           inputBuildings,
@@ -653,35 +660,6 @@ namespace bpt
     const eastl::vector<cx::Polygon<3>>& boundingAreaTriangles,
     const eastl::vector<float>& triangleAreas)
   {
-    float minX = std::min_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.x < ptB.x;
-      }
-    )->x;
-    float maxX = std::max_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.x < ptB.x;
-      }
-    )->x;
-    float minY = std::min_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.y < ptB.y;
-      }
-    )->y;
-    float maxY = std::max_element(
-      boundingArea.vertices.begin(),
-      boundingArea.vertices.end(),
-      [](corex::core::Point ptA, corex::core::Point ptB) -> bool {
-        return ptA.y < ptB.y;
-      }
-    )->y;
-
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
@@ -728,7 +706,8 @@ namespace bpt
     const Solution& solutionA,
     const Solution& solutionB,
     const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
   {
     IPROF_FUNC;
     assert(type != CrossoverType::NONE);
@@ -736,10 +715,12 @@ namespace bpt
     switch (type) {
       case CrossoverType::UNIFORM:
         return this->performUniformCrossover(solutionA, solutionB,
-                                             boundingArea, inputBuildings);
+                                             boundingArea, inputBuildings,
+                                             keepInfeasibleSolutions);
       case CrossoverType::BOX:
         return this->performBoxCrossover(solutionA, solutionB,
-                                         boundingArea, inputBuildings);
+                                         boundingArea, inputBuildings,
+                                         keepInfeasibleSolutions);
       default:
         // TODO: Raise an error since we did not choose a crossover operator.
         break;
@@ -750,65 +731,61 @@ namespace bpt
 
   void GA::mutateSolution(Solution& solution,
                           const corex::core::NPolygon& boundingArea,
-                          const eastl::vector<InputBuilding>& inputBuildings)
+                          const eastl::vector<InputBuilding>& inputBuildings,
+                          const bool& keepInfeasibleSolutions)
   {
     IPROF_FUNC;
+    std::cout << "Mutah-teng. Hiyah!\n";
     eastl::array<eastl::function<void(Solution&,
                                  const corex::core::NPolygon&,
-                                 const eastl::vector<InputBuilding>&)>,
+                                 const eastl::vector<InputBuilding>&,
+                                 const bool&)>,
                  3> mutationFunctions = {
       [this](Solution& solution,
              const corex::core::NPolygon& boundingArea,
-             const eastl::vector<InputBuilding>& inputBuildings)
+             const eastl::vector<InputBuilding>& inputBuildings,
+             const bool& keepInfeasibleSolutions)
       {
-        this->applyBuddyBuddyMutation(solution, boundingArea, inputBuildings);
+        std::cout << "Run Buddy-Buddy Mutation.\n";
+        this->applyBuddyBuddyMutation(solution, boundingArea,
+                                      inputBuildings, -1, -1,
+                                      keepInfeasibleSolutions);
       },
       [this](Solution& solution,
              const corex::core::NPolygon& boundingArea,
-             const eastl::vector<InputBuilding>& inputBuildings)
+             const eastl::vector<InputBuilding>& inputBuildings,
+             const bool& keepInfeasibleSolutions)
       {
-        this->applyShakingMutation(solution, boundingArea, inputBuildings);
+        std::cout << "Run Shaking Mutation.\n";
+        this->applyShakingMutation(solution, boundingArea,
+                                   inputBuildings, keepInfeasibleSolutions);
       },
       [this](Solution& solution,
              const corex::core::NPolygon& boundingArea,
-             const eastl::vector<InputBuilding>& inputBuildings)
+             const eastl::vector<InputBuilding>& inputBuildings,
+             const bool& keepInfeasibleSolutions)
       {
-        this->applyJiggleMutation(solution, boundingArea, inputBuildings);
+        std::cout << "Run Jiggle Mutation.\n";
+        this->applyJiggleMutation(solution, boundingArea,
+                                  inputBuildings, keepInfeasibleSolutions);
       }
     };
 
-    std::uniform_int_distribution<const int32_t> numMutationsDistrib{
-      0, static_cast<int32_t>(mutationFunctions.size() - 1)
-    };
-    const int32_t mutationFuncIndex = corex::core::generateRandomInt(
-      numMutationsDistrib);
-    mutationFunctions[mutationFuncIndex](solution,
-                                         boundingArea,
-                                         inputBuildings);
-  }
+    Solution tempSolution;
+    do {
+      tempSolution = solution;
+      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+        0, static_cast<int32_t>(mutationFunctions.size() - 1));
+      mutationFunctions[mutationFuncIndex](tempSolution,
+                                           boundingArea,
+                                           inputBuildings,
+                                           keepInfeasibleSolutions);
+    } while (!keepInfeasibleSolutions
+             && !this->isSolutionFeasible(tempSolution, boundingArea,
+                                          inputBuildings));
 
-  void GA::repairSolution(Solution& solution,
-                          const corex::core::NPolygon& boundingArea,
-                          const eastl::vector<InputBuilding>& inputBuildings)
-  {
-    IPROF_FUNC;
-    auto faultyGenes = this->findFaultyGenes(solution,
-                                             boundingArea,
-                                             inputBuildings);
-    // Invalidate faulty genes first so that they won't have an effect on the
-    // solution's fitness during repair.
-    for (const auto& [ key, value ] : faultyGenes) {
-      solution.invalidateBuildingData(key);
-    }
-
-    for (const auto& [ key, value ] : faultyGenes) {
-      solution.validateBuildingData(key);
-      this->applyBuddyBuddyMutation(solution,
-                                    boundingArea,
-                                    inputBuildings,
-                                    -1,
-                                    key);
-    }
+    std::cout << "Mutating done.\n";
+    solution = tempSolution;
   }
 
   eastl::unordered_map<int32_t, eastl::vector<int32_t>>
@@ -865,7 +842,8 @@ namespace bpt
     const Solution& solutionA,
     const Solution& solutionB,
     const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
   {
     IPROF_FUNC;
     int32_t numBuildings = solutionA.getNumBuildings();
@@ -874,19 +852,24 @@ namespace bpt
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
     eastl::vector<Solution> children{ solutionA, solutionA };
     // Perform Uniform Crossover.
+    std::cout << "Crossovering Uniformly\n";
     for (Solution& child : children) {
-      IPROF("Crossover Main");
-      int32_t parentIndex = 0;
-      for (int32_t i = 0; i < numBuildings; i++) {
-        parentIndex = cx::getRandomIntUniformly(0, 1);
-        child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
+      do {
+        IPROF("Crossover Main");
+        int32_t parentIndex = 0;
+        for (int32_t i = 0; i < numBuildings; i++) {
+          parentIndex = cx::getRandomIntUniformly(0, 1);
+          child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
 
-        parentIndex = cx::getRandomIntUniformly(0, 1);
-        child.setBuildingYPos(i, parents[parentIndex]->getBuildingYPos(i));
+          parentIndex = cx::getRandomIntUniformly(0, 1);
+          child.setBuildingYPos(i, parents[parentIndex]->getBuildingYPos(i));
 
-        parentIndex = cx::getRandomIntUniformly(0, 1);
-        child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
-      }
+          parentIndex = cx::getRandomIntUniformly(0, 1);
+          child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
+        }
+      } while (!keepInfeasibleSolutions
+               && !this->isSolutionFeasible(child, boundingArea,
+                                            inputBuildings));
     }
 
     return children;
@@ -896,7 +879,8 @@ namespace bpt
     const Solution& solutionA,
     const Solution& solutionB,
     const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
   {
     IPROF_FUNC;
     int32_t numBuildings = solutionA.getNumBuildings();
@@ -904,38 +888,43 @@ namespace bpt
     // Prevent unnecessary copying of the parents.
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
     eastl::vector<Solution> children{ solutionA, solutionA };
-    // Perform Uniform Crossover.
+    // Perform Box Crossover.
+    std::cout << "Boxy doxy crossover, yeah!\n";
     for (Solution& child : children) {
-      IPROF("Crossover Main");
-      // Perform Box Crossover.
-      for (int32_t i = 0; i < numBuildings; i++) {
-        // Compute child's new x position.
-        float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
-                                     parents[1]->getBuildingXPos(i));
-        float upperXBound = std::max(parents[0]->getBuildingXPos(i),
-                                     parents[1]->getBuildingXPos(i));
-        child.setBuildingXPos(
-          i,
-          cx::getRandomRealUniformly(lowerXBound, upperXBound));
+      do {
+        IPROF("Crossover Main");
+        // Perform Box Crossover.
+        for (int32_t i = 0; i < numBuildings; i++) {
+          // Compute child's new x position.
+          float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
+                                       parents[1]->getBuildingXPos(i));
+          float upperXBound = std::max(parents[0]->getBuildingXPos(i),
+                                       parents[1]->getBuildingXPos(i));
+          child.setBuildingXPos(
+            i,
+            cx::getRandomRealUniformly(lowerXBound, upperXBound));
 
-        // Compute child's new y position.
-        float lowerYBound = std::min(parents[0]->getBuildingYPos(i),
-                                     parents[1]->getBuildingYPos(i));
-        float upperYBound = std::max(parents[0]->getBuildingYPos(i),
-                                     parents[1]->getBuildingYPos(i));
-        child.setBuildingYPos(
-          i,
-          cx::getRandomRealUniformly(lowerYBound, upperYBound));
+          // Compute child's new y position.
+          float lowerYBound = std::min(parents[0]->getBuildingYPos(i),
+                                       parents[1]->getBuildingYPos(i));
+          float upperYBound = std::max(parents[0]->getBuildingYPos(i),
+                                       parents[1]->getBuildingYPos(i));
+          child.setBuildingYPos(
+            i,
+            cx::getRandomRealUniformly(lowerYBound, upperYBound));
 
-        // Compute child's new angle.
-        float lowerAngleBound = std::min(parents[0]->getBuildingAngle(i),
-                                         parents[1]->getBuildingAngle(i));
-        float upperAngleBound = std::max(parents[0]->getBuildingAngle(i),
-                                         parents[1]->getBuildingAngle(i));
-        child.setBuildingAngle(
-          i,
-          cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
-      }
+          // Compute child's new angle.
+          float lowerAngleBound = std::min(parents[0]->getBuildingAngle(i),
+                                           parents[1]->getBuildingAngle(i));
+          float upperAngleBound = std::max(parents[0]->getBuildingAngle(i),
+                                           parents[1]->getBuildingAngle(i));
+          child.setBuildingAngle(
+            i,
+            cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
+        }
+      } while (!keepInfeasibleSolutions
+               && this->isSolutionFeasible(child, boundingArea,
+                                           inputBuildings));
     }
 
     return children;
@@ -946,7 +935,8 @@ namespace bpt
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const int32_t staticBuildingIndex,
-    const int32_t dynamicBuildingIndex)
+    const int32_t dynamicBuildingIndex,
+    const bool& keepInfeasibleSolutions)
   {
     IPROF_FUNC;
     std::uniform_int_distribution<int32_t> buildingDistrib{
@@ -955,9 +945,6 @@ namespace bpt
     std::uniform_int_distribution<int32_t> buddySideDistrib{ 0, 3 };
     std::uniform_int_distribution<int32_t> relOrientationDistrib{ 0, 1 };
     std::uniform_real_distribution<float> normalizedDistrib{ 0, 1 };
-
-    Solution tempSolution;
-    tempSolution = solution;
 
     // Let's just do the Buddy-Buddy Mutation for now.
     int32_t staticBuddy = 0;
@@ -1069,16 +1056,16 @@ namespace bpt
       + buddyMidptRelContactLineStart
     };
 
-    tempSolution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
-    tempSolution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
-    tempSolution.setBuildingAngle(dynamicBuddy, dynamicBuddyAngle);
-    solution = tempSolution;
+    solution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
+    solution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
+    solution.setBuildingAngle(dynamicBuddy, dynamicBuddyAngle);
   }
 
   void GA::applyShakingMutation(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
   {
     std::uniform_int_distribution<int32_t> geneDistribution{
       0, solution.getNumBuildings() - 1
@@ -1131,7 +1118,8 @@ namespace bpt
   void GA::applyJiggleMutation(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
   {
     constexpr int32_t numMovements = 8;
     constexpr float maxShiftAmount = 1.f;
@@ -1263,17 +1251,6 @@ namespace bpt
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings)
   {
-    if (!this->doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                      inputBuildings)) {
-      std::cout << "Buildings overlapping\n";
-    }
-
-    if (!this->areSolutionBuildingsWithinBounds(solution,
-                                                boundingArea,
-                                                inputBuildings)) {
-      std::cout << "Buildings not within bounds.\n";
-    }
-
     return this->doesSolutionHaveNoBuildingsOverlapping(solution,
                                                         inputBuildings)
            && this->areSolutionBuildingsWithinBounds(solution,

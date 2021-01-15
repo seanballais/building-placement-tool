@@ -21,6 +21,7 @@ namespace bpt
     bool isLocalSearchEnabled;
     CrossoverType crossoverType;
     SelectionType selectionType;
+    bool keepInfeasibleSolutions;
   };
 }
 
