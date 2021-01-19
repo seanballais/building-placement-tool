@@ -5,5 +5,6 @@ add_executable(bpt
     Application.cpp
     MainScene.cpp
     GA.cpp
+    evaluator.cpp
     ds/Solution.cpp
     ds/Time.cpp)

@@ -7,7 +7,6 @@
 
 #include <EASTL/array.h>
 #include <EASTL/functional.h>
-#include <EASTL/set.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
@@ -22,6 +21,7 @@
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
+#include <bpt/evaluator.hpp>
 #include <bpt/GA.hpp>
 
 namespace bpt
@@ -175,16 +175,15 @@ namespace bpt
 
       // Might add the local search feature in the future.
 
-      bestSolution.setFitness(this->getSolutionFitness(
-        bestSolution,
-        inputBuildings,
-        boundingArea,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty,
-        buildingDistanceWeight));
+      bestSolution.setFitness(computeSolutionFitness(bestSolution,
+                                                     inputBuildings,
+                                                     boundingArea,
+                                                     flowRates,
+                                                     floodProneAreas,
+                                                     landslideProneAreas,
+                                                     floodProneAreaPenalty,
+                                                     landslideProneAreaPenalty,
+                                                     buildingDistanceWeight));
 
       solutions.push_back(population);
 
@@ -215,122 +214,6 @@ namespace bpt
     this->runTimer.stop();
 
     return solutions;
-  }
-
-  double GA::getSolutionFitness(
-    const Solution& solution,
-    const eastl::vector<InputBuilding>& inputBuildings,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<eastl::vector<float>>& flowRates,
-    const eastl::vector<corex::core::NPolygon>& floodProneAreas,
-    const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
-    const float floodProneAreaPenalty,
-    const float landslideProneAreaPenalty,
-    const float buildingDistanceWeight)
-  {
-    double fitness = 0.0;
-
-    // Compute fitness for the inter-building distance part.
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      assert(flowRates[i].size() == solution.getNumBuildings());
-      for (int32_t j = 1; j < solution.getNumBuildings(); j++) {
-        if (i == j) {
-          continue;
-        }
-
-        fitness += static_cast<double>(
-          corex::core::distance2D(corex::core::Point{
-                                    solution.getBuildingXPos(i),
-                                    solution.getBuildingYPos(i)
-                                  },
-                                  corex::core::Point{
-                                    solution.getBuildingXPos(j),
-                                    solution.getBuildingYPos(j)
-                                  })
-          * flowRates[i][j]
-        );
-      }
-    }
-
-    fitness *= buildingDistanceWeight;
-
-    // Compute penalty for placing buildings in hazard areas.
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      corex::core::Rectangle building {
-        solution.getBuildingXPos(i),
-        solution.getBuildingYPos(i),
-        inputBuildings[i].width,
-        inputBuildings[i].length,
-        solution.getBuildingAngle(i)
-      };
-      // Compute penalty for placing a building in a flood-prone area.
-      for (const corex::core::NPolygon& area : floodProneAreas) {
-        if (corex::core::isRectIntersectingNPolygon(building, area)) {
-          fitness += floodProneAreaPenalty;
-        }
-      }
-
-      // Compute penalty for placing a building in a landslide-prone area.
-      for (const corex::core::NPolygon& area : landslideProneAreas) {
-        if (corex::core::isRectIntersectingNPolygon(building, area)) {
-          fitness += landslideProneAreaPenalty;
-        }
-      }
-    }
-
-    // Compute penalty for infeasible solutions.
-    if (!this->isSolutionFeasible(solution, boundingArea, inputBuildings)) {
-      for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-        if (!solution.isBuildingDataUsable(i)) {
-          continue;
-        }
-
-        corex::core::Rectangle building0 = corex::core::Rectangle{
-          solution.getBuildingXPos(i),
-          solution.getBuildingYPos(i),
-          inputBuildings[i].width,
-          inputBuildings[i].length,
-          solution.getBuildingAngle(i)
-        };
-
-        for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
-          if (!solution.isBuildingDataUsable(j)) {
-            continue;
-          }
-
-          corex::core::Rectangle building1 = corex::core::Rectangle{
-            solution.getBuildingXPos(j),
-            solution.getBuildingYPos(j),
-            inputBuildings[j].width,
-            inputBuildings[j].length,
-            solution.getBuildingAngle(j)
-          };
-          if (corex::core::areTwoRectsIntersecting(building0, building1)) {
-            fitness += 100000.0;
-          }
-        }
-      }
-
-      for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-        if (!solution.isBuildingDataUsable(i)) {
-          continue;
-        }
-
-        corex::core::Rectangle buildingRect = corex::core::Rectangle{
-          solution.getBuildingXPos(i),
-          solution.getBuildingYPos(i),
-          inputBuildings[i].width,
-          inputBuildings[i].length,
-          solution.getBuildingAngle(i)
-        };
-
-        if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
-          fitness += 200000.0;
-        }
-      }
-    }
-
-    return fitness;
   }
 
   int32_t GA::getCurrentRunGenerationNumber()
@@ -387,17 +270,15 @@ namespace bpt
                                                    boundingArea,
                                                    boundingAreaTriangles,
                                                    triangleAreas);
-      population[i].setFitness(
-        this->getSolutionFitness(
-          population[i],
-          inputBuildings,
-          boundingArea,
-          flowRates,
-          floodProneAreas,
-          landslideProneAreas,
-          floodProneAreaPenalty,
-          landslideProneAreaPenalty,
-          buildingDistanceWeight));
+      population[i].setFitness(computeSolutionFitness(population[i],
+                                                      inputBuildings,
+                                                      boundingArea,
+                                                      flowRates,
+                                                      floodProneAreas,
+                                                      landslideProneAreas,
+                                                      floodProneAreaPenalty,
+                                                      landslideProneAreaPenalty,
+                                                      buildingDistanceWeight));
     }
 
     return population;
@@ -521,26 +402,24 @@ namespace bpt
                                              boundingArea,
                                              inputBuildings,
                                              keepInfeasibleSolutions);
-    children[0].setFitness(this->getSolutionFitness(
-      children[0],
-      inputBuildings,
-      boundingArea,
-      flowRates,
-      floodProneAreas,
-      landslideProneAreas,
-      floodProneAreaPenalty,
-      landslideProneAreaPenalty,
-      buildingDistanceWeight));
-    children[1].setFitness(this->getSolutionFitness(
-      children[1],
-      inputBuildings,
-      boundingArea,
-      flowRates,
-      floodProneAreas,
-      landslideProneAreas,
-      floodProneAreaPenalty,
-      landslideProneAreaPenalty,
-      buildingDistanceWeight));
+    children[0].setFitness(computeSolutionFitness(children[0],
+                                                  inputBuildings,
+                                                  boundingArea,
+                                                  flowRates,
+                                                  floodProneAreas,
+                                                  landslideProneAreas,
+                                                  floodProneAreaPenalty,
+                                                  landslideProneAreaPenalty,
+                                                  buildingDistanceWeight));
+    children[1].setFitness(computeSolutionFitness(children[1],
+                                                  inputBuildings,
+                                                  boundingArea,
+                                                  flowRates,
+                                                  floodProneAreas,
+                                                  landslideProneAreas,
+                                                  floodProneAreaPenalty,
+                                                  landslideProneAreaPenalty,
+                                                  buildingDistanceWeight));
 
     offsprings[numOffsprings] = children[0];
 
@@ -552,7 +431,7 @@ namespace bpt
                            boundingArea,
                            inputBuildings,
                            keepInfeasibleSolutions);
-      offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+      offsprings[numOffsprings].setFitness(computeSolutionFitness(
         offsprings[numOffsprings],
         inputBuildings,
         boundingArea,
@@ -585,8 +464,25 @@ namespace bpt
         int32_t weakestSolutionIndex = std::distance(offsprings.begin(),
                                                      weakestSolutionIter);
         offsprings[weakestSolutionIndex] = children[1];
-        offsprings[weakestSolutionIndex].setFitness(
-          this->getSolutionFitness(
+        offsprings[weakestSolutionIndex].setFitness(computeSolutionFitness(
+          offsprings[weakestSolutionIndex],
+          inputBuildings,
+          boundingArea,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty,
+          buildingDistanceWeight));
+
+        float mutationProbability = corex::core::generateRandomReal(
+          mutationChanceDistribution);
+        if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
+          this->mutateSolution(offsprings[weakestSolutionIndex],
+                               boundingArea,
+                               inputBuildings,
+                               keepInfeasibleSolutions);
+          offsprings[weakestSolutionIndex].setFitness(computeSolutionFitness(
             offsprings[weakestSolutionIndex],
             inputBuildings,
             boundingArea,
@@ -596,30 +492,11 @@ namespace bpt
             floodProneAreaPenalty,
             landslideProneAreaPenalty,
             buildingDistanceWeight));
-
-        float mutationProbability = corex::core::generateRandomReal(
-          mutationChanceDistribution);
-        if (corex::core::floatLessThan(mutationProbability, mutationRate)) {
-          this->mutateSolution(offsprings[weakestSolutionIndex],
-                               boundingArea,
-                               inputBuildings,
-                               keepInfeasibleSolutions);
-          offsprings[weakestSolutionIndex].setFitness(
-            this->getSolutionFitness(
-              offsprings[weakestSolutionIndex],
-              inputBuildings,
-              boundingArea,
-              flowRates,
-              floodProneAreas,
-              landslideProneAreas,
-              floodProneAreaPenalty,
-              landslideProneAreaPenalty,
-              buildingDistanceWeight));
         }
       }
     } else {
       offsprings[numOffsprings] = children[1];
-      offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+      offsprings[numOffsprings].setFitness(computeSolutionFitness(
         offsprings[numOffsprings],
         inputBuildings,
         boundingArea,
@@ -637,7 +514,7 @@ namespace bpt
                              boundingArea,
                              inputBuildings,
                              keepInfeasibleSolutions);
-        offsprings[numOffsprings].setFitness(this->getSolutionFitness(
+        offsprings[numOffsprings].setFitness(computeSolutionFitness(
           offsprings[numOffsprings],
           inputBuildings,
           boundingArea,
@@ -692,11 +569,10 @@ namespace bpt
           solution.setBuildingYPos(i, buildingPos.y);
           solution.setBuildingAngle(i, buildingRotation);
         } while (!isRectWithinNPolygon(buildingRect, boundingArea)
-                 || !this->doesSolutionHaveNoBuildingsOverlapping(
-                      solution,
-                      inputBuildings));
+                 || !doesSolutionHaveNoBuildingsOverlapping(solution,
+                                                            inputBuildings));
       }
-    } while (!this->isSolutionFeasible(solution, boundingArea, inputBuildings));
+    } while (!isSolutionFeasible(solution, boundingArea, inputBuildings));
 
     return solution;
   }
@@ -781,8 +657,8 @@ namespace bpt
                                            inputBuildings,
                                            keepInfeasibleSolutions);
     } while (!keepInfeasibleSolutions
-             && !this->isSolutionFeasible(tempSolution, boundingArea,
-                                          inputBuildings));
+             && !isSolutionFeasible(tempSolution, boundingArea,
+                                    inputBuildings));
 
     std::cout << "Mutating done.\n";
     solution = tempSolution;
@@ -868,8 +744,7 @@ namespace bpt
           child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
         }
       } while (!keepInfeasibleSolutions
-               && !this->isSolutionFeasible(child, boundingArea,
-                                            inputBuildings));
+               && !isSolutionFeasible(child, boundingArea, inputBuildings));
     }
 
     return children;
@@ -923,8 +798,7 @@ namespace bpt
             cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
         }
       } while (!keepInfeasibleSolutions
-               && this->isSolutionFeasible(child, boundingArea,
-                                           inputBuildings));
+               && !isSolutionFeasible(child, boundingArea, inputBuildings));
     }
 
     return children;
@@ -1244,81 +1118,5 @@ namespace bpt
     const float newRot = solution.getBuildingAngle(targetBuildingIndex)
                          + rotDelta;
     solution.setBuildingAngle(targetBuildingIndex, newRot);
-  }
-
-  bool GA::isSolutionFeasible(
-    const Solution& solution,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
-  {
-    return this->doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                        inputBuildings)
-           && this->areSolutionBuildingsWithinBounds(solution,
-                                                     boundingArea,
-                                                     inputBuildings);
-  }
-
-  bool GA::doesSolutionHaveNoBuildingsOverlapping(
-    const Solution& solution,
-    const eastl::vector<InputBuilding>& inputBuildings)
-  {
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      if (!solution.isBuildingDataUsable(i)) {
-        continue;
-      }
-
-      corex::core::Rectangle building0 = corex::core::Rectangle{
-        solution.getBuildingXPos(i),
-        solution.getBuildingYPos(i),
-        inputBuildings[i].width,
-        inputBuildings[i].length,
-        solution.getBuildingAngle(i)
-      };
-
-      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
-        if (!solution.isBuildingDataUsable(j)) {
-          continue;
-        }
-
-        corex::core::Rectangle building1 = corex::core::Rectangle{
-          solution.getBuildingXPos(j),
-          solution.getBuildingYPos(j),
-          inputBuildings[j].width,
-          inputBuildings[j].length,
-          solution.getBuildingAngle(j)
-        };
-        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
-  bool GA::areSolutionBuildingsWithinBounds(
-    const Solution& solution,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings)
-  {
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      if (!solution.isBuildingDataUsable(i)) {
-        continue;
-      }
-
-      corex::core::Rectangle buildingRect = corex::core::Rectangle{
-        solution.getBuildingXPos(i),
-        solution.getBuildingYPos(i),
-        inputBuildings[i].width,
-        inputBuildings[i].length,
-        solution.getBuildingAngle(i)
-      };
-
-      if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
-        return false;
-      }
-    }
-
-    return true;
   }
 }

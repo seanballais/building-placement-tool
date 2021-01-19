@@ -39,16 +39,6 @@ namespace bpt
       const CrossoverType crossoverType,
       const SelectionType selectionType,
       const bool& keepInfeasibleSolutions);
-    double getSolutionFitness(
-      const Solution& solution,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<eastl::vector<float>>& flowRates,
-      const eastl::vector<corex::core::NPolygon>& floodProneAreas,
-      const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
-      const float floodProneAreaPenalty,
-      const float landslideProneAreaPenalty,
-      const float buildingDistanceWeight);
     int32_t getCurrentRunGenerationNumber();
     eastl::vector<float> getRecentRunAverageFitnesses();
     eastl::vector<float> getRecentRunBestFitnesses();
@@ -141,16 +131,6 @@ namespace bpt
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);
-    bool isSolutionFeasible(const Solution& solution,
-                            const corex::core::NPolygon& boundingArea,
-                            const eastl::vector<InputBuilding>& inputBuildings);
-    bool doesSolutionHaveNoBuildingsOverlapping(
-      const Solution& solution,
-      const eastl::vector<InputBuilding>& inputBuildings);
-    bool areSolutionBuildingsWithinBounds(
-      const Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings);
 
     template <
       typename RealType,

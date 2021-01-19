@@ -40,11 +40,12 @@
 #include <corex/core/systems/MouseButtonType.hpp>
 
 #include <bpt/Context.hpp>
+#include <bpt/evaluator.hpp>
 #include <bpt/json_specializations.hpp>
 #include <bpt/MainScene.hpp>
+#include <bpt/utils.hpp>
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/SelectionType.hpp>
-#include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Time.hpp>
 
@@ -321,17 +322,16 @@ namespace bpt
         this->buildingTextEntities.push_back(e);
       }
 
-      this->currentSolution->setFitness(
-        this->geneticAlgo.getSolutionFitness(
-          *(this->currentSolution),
-          this->inputBuildings,
-          this->boundingArea,
-          this->flowRates,
-          this->floodProneAreas,
-          this->landslideProneAreas,
-          this->gaSettings.floodProneAreaPenalty,
-          this->gaSettings.landslideProneAreaPenalty,
-          this->gaSettings.buildingDistanceWeight));
+      this->currentSolution->setFitness(computeSolutionFitness(
+        *(this->currentSolution),
+        this->inputBuildings,
+        this->boundingArea,
+        this->flowRates,
+        this->floodProneAreas,
+        this->landslideProneAreas,
+        this->gaSettings.floodProneAreaPenalty,
+        this->gaSettings.landslideProneAreaPenalty,
+        this->gaSettings.buildingDistanceWeight));
 
       this->hasSolutionBeenSetup = true;
     }
@@ -1782,7 +1782,17 @@ namespace bpt
                 << "\n"
                 << "No. of Generations:," << this->gaSettings.numGenerations
                 << "\n"
-                << "Tournament Size:," << this->gaSettings.tournamentSize
+                << "Selection Type:,"
+                << castToCString(this->gaSettings.selectionType)
+                << "\n";
+
+    if (this->gaSettings.selectionType == SelectionType::TS) {
+      resultsFile << "Tournament Size:," << this->gaSettings.tournamentSize
+                  << "\n";
+    }
+
+    resultsFile << "Crossover Type:,"
+                << castToCString(this->gaSettings.crossoverType)
                 << "\n"
                 << "Flood Penalty:," << this->gaSettings.floodProneAreaPenalty
                 << "\n"
@@ -1795,6 +1805,9 @@ namespace bpt
                 << "Local Search:,"
                 << ((this->gaSettings.isLocalSearchEnabled) ? "Enabled"
                                                             : "Disabled")
+                << "\n"
+                << "Keep Infeasible Solutions:,"
+                << ((this->gaSettings.keepInfeasibleSolutions) ? "Yes" : "No")
                 << "\n";
 
     resultsFile << "\n";
@@ -1821,7 +1834,8 @@ namespace bpt
                 << std::setfill('0') << std::setw(2) << elapsedTime.hours << ":"
                 << std::setfill('0') << std::setw(2) << elapsedTime.minutes
                 << ":" << std::setfill('0') << std::setw(2)
-                << elapsedTime.seconds << "\n";
+                << elapsedTime.seconds
+                << "\n";
 
     resultsFile.close();
   }
