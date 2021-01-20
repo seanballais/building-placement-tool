@@ -23,6 +23,7 @@
 
 #include <bpt/evaluator.hpp>
 #include <bpt/GA.hpp>
+#include <bpt/GD.hpp>
 
 namespace bpt
 {
@@ -32,7 +33,8 @@ namespace bpt
     , recentRunBestFitnesses()
     , recentRunWorstFitnesses()
     , runTimer()
-    , recentRunElapsedTime(0.0) {}
+    , recentRunElapsedTime(0.0)
+    , greatDeluge() {}
 
   eastl::vector<eastl::vector<Solution>> GA::generateSolutions(
     const eastl::vector<InputBuilding>& inputBuildings,
@@ -206,6 +208,29 @@ namespace bpt
       InternalProfiler::aggregateEntries();
       std::cout << "The latest internal profiler stats:\n"
                 << InternalProfiler::stats << std::endl;
+    }
+
+    if (isLocalSearchEnabled) {
+      bestSolution = this->greatDeluge.generateSolution(
+        bestSolution,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        900,
+        buildingDistanceWeight,
+        0,
+        100000.f,
+        300000.f,
+        0.000000005,
+        1,
+        3,
+        false);
+
+      solutions.push_back({ bestSolution });
     }
 
     this->currRunGenerationNumber = -1;

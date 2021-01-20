@@ -47,7 +47,12 @@ namespace corex::core
 
   float getRandomRealUniformly(float a, float b)
   {
-    return generateRandomReal(std::uniform_real_distribution{ a, b });
+    return generateRandomReal(std::uniform_real_distribution<float>{ a, b });
+  }
+
+  double getRandomRealUniformly(double a, double b)
+  {
+    return generateRandomReal(std::uniform_real_distribution<double>{ a, b });
   }
 
   int32_t getRandomIntUniformly(int32_t a, int32_t b)

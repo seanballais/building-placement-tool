@@ -15,6 +15,8 @@
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
+#include <bpt/GD.hpp>
+
 namespace bpt
 {
   class GA
@@ -138,7 +140,8 @@ namespace bpt
       std::enable_if<std::is_floating_point<RealType>::value, bool>::type = true
     > RealType blendTwoValues(RealType a, RealType b)
     {
-      RealType contribAmount = cx::getRandomRealUniformly(0, 1);
+      RealType contribAmount = cx::getRandomRealUniformly(
+        static_cast<RealType>(0), static_cast<RealType>(1));
       return (contribAmount * a) + ((1 - contribAmount) * b);
     }
 
@@ -148,6 +151,7 @@ namespace bpt
     eastl::vector<float> recentRunWorstFitnesses;
     cx::Timer runTimer;
     double recentRunElapsedTime;
+    GD greatDeluge;
   };
 }
 
