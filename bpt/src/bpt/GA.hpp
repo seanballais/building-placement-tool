@@ -15,7 +15,7 @@
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
-#include <bpt/GD.hpp>
+#include <bpt/HC.hpp>
 
 namespace bpt
 {
@@ -40,6 +40,7 @@ namespace bpt
       const bool isLocalSearchEnabled,
       const CrossoverType crossoverType,
       const SelectionType selectionType,
+      const double timeLimit,
       const bool& keepInfeasibleSolutions);
     int32_t getCurrentRunGenerationNumber();
     eastl::vector<float> getRecentRunAverageFitnesses();
@@ -151,7 +152,7 @@ namespace bpt
     eastl::vector<float> recentRunWorstFitnesses;
     cx::Timer runTimer;
     double recentRunElapsedTime;
-    GD greatDeluge;
+    HC hillClimbing;
   };
 }
 

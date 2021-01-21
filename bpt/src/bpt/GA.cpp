@@ -34,7 +34,7 @@ namespace bpt
     , recentRunWorstFitnesses()
     , runTimer()
     , recentRunElapsedTime(0.0)
-    , greatDeluge() {}
+    , hillClimbing() {}
 
   eastl::vector<eastl::vector<Solution>> GA::generateSolutions(
     const eastl::vector<InputBuilding>& inputBuildings,
@@ -53,6 +53,7 @@ namespace bpt
     const bool isLocalSearchEnabled,
     const CrossoverType crossoverType,
     const SelectionType selectionType,
+    const double timeLimit,
     const bool& keepInfeasibleSolutions)
   {
     assert(flowRates.size() == inputBuildings.size());
@@ -211,7 +212,7 @@ namespace bpt
     }
 
     if (isLocalSearchEnabled) {
-      bestSolution = this->greatDeluge.generateSolution(
+      bestSolution = this->hillClimbing.generateSolution(
         bestSolution,
         inputBuildings,
         boundingArea,
@@ -220,15 +221,8 @@ namespace bpt
         landslideProneAreas,
         floodProneAreaPenalty,
         landslideProneAreaPenalty,
-        900,
         buildingDistanceWeight,
-        0,
-        100000.f,
-        300000.f,
-        0.000000005,
-        1,
-        3,
-        false);
+        timeLimit);
 
       solutions.push_back({ bestSolution });
     }

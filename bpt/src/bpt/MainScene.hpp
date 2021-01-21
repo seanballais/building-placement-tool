@@ -24,6 +24,7 @@
 #include <bpt/GA.hpp>
 #include <bpt/ds/GASettings.hpp>
 #include <bpt/ds/InputBuilding.hpp>
+#include <bpt/ds/LSSettings.hpp>
 #include <bpt/ds/Solution.hpp>
 
 namespace bpt
@@ -61,6 +62,7 @@ namespace bpt
     Context currentContext;
     GA geneticAlgo;
     GASettings gaSettings;
+    LSSettings lsSettings;
     Solution* currentSolution;
     eastl::vector<eastl::vector<Solution>> solutions;
     std::atomic<bool> isGAThreadRunning;

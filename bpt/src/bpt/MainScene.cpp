@@ -71,6 +71,9 @@ namespace bpt
         SelectionType::NONE,
         true
       })
+    , lsSettings({
+        0.0
+      })
     , currentSolution(nullptr)
     , solutions()
     , isGAThreadRunning(false)
@@ -253,6 +256,12 @@ namespace bpt
               gaSettingsJSON["keepInfeasibleSolutions"].get<bool>();
 
             this->doesGASettingsFieldExist = true;
+          }
+
+          if (this->inputData.contains("lsSettings")) {
+            nlohmann::json lsSettingsJSON = this->inputData["lsSettings"];
+            this->lsSettings.timeLimit =
+              lsSettingsJSON["timeLimit"].get<double>();
           }
         }
       }
@@ -735,6 +744,9 @@ namespace bpt
       this->inputData["gaSettings"]["keepInfeasibleSolutions"] =
         this->gaSettings.keepInfeasibleSolutions;
 
+      this->inputData["lsSettings"] = nlohmann::json::object();
+      this->inputData["lsSettings"]["timeLimit"] = this->lsSettings.timeLimit;
+
       this->inputData["floodProneAreas"] = nlohmann::json::array();
       for (corex::core::NPolygon& area : this->floodProneAreas) {
         nlohmann::json areaVertices = nlohmann::json::array();
@@ -1158,6 +1170,11 @@ namespace bpt
       ImGui::EndCombo();
     }
 
+    if (this->gaSettings.selectionType == SelectionType::TS) {
+      ImGui::InputInt("Tournament Size",
+                      &(this->gaSettings.tournamentSize));
+    }
+
     if (ImGui::BeginCombo("Crossover Type",
                           castToCString(this->gaSettings.crossoverType))) {
       // Gah. Let's hardcode the selection types for now. This is going
@@ -1185,13 +1202,27 @@ namespace bpt
       ImGui::EndCombo();
     }
 
-    if (this->gaSettings.selectionType == SelectionType::TS) {
-      ImGui::InputInt("Tournament Size",
-                      &(this->gaSettings.tournamentSize));
-    }
-
     ImGui::Checkbox("Enable Local Search",
                     &(this->gaSettings.isLocalSearchEnabled));
+
+    if (this->gaSettings.isLocalSearchEnabled) {
+      static Time timeLimit(this->lsSettings.timeLimit);
+      static int32_t timeData[3] = {
+        timeLimit.hours,
+        timeLimit.minutes,
+        timeLimit.seconds
+      };
+      std::cout << timeLimit.seconds << std::endl;
+      if (ImGui::InputInt3("Time Limit (hh:mm:ss)", timeData)) {
+        timeData[0] = std::min(std::max(0, timeData[0]), 59);
+        timeData[1] = std::min(std::max(0, timeData[1]), 59);
+        timeData[2] = std::min(std::max(0, timeData[2]), 59);
+
+        this->lsSettings.timeLimit = timeData[2]
+          + (timeData[1] * 60)
+          + (timeData[0] * 3600);
+      }
+    }
 
     ImGui::Checkbox("Keep Infeasible Solutions",
                     &(this->gaSettings.keepInfeasibleSolutions));
@@ -1231,6 +1262,7 @@ namespace bpt
               this->gaSettings.isLocalSearchEnabled,
               this->gaSettings.crossoverType,
               this->gaSettings.selectionType,
+              this->lsSettings.timeLimit,
               this->gaSettings.keepInfeasibleSolutions
             );
             this->currSelectedGen = this->gaSettings.numGenerations;
