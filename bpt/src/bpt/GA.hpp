@@ -84,12 +84,6 @@ namespace bpt
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
       const bool& keepInfeasibleSolutions);
-    Solution
-    generateRandomSolution(
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<corex::core::Polygon<3>>& boundingAreaTriangles,
-      const eastl::vector<float>& triangleAreas);
     eastl::vector<Solution> crossoverSolutions(
       const CrossoverType& type,
       const Solution& solutionA,

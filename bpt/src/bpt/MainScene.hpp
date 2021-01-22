@@ -22,6 +22,7 @@
 
 #include <bpt/Context.hpp>
 #include <bpt/GA.hpp>
+#include <bpt/HC.hpp>
 #include <bpt/ds/GASettings.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/LSSettings.hpp>
@@ -47,8 +48,8 @@ namespace bpt
     void buildWarningWindow();
     void buildInputBuildingsWindow();
     void buildFlowRateWindow();
-    void buildGAControlsWindow();
-    void buildGAResultsWindow();
+    void buildAlgorithmControlsWindow();
+    void buildAlgorithmResultsWindow();
     void buildDebugSolutionWindow();
     void handleGATimelinePlayback(float timeDelta);
     void handleWindowEvents(const corex::core::WindowEvent& e);
@@ -61,6 +62,7 @@ namespace bpt
 
     Context currentContext;
     GA geneticAlgo;
+    HC hillClimbingAlgo;
     GASettings gaSettings;
     LSSettings lsSettings;
     Solution* currentSolution;
@@ -79,6 +81,7 @@ namespace bpt
     bool showGAResultsWorst;
     bool needUpdateBuildingRenderMode;
     bool isGATimelinePlaying;
+    bool isLocalSearchOnly;
     float cameraMovementSpeed;
     float timeDelta;
     int32_t currSelectedGen;

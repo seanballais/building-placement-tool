@@ -57,6 +57,7 @@ namespace bpt
                        corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
+    , hillClimbingAlgo()
     , gaSettings({
         0.25f,
         25,
@@ -90,6 +91,7 @@ namespace bpt
     , showGAResultsWorst(true)
     , needUpdateBuildingRenderMode(false)
     , isGATimelinePlaying(false)
+    , isLocalSearchOnly(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
@@ -684,8 +686,8 @@ namespace bpt
     this->buildInputBuildingsWindow();
     this->buildHazardsWindow();
     this->buildFlowRateWindow();
-    this->buildGAControlsWindow();
-    this->buildGAResultsWindow();
+    this->buildAlgorithmControlsWindow();
+    this->buildAlgorithmResultsWindow();
     this->buildDebugSolutionWindow();
   }
 
@@ -1126,10 +1128,10 @@ namespace bpt
     ImGui::End();
   }
 
-  void MainScene::buildGAControlsWindow()
+  void MainScene::buildAlgorithmControlsWindow()
   {
-    ImGui::Begin("GA Controls");
-    ImGui::BeginChild("GA Controls List");
+    ImGui::Begin("Algorithm Controls");
+    ImGui::BeginChild("Algorithms Controls List");
 
     ImGui::InputFloat("Mutation Rate", &(this->gaSettings.mutationRate));
     ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
@@ -1202,10 +1204,15 @@ namespace bpt
       ImGui::EndCombo();
     }
 
-    ImGui::Checkbox("Enable Local Search",
-                    &(this->gaSettings.isLocalSearchEnabled));
+    ImGui::Checkbox("Run Local Search Only", &(this->isLocalSearchOnly));
 
-    if (this->gaSettings.isLocalSearchEnabled) {
+    if (!this->isLocalSearchOnly) {
+      ImGui::Checkbox("Enable Local Search",
+                      &(this->gaSettings.isLocalSearchEnabled));
+    }
+
+    if (this->gaSettings.isLocalSearchEnabled
+        || this->isLocalSearchOnly) {
       static Time timeLimit(this->lsSettings.timeLimit);
       static int32_t timeData[3] = {
         timeLimit.hours,
@@ -1245,39 +1252,52 @@ namespace bpt
             auto floodProneAreasCopy = this->floodProneAreas;
             auto landslideProneAreasCopy = this->landslideProneAreas;
 
-            this->solutions = this->geneticAlgo.generateSolutions(
-              inputBuildingsCopy,
-              boundingAreaCopy,
-              flowRatesCopy,
-              floodProneAreasCopy,
-              landslideProneAreasCopy,
-              this->gaSettings.mutationRate,
-              this->gaSettings.populationSize,
-              this->gaSettings.numGenerations,
-              this->gaSettings.tournamentSize,
-              this->gaSettings.numPrevGenOffsprings,
-              this->gaSettings.floodProneAreaPenalty,
-              this->gaSettings.landslideProneAreaPenalty,
-              this->gaSettings.buildingDistanceWeight,
-              this->gaSettings.isLocalSearchEnabled,
-              this->gaSettings.crossoverType,
-              this->gaSettings.selectionType,
-              this->lsSettings.timeLimit,
-              this->gaSettings.keepInfeasibleSolutions
-            );
-            this->currSelectedGen = this->gaSettings.numGenerations;
+            if (this->isLocalSearchOnly) {
+              // TODO: Store fitnesses of each iteration of the local search.
+              this->solutions = this->hillClimbingAlgo.generateSolution(
+                inputBuildingsCopy,
+                boundingAreaCopy,
+                flowRatesCopy,
+                floodProneAreasCopy,
+                landslideProneAreasCopy,
+                this->gaSettings.floodProneAreaPenalty,
+                this->gaSettings.landslideProneAreaPenalty,
+                this->gaSettings.buildingDistanceWeight,
+                this->lsSettings.timeLimit
+              );
+            } else {
+              this->solutions = this->geneticAlgo.generateSolutions(
+                inputBuildingsCopy,
+                boundingAreaCopy,
+                flowRatesCopy,
+                floodProneAreasCopy,
+                landslideProneAreasCopy,
+                this->gaSettings.mutationRate,
+                this->gaSettings.populationSize,
+                this->gaSettings.numGenerations,
+                this->gaSettings.tournamentSize,
+                this->gaSettings.numPrevGenOffsprings,
+                this->gaSettings.floodProneAreaPenalty,
+                this->gaSettings.landslideProneAreaPenalty,
+                this->gaSettings.buildingDistanceWeight,
+                this->gaSettings.isLocalSearchEnabled,
+                this->gaSettings.crossoverType,
+                this->gaSettings.selectionType,
+                this->lsSettings.timeLimit,
+                this->gaSettings.keepInfeasibleSolutions
+              );
+
+              this->recentGARunAvgFitnesses =
+                this->geneticAlgo.getRecentRunAverageFitnesses();
+              this->recentGARunBestFitnesses =
+                this->geneticAlgo.getRecentRunBestFitnesses();
+              this->recentGARunWorstFitnesses =
+                this->geneticAlgo.getRecentRunWorstFitnesses();
+            }
+
+            this->currSelectedGen = this->solutions.size();
             this->currSelectedGenSolution = 0;
             this->hasSolutionBeenSetup = false;
-
-            this->recentGARunAvgFitnesses = this
-                                              ->geneticAlgo
-                                               .getRecentRunAverageFitnesses();
-            this->recentGARunBestFitnesses = this
-                                               ->geneticAlgo
-                                                .getRecentRunBestFitnesses();
-            this->recentGARunWorstFitnesses = this
-                                                ->geneticAlgo
-                                                 .getRecentRunWorstFitnesses();
 
             this->saveResultsToCSVFile();
 
@@ -1293,7 +1313,7 @@ namespace bpt
     ImGui::End();
   }
 
-  void MainScene::buildGAResultsWindow()
+  void MainScene::buildAlgorithmResultsWindow()
   {
     ImGui::Begin("GA Results");
     ImGui::BeginChild("GA Results Content");

@@ -24,6 +24,7 @@
 #include <bpt/evaluator.hpp>
 #include <bpt/GA.hpp>
 #include <bpt/GD.hpp>
+#include <bpt/generator.hpp>
 
 namespace bpt
 {
@@ -212,7 +213,7 @@ namespace bpt
     }
 
     if (isLocalSearchEnabled) {
-      bestSolution = this->hillClimbing.generateSolution(
+      auto lsGeneratedSolutions = this->hillClimbing.generateSolution(
         bestSolution,
         inputBuildings,
         boundingArea,
@@ -224,7 +225,13 @@ namespace bpt
         buildingDistanceWeight,
         timeLimit);
 
-      solutions.push_back({ bestSolution });
+      for (const eastl::vector<Solution>& solution : lsGeneratedSolutions) {
+        this->recentRunBestFitnesses.push_back(solution[0].getFitness());
+      }
+
+      solutions.insert(solutions.end(),
+                       lsGeneratedSolutions.begin(),
+                       lsGeneratedSolutions.end());
     }
 
     this->currRunGenerationNumber = -1;
@@ -285,10 +292,9 @@ namespace bpt
     std::cout << "|| Generating Initial Population..." << std::endl;
     for (int32_t i = 0; i < populationSize; i++) {
       std::cout << "Generating solution #" << i << "..." << std::endl;
-      population[i] = this->generateRandomSolution(inputBuildings,
-                                                   boundingArea,
-                                                   boundingAreaTriangles,
-                                                   triangleAreas);
+      population[i] = generateRandomSolution(inputBuildings, boundingArea,
+                                             boundingAreaTriangles,
+                                             triangleAreas);
       population[i].setFitness(computeSolutionFitness(population[i],
                                                       inputBuildings,
                                                       boundingArea,
@@ -547,53 +553,6 @@ namespace bpt
 
       numOffsprings++;
     }
-  }
-
-  Solution
-  GA::generateRandomSolution(
-    const eastl::vector<InputBuilding>& inputBuildings,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<cx::Polygon<3>>& boundingAreaTriangles,
-    const eastl::vector<float>& triangleAreas)
-  {
-    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
-
-    Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
-    do {
-      for (int32_t i = 0; i < inputBuildings.size(); i++) {
-        corex::core::Point buildingPos { 0.f, 0.f };
-        float buildingRotation = 0.f;
-        corex::core::Rectangle buildingRect {
-          buildingPos.x,
-          buildingPos.y,
-          inputBuildings[i].width,
-          inputBuildings[i].length,
-          buildingRotation
-        };
-        do {
-          const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
-            boundingAreaTriangles,
-            triangleAreas);
-          cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
-
-          buildingPos.x = newBuildingPos.x;
-          buildingPos.y = newBuildingPos.y;
-          buildingRotation = corex::core::generateRandomReal(
-            rotationDistribution);
-          buildingRect.x = buildingPos.x;
-          buildingRect.y = buildingPos.y;
-          buildingRect.angle = buildingRotation;
-
-          solution.setBuildingXPos(i, buildingPos.x);
-          solution.setBuildingYPos(i, buildingPos.y);
-          solution.setBuildingAngle(i, buildingRotation);
-        } while (!isRectWithinNPolygon(buildingRect, boundingArea)
-                 || !doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                            inputBuildings));
-      }
-    } while (!isSolutionFeasible(solution, boundingArea, inputBuildings));
-
-    return solution;
   }
 
   eastl::vector<Solution> GA::crossoverSolutions(

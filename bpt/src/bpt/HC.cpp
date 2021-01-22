@@ -14,11 +14,56 @@
 
 #include <bpt/HC.hpp>
 #include <bpt/evaluator.hpp>
+#include <bpt/generator.hpp>
 #include <bpt/ds/Solution.hpp>
 
 namespace bpt
 {
-  Solution HC::generateSolution(
+  eastl::vector<eastl::vector<Solution>> HC::generateSolution(
+    const eastl::vector<InputBuilding> &inputBuildings,
+    const corex::core::NPolygon &boundingArea,
+    const eastl::vector<eastl::vector<float>> &flowRates,
+    const eastl::vector<corex::core::NPolygon> &floodProneAreas,
+    const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight,
+    const double timeLimit)
+  {
+    auto boundingAreaTriangles = cx::earClipTriangulate(boundingArea);
+    eastl::vector<float> triangleAreas(boundingAreaTriangles.size());
+    std::cout << "Triangle Areas\n";
+    for (int32_t i = 0; i < boundingAreaTriangles.size(); i++) {
+      triangleAreas[i] = cx::getPolygonArea(boundingAreaTriangles[i]);
+      std::cout << triangleAreas[i] << "\n";
+    }
+
+    Solution initialSolution = generateRandomSolution(inputBuildings,
+                                                      boundingArea,
+                                                      boundingAreaTriangles,
+                                                      triangleAreas);
+    initialSolution.setFitness(computeSolutionFitness(initialSolution,
+                                                      inputBuildings,
+                                                      boundingArea,
+                                                      flowRates,
+                                                      floodProneAreas,
+                                                      landslideProneAreas,
+                                                      floodProneAreaPenalty,
+                                                      landslideProneAreaPenalty,
+                                                      buildingDistanceWeight));
+    return this->generateSolution(initialSolution,
+                                  inputBuildings,
+                                  boundingArea,
+                                  flowRates,
+                                  floodProneAreas,
+                                  landslideProneAreas,
+                                  floodProneAreaPenalty,
+                                  landslideProneAreaPenalty,
+                                  buildingDistanceWeight,
+                                  timeLimit);
+  }
+
+  eastl::vector<eastl::vector<Solution>> HC::generateSolution(
     Solution initialSolution,
     const eastl::vector<InputBuilding> &inputBuildings,
     const corex::core::NPolygon &boundingArea,
@@ -30,7 +75,9 @@ namespace bpt
     const float buildingDistanceWeight,
     const double timeLimit)
   {
+    eastl::vector<eastl::vector<Solution>> solutions;
     Solution bestSolution = initialSolution;
+    solutions.push_back({ bestSolution });
 
     cx::Timer timer;
     timer.start();
@@ -44,12 +91,13 @@ namespace bpt
       if (candidateSolution.getFitness() <= bestSolution.getFitness()) {
         initialSolution = candidateSolution;
         bestSolution = initialSolution;
+        solutions.push_back({ bestSolution });
       }
     }
 
     timer.stop();
 
-    return bestSolution;
+    return solutions;
   }
 
   void HC::perturbSolution(

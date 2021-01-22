@@ -13,7 +13,17 @@ namespace bpt
   class HC
   {
   public:
-    Solution generateSolution(
+    eastl::vector<eastl::vector<Solution>> generateSolution(
+      const eastl::vector<InputBuilding> &inputBuildings,
+      const corex::core::NPolygon &boundingArea,
+      const eastl::vector<eastl::vector<float>> &flowRates,
+      const eastl::vector<corex::core::NPolygon> &floodProneAreas,
+      const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
+      const float floodProneAreaPenalty,
+      const float landslideProneAreaPenalty,
+      const float buildingDistanceWeight,
+      const double timeLimit);
+    eastl::vector<eastl::vector<Solution>> generateSolution(
       Solution initialSolution,
       const eastl::vector<InputBuilding> &inputBuildings,
       const corex::core::NPolygon &boundingArea,

@@ -6,6 +6,7 @@ add_executable(bpt
     MainScene.cpp
     GA.cpp
     GD.cpp
+    generator.cpp
     evaluator.cpp
     HC.cpp
     SA.cpp
