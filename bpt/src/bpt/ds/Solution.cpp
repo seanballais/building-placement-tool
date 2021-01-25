@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 
 #include <corex/core/math_functions.hpp>
 

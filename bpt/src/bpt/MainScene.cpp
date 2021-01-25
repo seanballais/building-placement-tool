@@ -279,6 +279,11 @@ namespace bpt
     if (this->solutions.size() > 0) {
       this->currentSolution = &(this->solutions[this->currSelectedGen]
                                                [this->currSelectedGenSolution]);
+      std::cout << "Solution Data Usability\n";
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        std::cout << this->currentSolution->isBuildingDataUsable(i) << " ";
+      }
+      std::cout << "\n";
     }
 
     if (this->currentSolution
@@ -1211,8 +1216,7 @@ namespace bpt
                       &(this->gaSettings.isLocalSearchEnabled));
     }
 
-    if (this->gaSettings.isLocalSearchEnabled
-        || this->isLocalSearchOnly) {
+    if (this->gaSettings.isLocalSearchEnabled || this->isLocalSearchOnly) {
       static Time timeLimit(this->lsSettings.timeLimit);
       static int32_t timeData[3] = {
         timeLimit.hours,
@@ -1295,7 +1299,19 @@ namespace bpt
                 this->geneticAlgo.getRecentRunWorstFitnesses();
             }
 
-            this->currSelectedGen = this->solutions.size();
+            // NOTE: There's a weird bug that occurs when we don't subtract the
+            //       the solution size by one when assigning the value of the
+            //       currently selected generation.
+            //
+            //       When the GA is run without local search, the program does
+            //       will not show any buildings upon completion of the
+            //       optimization. Clicking "Next Generation" or "Previous
+            //       Generation" will result in the wrong generation index from
+            //       being removed from the list of generations. If local search
+            //       is run, the program crashes instead.
+            //
+            //       I could fix this now, but it's not a priority. Too bad.
+            this->currSelectedGen = this->solutions.size() - 1;
             this->currSelectedGenSolution = 0;
             this->hasSolutionBeenSetup = false;
 
