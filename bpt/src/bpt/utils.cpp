@@ -8,6 +8,8 @@ namespace bpt
     switch (type) {
       case SelectionType::NONE:
         return "None";
+      case SelectionType::RS:
+        return "Ranked Selection";
       case SelectionType::RWS:
         return "Roulette Wheel";
       case SelectionType::TS:

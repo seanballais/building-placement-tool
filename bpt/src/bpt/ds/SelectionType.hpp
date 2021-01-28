@@ -3,7 +3,7 @@
 
 namespace bpt
 {
-  enum class SelectionType { NONE, RWS, TS };
+  enum class SelectionType { NONE, RS, RWS, TS };
 }
 
 #endif

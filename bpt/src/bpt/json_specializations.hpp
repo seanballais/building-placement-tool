@@ -9,6 +9,7 @@ namespace bpt
 {
   NLOHMANN_JSON_SERIALIZE_ENUM(bpt::SelectionType, {
     { bpt::SelectionType::NONE, nullptr },
+    { bpt::SelectionType::RS, "rs" },
     { bpt::SelectionType::RWS, "rws" },
     { bpt::SelectionType::TS, "ts" },
   });

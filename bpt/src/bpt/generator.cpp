@@ -21,39 +21,37 @@ namespace bpt
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
-    do {
-      for (int32_t i = 0; i < inputBuildings.size(); i++) {
-        corex::core::Point buildingPos { 0.f, 0.f };
-        float buildingRotation = 0.f;
-        corex::core::Rectangle buildingRect {
-          buildingPos.x,
-          buildingPos.y,
-          inputBuildings[i].width,
-          inputBuildings[i].length,
-          buildingRotation
-        };
-        do {
-          const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
-            boundingAreaTriangles,
-            triangleAreas);
-          cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
+    for (int32_t i = 0; i < inputBuildings.size(); i++) {
+      corex::core::Point buildingPos { 0.f, 0.f };
+      float buildingRotation = 0.f;
+      corex::core::Rectangle buildingRect {
+        buildingPos.x,
+        buildingPos.y,
+        inputBuildings[i].width,
+        inputBuildings[i].length,
+        buildingRotation
+      };
+      do {
+        const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
+          boundingAreaTriangles,
+          triangleAreas);
+        cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
 
-          buildingPos.x = newBuildingPos.x;
-          buildingPos.y = newBuildingPos.y;
-          buildingRotation = corex::core::generateRandomReal(
-            rotationDistribution);
-          buildingRect.x = buildingPos.x;
-          buildingRect.y = buildingPos.y;
-          buildingRect.angle = buildingRotation;
+        buildingPos.x = newBuildingPos.x;
+        buildingPos.y = newBuildingPos.y;
+        buildingRotation = corex::core::generateRandomReal(
+          rotationDistribution);
+        buildingRect.x = buildingPos.x;
+        buildingRect.y = buildingPos.y;
+        buildingRect.angle = buildingRotation;
 
-          solution.setBuildingXPos(i, buildingPos.x);
-          solution.setBuildingYPos(i, buildingPos.y);
-          solution.setBuildingAngle(i, buildingRotation);
-        } while (!isRectWithinNPolygon(buildingRect, boundingArea)
-                 || !doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                            inputBuildings));
-      }
-    } while (!isSolutionFeasible(solution, boundingArea, inputBuildings));
+        solution.setBuildingXPos(i, buildingPos.x);
+        solution.setBuildingYPos(i, buildingPos.y);
+        solution.setBuildingAngle(i, buildingRotation);
+      } while (!isRectWithinNPolygon(buildingRect, boundingArea)
+               || !doesSolutionHaveNoBuildingsOverlapping(solution,
+                                                          inputBuildings));
+    }
 
     return solution;
   }

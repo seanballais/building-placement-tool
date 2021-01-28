@@ -1155,6 +1155,16 @@ namespace bpt
       // Gah. Let's hardcode the selection types for now. This is going
       // to be ugly.
       if (ImGui::Selectable(
+        "Ranked Selection",
+        this->gaSettings.selectionType == SelectionType::RS)) {
+        this->gaSettings.selectionType = SelectionType::RS;
+
+        if (this->gaSettings.selectionType == SelectionType::RS) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      if (ImGui::Selectable(
             "Roulette Wheel",
             this->gaSettings.selectionType == SelectionType::RWS)) {
         this->gaSettings.selectionType = SelectionType::RWS;

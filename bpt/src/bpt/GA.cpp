@@ -316,10 +316,15 @@ namespace bpt
   {
     eastl::array<Solution, 2> parents;
     switch (selectionType) {
+      case SelectionType::RS:
+        parents = this->runRankedSelection(population);
+        break;
       case SelectionType::RWS:
         parents = this->runRouletteWheelSelection(population);
+        break;
       case SelectionType::TS:
         parents = this->runTournamentSelection(population, tournamentSize);
+        break;
       default:
         break;
     }
@@ -368,6 +373,31 @@ namespace bpt
           break;
         }
       }
+    }
+
+    return parents;
+  }
+
+  eastl::array<Solution, 2> GA::runRankedSelection(
+    eastl::vector<Solution> population)
+  {
+    eastl::array<Solution, 2> parents;
+    std::sort(
+      population.begin(),
+      population.end(),
+      [](Solution& solutionA, Solution& solutionB) {
+        return corex::core::floatLessThan(solutionA.getFitness(),
+                                          solutionB.getFitness());
+      }
+    );
+
+    eastl::vector<float> weights;
+    for (int32_t i = 0; i < population.size(); i++) {
+      weights.push_back(population.size() - i);
+    }
+
+    for (auto &parent : parents) {
+      parent = cx::selectRandomItemWithWeights(population, weights);
     }
 
     return parents;

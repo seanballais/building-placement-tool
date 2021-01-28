@@ -64,6 +64,8 @@ namespace bpt
       const SelectionType& selectionType);
     eastl::array<Solution, 2> runRouletteWheelSelection(
       const eastl::vector<Solution>& population);
+    eastl::array<Solution, 2> runRankedSelection(
+      eastl::vector<Solution> population);
     eastl::array<Solution, 2> runTournamentSelection(
       const eastl::vector<Solution>& population,
       const int32_t& tournamentSize);
