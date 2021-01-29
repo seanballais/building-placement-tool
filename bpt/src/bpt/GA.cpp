@@ -681,6 +681,7 @@ namespace bpt
 
     // Find overlapping buildings.
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      std::cout << "Find overlapping 1: ";
       auto building0 = corex::core::Rectangle{
         solution.getBuildingXPos(i),
         solution.getBuildingYPos(i),
@@ -690,6 +691,7 @@ namespace bpt
       };
 
       for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+        std::cout << "Find overlapping 2: ";
         auto building1 = corex::core::Rectangle{
           solution.getBuildingXPos(j),
           solution.getBuildingYPos(j),
@@ -706,6 +708,7 @@ namespace bpt
 
     // Find buildings overlapping the bounding area.
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      std::cout << "Find overlapping bounding 1: ";
       auto buildingRect = corex::core::Rectangle{
         solution.getBuildingXPos(i),
         solution.getBuildingYPos(i),
@@ -743,6 +746,7 @@ namespace bpt
         int32_t parentIndex = 0;
         for (int32_t i = 0; i < numBuildings; i++) {
           parentIndex = cx::getRandomIntUniformly(0, 1);
+          std::cout << "Uniform Crossover 1: ";
           child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
 
           parentIndex = cx::getRandomIntUniformly(0, 1);
@@ -779,8 +783,10 @@ namespace bpt
         // Perform Box Crossover.
         for (int32_t i = 0; i < numBuildings; i++) {
           // Compute child's new x position.
+          std::cout << "Box crossover 1: ";
           float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
                                        parents[1]->getBuildingXPos(i));
+          std::cout << "Box crossover 2: ";
           float upperXBound = std::max(parents[0]->getBuildingXPos(i),
                                        parents[1]->getBuildingXPos(i));
           child.setBuildingXPos(
@@ -847,6 +853,7 @@ namespace bpt
              || !solution.isBuildingDataUsable(staticBuddy)
              || !solution.isBuildingDataUsable(dynamicBuddy));
 
+    std::cout << "Buddy Buddy 1: ";
     auto staticBuddyRect = corex::core::Rectangle{
       solution.getBuildingXPos(staticBuddy),
       solution.getBuildingYPos(staticBuddy),
@@ -1014,6 +1021,7 @@ namespace bpt
       -maxRotShiftAmount,
       maxRotShiftAmount
     };
+    std::cout << "Jiggle 1: ";
     static const
     eastl::array<eastl::function<Solution(Solution, int32_t)>,
       numMovements> jiggleFunctions = {

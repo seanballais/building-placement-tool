@@ -277,18 +277,18 @@ namespace bpt
     this->handleGATimelinePlayback(timeDelta);
 
     if (this->solutions.size() > 0) {
+      std::cout << "Checkpoint 1\n";
+      std::cout << this->solutions[this->currSelectedGen]
+                                  [this->currSelectedGenSolution]
+                        .isBuildingDataUsable(0) << "\n";
       this->currentSolution = &(this->solutions[this->currSelectedGen]
                                                [this->currSelectedGenSolution]);
-      std::cout << "Solution Data Usability\n";
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        std::cout << this->currentSolution->isBuildingDataUsable(i) << " ";
-      }
-      std::cout << "\n";
     }
 
     if (this->currentSolution
         && !this->hasSolutionBeenSetup
         && !this->isGAThreadRunning) {
+      std::cout << "Hehe\n";
       this->clearCurrentlyRenderedSolution();
 
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
@@ -1309,16 +1309,18 @@ namespace bpt
                 this->geneticAlgo.getRecentRunWorstFitnesses();
             }
 
+            std::cout << "Done optimizing!" << std::endl;
+
             // NOTE: There's a weird bug that occurs when we don't subtract the
             //       the solution size by one when assigning the value of the
             //       currently selected generation.
             //
-            //       When the GA is run without local search, the program does
-            //       will not show any buildings upon completion of the
-            //       optimization. Clicking "Next Generation" or "Previous
-            //       Generation" will result in the wrong generation index from
-            //       being removed from the list of generations. If local search
-            //       is run, the program crashes instead.
+            //       When the GA is run without local search, the program will
+            //       not show any buildings upon completion of the optimization.
+            //       Clicking "Next Generation" or "Previous Generation" will
+            //       result in the wrong generation index from being removed
+            //       from the list of generations. If local search is run, the
+            //       program crashes instead.
             //
             //       I could fix this now, but it's not a priority. Too bad.
             this->currSelectedGen = this->solutions.size() - 1;
