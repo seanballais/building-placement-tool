@@ -70,7 +70,6 @@ namespace bpt
 
   float Solution::getBuildingXPos(int32_t buildingIndex) const
   {
-    std::cout << "inside " << this->isBuildingDataUsable(buildingIndex) << "\n";
     assert(this->isBuildingDataUsable(buildingIndex));
     return this->genes[(buildingIndex * 3)];
   }

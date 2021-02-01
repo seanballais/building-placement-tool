@@ -111,6 +111,7 @@ namespace bpt
     eastl::vector<float> recentGARunBestFitnesses;
     eastl::vector<float> recentGARunWorstFitnesses;
     nlohmann::json inputData;
+    bool areSolutionsReady;
   };
 }
 

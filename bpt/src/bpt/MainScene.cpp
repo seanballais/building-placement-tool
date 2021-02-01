@@ -123,6 +123,7 @@ namespace bpt
     , recentGARunBestFitnesses()
     , recentGARunWorstFitnesses()
     , inputData()
+    , areSolutionsReady(false)
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
 
   void MainScene::init()
@@ -276,11 +277,7 @@ namespace bpt
 
     this->handleGATimelinePlayback(timeDelta);
 
-    if (this->solutions.size() > 0) {
-      std::cout << "Checkpoint 1\n";
-      std::cout << this->solutions[this->currSelectedGen]
-                                  [this->currSelectedGenSolution]
-                        .isBuildingDataUsable(0) << "\n";
+    if (this->areSolutionsReady) {
       this->currentSolution = &(this->solutions[this->currSelectedGen]
                                                [this->currSelectedGenSolution]);
     }
@@ -288,7 +285,6 @@ namespace bpt
     if (this->currentSolution
         && !this->hasSolutionBeenSetup
         && !this->isGAThreadRunning) {
-      std::cout << "Hehe\n";
       this->clearCurrentlyRenderedSolution();
 
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
@@ -1233,7 +1229,6 @@ namespace bpt
         timeLimit.minutes,
         timeLimit.seconds
       };
-      std::cout << timeLimit.seconds << std::endl;
       if (ImGui::InputInt3("Time Limit (hh:mm:ss)", timeData)) {
         timeData[0] = std::min(std::max(0, timeData[0]), 59);
         timeData[1] = std::min(std::max(0, timeData[1]), 59);
@@ -1255,6 +1250,7 @@ namespace bpt
     } else {
       if (ImGui::Button("Generate Solution")) {
         this->isGAThreadRunning = true;
+        this->areSolutionsReady = false;
 
         std::thread gaThread{
           [this]() {
@@ -1309,8 +1305,6 @@ namespace bpt
                 this->geneticAlgo.getRecentRunWorstFitnesses();
             }
 
-            std::cout << "Done optimizing!" << std::endl;
-
             // NOTE: There's a weird bug that occurs when we don't subtract the
             //       the solution size by one when assigning the value of the
             //       currently selected generation.
@@ -1326,6 +1320,7 @@ namespace bpt
             this->currSelectedGen = this->solutions.size() - 1;
             this->currSelectedGenSolution = 0;
             this->hasSolutionBeenSetup = false;
+            this->areSolutionsReady = true;
 
             this->saveResultsToCSVFile();
 
