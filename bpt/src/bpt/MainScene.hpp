@@ -67,6 +67,7 @@ namespace bpt
     LSSettings lsSettings;
     Solution* currentSolution;
     eastl::vector<eastl::vector<Solution>> solutions;
+    eastl::vector<eastl::vector<Solution>> solutionBuffer;
     std::atomic<bool> isGAThreadRunning;
     bool hasSolutionBeenSetup;
     bool doesInputDataExist;
@@ -111,7 +112,7 @@ namespace bpt
     eastl::vector<float> recentGARunBestFitnesses;
     eastl::vector<float> recentGARunWorstFitnesses;
     nlohmann::json inputData;
-    bool areSolutionsReady;
+    bool areNewSolutionsReady;
   };
 }
 

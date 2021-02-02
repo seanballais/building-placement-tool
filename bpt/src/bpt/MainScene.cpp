@@ -77,6 +77,7 @@ namespace bpt
       })
     , currentSolution(nullptr)
     , solutions()
+    , solutionBuffer()
     , isGAThreadRunning(false)
     , hasSolutionBeenSetup(false)
     , doesInputDataExist(false)
@@ -123,7 +124,7 @@ namespace bpt
     , recentGARunBestFitnesses()
     , recentGARunWorstFitnesses()
     , inputData()
-    , areSolutionsReady(false)
+    , areNewSolutionsReady()
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
 
   void MainScene::init()
@@ -277,15 +278,59 @@ namespace bpt
 
     this->handleGATimelinePlayback(timeDelta);
 
-    if (this->areSolutionsReady) {
+    if (this->areNewSolutionsReady) {
+      this->solutions = this->solutionBuffer;
+      this->areNewSolutionsReady = false;
+    }
+
+    if (this->solutions.size() > 0) {
+      // TODO: Bug here. currentSolution does not seem to be assigned a pointer
+      //       to a solution.
       this->currentSolution = &(this->solutions[this->currSelectedGen]
                                                [this->currSelectedGenSolution]);
+      std::cout << "Updating current solution...\n";
+      if (this->isGAThreadRunning) {
+        std::cout << "GA Thread is running.\n";
+      } else {
+        std::cout << "GA Thread is not running.\n";
+      }
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
     }
 
     if (this->currentSolution
         && !this->hasSolutionBeenSetup
         && !this->isGAThreadRunning) {
       this->clearCurrentlyRenderedSolution();
+
+      std::cout << "Setting up the solution...\n";
+      if (this->isGAThreadRunning) {
+        std::cout << "GA Thread is running.\n";
+      } else {
+        std::cout << "GA Thread is not running.\n";
+      }
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
 
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
         entt::entity e = this->registry.create();
@@ -682,13 +727,188 @@ namespace bpt
         break;
     }
 
+    std::cout << "Just before the windows.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildConstructBoundingAreaWindow();
+
+    std::cout << "Just before warning window.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildWarningWindow();
+
+    std::cout << "Just before input buildings window.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildInputBuildingsWindow();
+
+    std::cout << "Just before hazards window.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildHazardsWindow();
+
+    std::cout << "Just before flow rates window.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildFlowRateWindow();
+
+    std::cout << "Just before algorithm controls window.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildAlgorithmControlsWindow();
+
+    std::cout << "Just before algorithm results window.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildAlgorithmResultsWindow();
+
+    std::cout << "Just before debugger window.\n";
+    if (this->isGAThreadRunning) {
+      std::cout << "GA Thread is running.\n";
+    } else {
+      std::cout << "GA Thread is not running.\n";
+    }
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
+
     this->buildDebugSolutionWindow();
   }
 
@@ -1250,7 +1470,7 @@ namespace bpt
     } else {
       if (ImGui::Button("Generate Solution")) {
         this->isGAThreadRunning = true;
-        this->areSolutionsReady = false;
+        this->areNewSolutionsReady = false;
 
         std::thread gaThread{
           [this]() {
@@ -1264,7 +1484,7 @@ namespace bpt
 
             if (this->isLocalSearchOnly) {
               // TODO: Store fitnesses of each iteration of the local search.
-              this->solutions = this->hillClimbingAlgo.generateSolution(
+              this->solutionBuffer = this->hillClimbingAlgo.generateSolution(
                 inputBuildingsCopy,
                 boundingAreaCopy,
                 flowRatesCopy,
@@ -1275,8 +1495,9 @@ namespace bpt
                 this->gaSettings.buildingDistanceWeight,
                 this->lsSettings.timeLimit
               );
+              std::cout << "Finished optimizing!\n";
             } else {
-              this->solutions = this->geneticAlgo.generateSolutions(
+              this->solutionBuffer = this->geneticAlgo.generateSolutions(
                 inputBuildingsCopy,
                 boundingAreaCopy,
                 flowRatesCopy,
@@ -1297,6 +1518,8 @@ namespace bpt
                 this->gaSettings.keepInfeasibleSolutions
               );
 
+              std::cout << "Finished optimizing!\n";
+
               this->recentGARunAvgFitnesses =
                 this->geneticAlgo.getRecentRunAverageFitnesses();
               this->recentGARunBestFitnesses =
@@ -1304,6 +1527,8 @@ namespace bpt
               this->recentGARunWorstFitnesses =
                 this->geneticAlgo.getRecentRunWorstFitnesses();
             }
+
+            this->saveResultsToCSVFile();
 
             // NOTE: There's a weird bug that occurs when we don't subtract the
             //       the solution size by one when assigning the value of the
@@ -1320,9 +1545,7 @@ namespace bpt
             this->currSelectedGen = this->solutions.size() - 1;
             this->currSelectedGenSolution = 0;
             this->hasSolutionBeenSetup = false;
-            this->areSolutionsReady = true;
-
-            this->saveResultsToCSVFile();
+            this->areNewSolutionsReady = true;
 
             this->isGAThreadRunning = false;
           }
@@ -1510,6 +1733,21 @@ namespace bpt
     ImGui::BeginChild("Solution Debugger Content");
 
     float floatInputBuffer;
+
+    if (this->currentSolution) {
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
+        unsigned char rawData[dataSize];
+        std::memcpy(rawData,
+                    &this->currentSolution->genesAssignmentStatus[i],
+                    dataSize);
+        for (int32_t j = 0; j < dataSize; j++) {
+          printf("%02x", rawData[j]);
+        }
+        printf(" ");
+      }
+      std::cout << "\n";
+    }
 
     if (this->hasSolutionBeenSetup && !this->isGATimelinePlaying) {
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
@@ -1896,10 +2134,12 @@ namespace bpt
     resultsFile << "\n";
     resultsFile << "Best Solution:" << "\n"
                 << "x,y,Rotation" << "\n";
-    for (int32_t i = 0; i < this->solutions.back()[0].getNumBuildings(); i++) {
-      resultsFile << this->solutions.back()[0].getBuildingXPos(i) << ","
-                  << this->solutions.back()[0].getBuildingYPos(i) << ","
-                  << this->solutions.back()[0].getBuildingAngle(i) << "\n";
+    for (int32_t i = 0;
+         i < this->solutionBuffer.back()[0].getNumBuildings();
+         i++) {
+      resultsFile << this->solutionBuffer.back()[0].getBuildingXPos(i) << ","
+                  << this->solutionBuffer.back()[0].getBuildingYPos(i) << ","
+                  << this->solutionBuffer.back()[0].getBuildingAngle(i) << "\n";
     }
 
     Time elapsedTime{ this->geneticAlgo.getRecentRunElapsedTime() };

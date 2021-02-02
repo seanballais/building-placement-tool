@@ -31,9 +31,10 @@ namespace bpt
 
     bool operator==(const Solution& other);
     bool operator!=(const Solution& other);
+
+    eastl::vector<bool> genesAssignmentStatus; // TEMPORARY. RETURN TO PRIVATE AFTER FIXING BUG.
   private:
     eastl::vector<float> genes;
-    eastl::vector<bool> genesAssignmentStatus;
     int32_t numBuildings;
     double fitness;
     bool hasFitnessSet;
