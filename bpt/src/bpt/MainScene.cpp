@@ -284,53 +284,14 @@ namespace bpt
     }
 
     if (this->solutions.size() > 0) {
-      // TODO: Bug here. currentSolution does not seem to be assigned a pointer
-      //       to a solution.
       this->currentSolution = &(this->solutions[this->currSelectedGen]
                                                [this->currSelectedGenSolution]);
-      std::cout << "Updating current solution...\n";
-      if (this->isGAThreadRunning) {
-        std::cout << "GA Thread is running.\n";
-      } else {
-        std::cout << "GA Thread is not running.\n";
-      }
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
     }
 
     if (this->currentSolution
         && !this->hasSolutionBeenSetup
         && !this->isGAThreadRunning) {
       this->clearCurrentlyRenderedSolution();
-
-      std::cout << "Setting up the solution...\n";
-      if (this->isGAThreadRunning) {
-        std::cout << "GA Thread is running.\n";
-      } else {
-        std::cout << "GA Thread is not running.\n";
-      }
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
 
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
         entt::entity e = this->registry.create();
@@ -727,188 +688,13 @@ namespace bpt
         break;
     }
 
-    std::cout << "Just before the windows.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildConstructBoundingAreaWindow();
-
-    std::cout << "Just before warning window.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildWarningWindow();
-
-    std::cout << "Just before input buildings window.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildInputBuildingsWindow();
-
-    std::cout << "Just before hazards window.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildHazardsWindow();
-
-    std::cout << "Just before flow rates window.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildFlowRateWindow();
-
-    std::cout << "Just before algorithm controls window.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildAlgorithmControlsWindow();
-
-    std::cout << "Just before algorithm results window.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildAlgorithmResultsWindow();
-
-    std::cout << "Just before debugger window.\n";
-    if (this->isGAThreadRunning) {
-      std::cout << "GA Thread is running.\n";
-    } else {
-      std::cout << "GA Thread is not running.\n";
-    }
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
-
     this->buildDebugSolutionWindow();
   }
 
@@ -1542,7 +1328,7 @@ namespace bpt
             //       program crashes instead.
             //
             //       I could fix this now, but it's not a priority. Too bad.
-            this->currSelectedGen = this->solutions.size() - 1;
+            this->currSelectedGen = this->solutionBuffer.size() - 1;
             this->currSelectedGenSolution = 0;
             this->hasSolutionBeenSetup = false;
             this->areNewSolutionsReady = true;
@@ -1733,21 +1519,6 @@ namespace bpt
     ImGui::BeginChild("Solution Debugger Content");
 
     float floatInputBuffer;
-
-    if (this->currentSolution) {
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        size_t dataSize = sizeof this->currentSolution->genesAssignmentStatus[i];
-        unsigned char rawData[dataSize];
-        std::memcpy(rawData,
-                    &this->currentSolution->genesAssignmentStatus[i],
-                    dataSize);
-        for (int32_t j = 0; j < dataSize; j++) {
-          printf("%02x", rawData[j]);
-        }
-        printf(" ");
-      }
-      std::cout << "\n";
-    }
 
     if (this->hasSolutionBeenSetup && !this->isGATimelinePlaying) {
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
