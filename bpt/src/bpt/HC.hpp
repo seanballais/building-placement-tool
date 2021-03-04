@@ -45,23 +45,6 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight);
-    void applyBuddyBuddyMove(
-      Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const int32_t staticBuildingIndex = -1,
-      const int32_t dynamicBuildingIndex = -1,
-      const bool& keepInfeasibleSolutions = true);
-    void applyShakingMove(
-      Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const bool& keepInfeasibleSolutions);
-    void applyJiggleMove(
-      Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const bool& keepInfeasibleSolutions);
   };
 }
 

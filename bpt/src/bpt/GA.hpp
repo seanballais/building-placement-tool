@@ -113,23 +113,6 @@ namespace bpt
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);
-    void applyBuddyBuddyMutation(
-      Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const int32_t staticBuildingIndex = -1,
-      const int32_t dynamicBuildingIndex = -1,
-      const bool& keepInfeasibleSolutions = true);
-    void applyShakingMutation(
-      Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const bool& keepInfeasibleSolutions);
-    void applyJiggleMutation(
-      Solution& solution,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const bool& keepInfeasibleSolutions);
 
     template <
       typename RealType,

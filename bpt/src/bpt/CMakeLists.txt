@@ -6,9 +6,12 @@ add_executable(bpt
     MainScene.cpp
     GA.cpp
     GD.cpp
+    GWO.cpp
     generator.cpp
     evaluator.cpp
     HC.cpp
+    operators.cpp
     SA.cpp
+    ds/Result.hpp
     ds/Solution.cpp
     ds/Time.cpp)
