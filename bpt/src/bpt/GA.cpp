@@ -280,21 +280,11 @@ namespace bpt
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight)
   {
-    auto boundingAreaTriangles = cx::earClipTriangulate(boundingArea);
-    eastl::vector<float> triangleAreas(boundingAreaTriangles.size());
-    std::cout << "Triangle Areas\n";
-    for (int32_t i = 0; i < boundingAreaTriangles.size(); i++) {
-      triangleAreas[i] = cx::getPolygonArea(boundingAreaTriangles[i]);
-      std::cout << triangleAreas[i] << "\n";
-    }
-
     eastl::vector<Solution> population(populationSize);
     std::cout << "|| Generating Initial Population..." << std::endl;
     for (int32_t i = 0; i < populationSize; i++) {
       std::cout << "Generating solution #" << i << "..." << std::endl;
-      population[i] = generateRandomSolution(inputBuildings, boundingArea,
-                                             boundingAreaTriangles,
-                                             triangleAreas);
+      population[i] = generateRandomSolution(inputBuildings, boundingArea);
       population[i].setFitness(computeSolutionFitness(population[i],
                                                       inputBuildings,
                                                       boundingArea,
@@ -598,13 +588,13 @@ namespace bpt
 
     switch (type) {
       case CrossoverType::UNIFORM:
-        return this->performUniformCrossover(solutionA, solutionB,
-                                             boundingArea, inputBuildings,
-                                             keepInfeasibleSolutions);
+        return performUniformCrossover(solutionA, solutionB,
+                                       boundingArea, inputBuildings,
+                                       keepInfeasibleSolutions);
       case CrossoverType::BOX:
-        return this->performBoxCrossover(solutionA, solutionB,
-                                         boundingArea, inputBuildings,
-                                         keepInfeasibleSolutions);
+        return performBoxCrossover(solutionA, solutionB,
+                                   boundingArea, inputBuildings,
+                                   keepInfeasibleSolutions);
       default:
         // TODO: Raise an error since we did not choose a crossover operator.
         break;
@@ -723,98 +713,5 @@ namespace bpt
     }
 
     return faultyGenes;
-  }
-
-  eastl::vector<Solution> GA::performUniformCrossover(
-    const Solution& solutionA,
-    const Solution& solutionB,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings,
-    const bool& keepInfeasibleSolutions)
-  {
-    IPROF_FUNC;
-    int32_t numBuildings = solutionA.getNumBuildings();
-
-    // Prevent unnecessary copying of the parents.
-    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
-    eastl::vector<Solution> children{ solutionA, solutionA };
-    // Perform Uniform Crossover.
-    std::cout << "Crossovering Uniformly\n";
-    for (Solution& child : children) {
-      do {
-        IPROF("Crossover Main");
-        int32_t parentIndex = 0;
-        for (int32_t i = 0; i < numBuildings; i++) {
-          parentIndex = cx::getRandomIntUniformly(0, 1);
-          std::cout << "Uniform Crossover 1: ";
-          child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
-
-          parentIndex = cx::getRandomIntUniformly(0, 1);
-          child.setBuildingYPos(i, parents[parentIndex]->getBuildingYPos(i));
-
-          parentIndex = cx::getRandomIntUniformly(0, 1);
-          child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
-        }
-      } while (!keepInfeasibleSolutions
-               && !isSolutionFeasible(child, boundingArea, inputBuildings));
-    }
-
-    return children;
-  }
-
-  eastl::vector<Solution> GA::performBoxCrossover(
-    const Solution& solutionA,
-    const Solution& solutionB,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings,
-    const bool& keepInfeasibleSolutions)
-  {
-    IPROF_FUNC;
-    int32_t numBuildings = solutionA.getNumBuildings();
-
-    // Prevent unnecessary copying of the parents.
-    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
-    eastl::vector<Solution> children{ solutionA, solutionA };
-    // Perform Box Crossover.
-    std::cout << "Boxy doxy crossover, yeah!\n";
-    for (Solution& child : children) {
-      do {
-        IPROF("Crossover Main");
-        // Perform Box Crossover.
-        for (int32_t i = 0; i < numBuildings; i++) {
-          // Compute child's new x position.
-          std::cout << "Box crossover 1: ";
-          float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
-                                       parents[1]->getBuildingXPos(i));
-          std::cout << "Box crossover 2: ";
-          float upperXBound = std::max(parents[0]->getBuildingXPos(i),
-                                       parents[1]->getBuildingXPos(i));
-          child.setBuildingXPos(
-            i,
-            cx::getRandomRealUniformly(lowerXBound, upperXBound));
-
-          // Compute child's new y position.
-          float lowerYBound = std::min(parents[0]->getBuildingYPos(i),
-                                       parents[1]->getBuildingYPos(i));
-          float upperYBound = std::max(parents[0]->getBuildingYPos(i),
-                                       parents[1]->getBuildingYPos(i));
-          child.setBuildingYPos(
-            i,
-            cx::getRandomRealUniformly(lowerYBound, upperYBound));
-
-          // Compute child's new angle.
-          float lowerAngleBound = std::min(parents[0]->getBuildingAngle(i),
-                                           parents[1]->getBuildingAngle(i));
-          float upperAngleBound = std::max(parents[0]->getBuildingAngle(i),
-                                           parents[1]->getBuildingAngle(i));
-          child.setBuildingAngle(
-            i,
-            cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
-        }
-      } while (!keepInfeasibleSolutions
-               && !isSolutionFeasible(child, boundingArea, inputBuildings));
-    }
-
-    return children;
   }
 }

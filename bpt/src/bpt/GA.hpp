@@ -101,18 +101,6 @@ namespace bpt
     findFaultyGenes(Solution& solution,
                     const corex::core::NPolygon& boundingArea,
                     const eastl::vector<InputBuilding>& inputBuildings);
-    eastl::vector<Solution> performUniformCrossover(
-      const Solution& solutionA,
-      const Solution& solutionB,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const bool& keepInfeasibleSolutions);
-    eastl::vector<Solution> performBoxCrossover(
-      const Solution& solutionA,
-      const Solution& solutionB,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const bool& keepInfeasibleSolutions);
 
     template <
       typename RealType,

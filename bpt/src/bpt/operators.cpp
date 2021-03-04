@@ -8,12 +8,101 @@
 #include <corex/core/math_functions.hpp>
 #include <corex/core/utils.hpp>
 
+#include <bpt/evaluator.hpp>
 #include <bpt/operators.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
 namespace bpt
 {
+  eastl::vector<Solution> performUniformCrossover(
+    const Solution& solutionA,
+    const Solution& solutionB,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
+  {
+    int32_t numBuildings = solutionA.getNumBuildings();
+
+    // Prevent unnecessary copying of the parents.
+    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
+    eastl::vector<Solution> children{ solutionA, solutionA };
+    // Perform Uniform Crossover.
+    for (Solution& child : children) {
+      do {
+        int32_t parentIndex;
+        for (int32_t i = 0; i < numBuildings; i++) {
+          parentIndex = cx::getRandomIntUniformly(0, 1);
+          std::cout << "Uniform Crossover 1: ";
+          child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
+
+          parentIndex = cx::getRandomIntUniformly(0, 1);
+          child.setBuildingYPos(i, parents[parentIndex]->getBuildingYPos(i));
+
+          parentIndex = cx::getRandomIntUniformly(0, 1);
+          child.setBuildingAngle(i, parents[parentIndex]->getBuildingAngle(i));
+        }
+      } while (!keepInfeasibleSolutions
+               && !isSolutionFeasible(child, boundingArea, inputBuildings));
+    }
+
+    return children;
+  }
+
+  eastl::vector<Solution> performBoxCrossover(
+    const Solution& solutionA,
+    const Solution& solutionB,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
+  {
+    int32_t numBuildings = solutionA.getNumBuildings();
+
+    // Prevent unnecessary copying of the parents.
+    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
+    eastl::vector<Solution> children{ solutionA, solutionA };
+    // Perform Box Crossover.
+    std::cout << "Boxy doxy crossover, yeah!\n";
+    for (Solution& child : children) {
+      do {
+        // Perform Box Crossover.
+        for (int32_t i = 0; i < numBuildings; i++) {
+          // Compute child's new x position.
+          std::cout << "Box crossover 1: ";
+          float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
+                                       parents[1]->getBuildingXPos(i));
+          std::cout << "Box crossover 2: ";
+          float upperXBound = std::max(parents[0]->getBuildingXPos(i),
+                                       parents[1]->getBuildingXPos(i));
+          child.setBuildingXPos(
+            i,
+            cx::getRandomRealUniformly(lowerXBound, upperXBound));
+
+          // Compute child's new y position.
+          float lowerYBound = std::min(parents[0]->getBuildingYPos(i),
+                                       parents[1]->getBuildingYPos(i));
+          float upperYBound = std::max(parents[0]->getBuildingYPos(i),
+                                       parents[1]->getBuildingYPos(i));
+          child.setBuildingYPos(
+            i,
+            cx::getRandomRealUniformly(lowerYBound, upperYBound));
+
+          // Compute child's new angle.
+          float lowerAngleBound = std::min(parents[0]->getBuildingAngle(i),
+                                           parents[1]->getBuildingAngle(i));
+          float upperAngleBound = std::max(parents[0]->getBuildingAngle(i),
+                                           parents[1]->getBuildingAngle(i));
+          child.setBuildingAngle(
+            i,
+            cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
+        }
+      } while (!keepInfeasibleSolutions
+               && !isSolutionFeasible(child, boundingArea, inputBuildings));
+    }
+
+    return children;
+  }
+
   void applyBuddyBuddyOperator(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
@@ -30,8 +119,8 @@ namespace bpt
     std::uniform_real_distribution<float> normalizedDistrib{ 0, 1 };
 
     // Let's just do the Buddy-Buddy Mutation for now.
-    int32_t staticBuddy = 0;
-    int32_t dynamicBuddy = 0; // The buddy to be moved.
+    int32_t staticBuddy;
+    int32_t dynamicBuddy; // The buddy to be moved.
     do {
       if (staticBuildingIndex == -1) {
         staticBuddy = corex::core::generateRandomInt(buildingDistrib);
@@ -108,7 +197,7 @@ namespace bpt
       distContactToBuddyCenter = inputBuildings[dynamicBuddy].width / 2.f;
       extLength = inputBuildings[dynamicBuddy].length / 2.f;
       dynamicBuddyAngle = contactLineAngle;
-    } else if (orientation == 1) {
+    } else {
       // The dynamic buddy will be oriented perpendicular to the contact line,
       // if length > width. Parallel, otherwise.
       distContactToBuddyCenter = inputBuildings[dynamicBuddy].length / 2.f;
@@ -120,12 +209,12 @@ namespace bpt
     // by a small amount to prevent intersection of buildings.
     distContactToBuddyCenter += 0.0001f;
 
-    auto buddyMidptRelContactLine = corex::core::rotateVec2(
-      corex::core::Vec2{0.f, extLength * 2 }, contactLineAngle)
-                                    + contactLineVec;
-    auto buddyMidptRelContactLineStart = corex::core::rotateVec2(
-      corex::core::Vec2{ 0.f, -extLength }, contactLineAngle)
-                                         + contactLine.start;
+    auto buddyMidptRelContactLine = cx::rotateVec2(
+      cx::Vec2{0.f, extLength * 2 },
+      contactLineAngle) + contactLineVec;
+    auto buddyMidptRelContactLineStart = cx::rotateVec2(
+      corex::core::Vec2{ 0.f, -extLength },
+      contactLineAngle) + contactLine.start;
 
     const float lineWidthModifier = corex::core::generateRandomReal(
       normalizedDistrib);

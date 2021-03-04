@@ -14,11 +14,11 @@ namespace bpt
 {
   Solution generateRandomSolution(
     const eastl::vector<InputBuilding>& inputBuildings,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<corex::core::Polygon<3>>& boundingAreaTriangles,
-    const eastl::vector<float>& triangleAreas)
+    const corex::core::NPolygon& boundingArea)
   {
     std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
+    auto boundingAreaTriangles = cx::earClipTriangulate(boundingArea);
+    eastl::vector<float> triangleAreas(boundingAreaTriangles.size());
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
     for (int32_t i = 0; i < inputBuildings.size(); i++) {
