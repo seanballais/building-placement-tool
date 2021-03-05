@@ -30,18 +30,8 @@ namespace bpt
     const float buildingDistanceWeight,
     const double timeLimit)
   {
-    auto boundingAreaTriangles = cx::earClipTriangulate(boundingArea);
-    eastl::vector<float> triangleAreas(boundingAreaTriangles.size());
-    std::cout << "Triangle Areas\n";
-    for (int32_t i = 0; i < boundingAreaTriangles.size(); i++) {
-      triangleAreas[i] = cx::getPolygonArea(boundingAreaTriangles[i]);
-      std::cout << triangleAreas[i] << "\n";
-    }
-
     Solution initialSolution = generateRandomSolution(inputBuildings,
-                                                      boundingArea,
-                                                      boundingAreaTriangles,
-                                                      triangleAreas);
+                                                      boundingArea);
     initialSolution.setFitness(computeSolutionFitness(initialSolution,
                                                       inputBuildings,
                                                       boundingArea,

@@ -5,6 +5,7 @@
 
 #include <EASTL/vector.h>
 
+#include <corex/core/Timer.hpp>
 #include <corex/core/ds/NPolygon.hpp>
 
 #include <bpt/ds/CrossoverType.hpp>
@@ -16,6 +17,7 @@ namespace bpt
   class GWO
   {
   public:
+    GWO();
     Result generateSolutions(
       const eastl::vector<InputBuilding> &inputBuildings,
       const corex::core::NPolygon &boundingArea,
@@ -26,8 +28,33 @@ namespace bpt
       const int32_t numIterations,
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
-      const float buildingDistanceWeight);
+      const float buildingDistanceWeight,
+      const CrossoverType crossoverType,
+      const bool& keepInfeasibleSolutions);
   private:
+    void computeWolfValues(
+      eastl::vector<Solution>& wolves,
+      eastl::vector<double>& wolfMutationRates,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<eastl::vector<float>>& flowRates,
+      const eastl::vector<corex::core::NPolygon>& floodProneAreas,
+      const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
+      const float floodProneAreaPenalty,
+      const float landslideProneAreaPenalty,
+      const float buildingDistanceWeight);
+    void updateWolves(
+      eastl::vector<Solution>& wolves,
+      const CrossoverType crossoverType,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const bool& keepInfeasibleSolutions);
+    void mutateWolves(
+      eastl::vector<Solution>& wolves,
+      eastl::vector<double>& wolfMutationRates,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const bool& keepInfeasibleSolutions);
     eastl::vector<Solution> crossoverSolutions(
       const CrossoverType& type,
       const Solution& solutionA,
@@ -39,6 +66,8 @@ namespace bpt
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings,
                         const bool& keepInfeasibleSolutions);
+
+    cx::Timer runTimer;
   };
 }
 
