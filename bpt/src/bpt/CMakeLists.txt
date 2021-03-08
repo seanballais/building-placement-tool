@@ -12,6 +12,7 @@ add_executable(bpt
     HC.cpp
     operators.cpp
     SA.cpp
+    ds/AlgorithmType.hpp
     ds/Result.hpp
     ds/Solution.cpp
     ds/Time.cpp)

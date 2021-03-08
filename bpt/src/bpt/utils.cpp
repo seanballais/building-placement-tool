@@ -1,8 +1,21 @@
+#include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/SelectionType.hpp>
 #include <bpt/utils.hpp>
 
 namespace bpt
 {
+  const char* castToCString(AlgorithmType type)
+  {
+    switch (type) {
+      case AlgorithmType::GA:
+        return "Genetic Algorithm";
+      case AlgorithmType::GWO:
+        return "Grey Wolf Optimization";
+      case AlgorithmType::HC:
+        return "Naive Hill Climbing";
+    }
+  }
+
   const char* castToCString(SelectionType type)
   {
     switch (type) {

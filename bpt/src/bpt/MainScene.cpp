@@ -44,6 +44,7 @@
 #include <bpt/json_specializations.hpp>
 #include <bpt/MainScene.hpp>
 #include <bpt/utils.hpp>
+#include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/SelectionType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
@@ -58,6 +59,7 @@ namespace bpt
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
     , hillClimbingAlgo()
+    , currentAlgorithm(AlgorithmType::GA)
     , gaSettings({
         0.25f,
         25,
@@ -78,7 +80,7 @@ namespace bpt
     , currentSolution(nullptr)
     , solutions()
     , solutionBuffer()
-    , isGAThreadRunning(false)
+    , isAlgoThreadRunning(false)
     , hasSolutionBeenSetup(false)
     , doesInputDataExist(false)
     , doesInputBoundingAreaFieldExist(false)
@@ -87,20 +89,19 @@ namespace bpt
     , doFloodProneAreasExist(false)
     , doLandslideProneAreasExist(false)
     , isCloseAreaTriggerEnabled(false)
-    , showGAResultsAverage(true)
-    , showGAResultsBest(true)
-    , showGAResultsWorst(true)
+    , showResultsAverage(true)
+    , showResultsBest(true)
+    , showResultsWorst(true)
     , needUpdateBuildingRenderMode(false)
-    , isGATimelinePlaying(false)
-    , isLocalSearchOnly(false)
+    , isResultsTimelinePlaying(false)
     , closeAreaTriggerCircle(corex::core::Circle{
         corex::core::Point{ 0.f, 0.f }, 0.0f
       })
     , cameraMovementSpeed(15.f)
     , timeDelta(0.f)
-    , currSelectedGen(0)
-    , currSelectedGenSolution(0)
-    , gaTimelinePlaybackSpeed(1)
+    , currSelectedIter(0)
+    , currSelectedIterSolution(0)
+    , resultsTimelinePlaybackSpeed(1)
     , wipBoundingArea()
     , wipHazardArea()
     , boundingArea()
@@ -284,13 +285,13 @@ namespace bpt
     }
 
     if (this->solutions.size() > 0) {
-      this->currentSolution = &(this->solutions[this->currSelectedGen]
-                                               [this->currSelectedGenSolution]);
+      this->currentSolution = &(this->solutions[this->currSelectedIter]
+                                               [this->currSelectedIterSolution]);
     }
 
     if (this->currentSolution
         && !this->hasSolutionBeenSetup
-        && !this->isGAThreadRunning) {
+        && !this->isAlgoThreadRunning) {
       this->clearCurrentlyRenderedSolution();
 
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
@@ -1140,122 +1141,153 @@ namespace bpt
     ImGui::Begin("Algorithm Controls");
     ImGui::BeginChild("Algorithms Controls List");
 
-    ImGui::InputFloat("Mutation Rate", &(this->gaSettings.mutationRate));
-    ImGui::InputInt("Population Size", &(this->gaSettings.populationSize));
-    ImGui::InputInt("No. of Generations", &(this->gaSettings.numGenerations));
-    ImGui::InputInt("No. of Prev. Offsprings to Keep",
-                    &(this->gaSettings.numPrevGenOffsprings));
-    ImGui::InputFloat("Flood Penalty",
-                      &(this->gaSettings.floodProneAreaPenalty));
-    ImGui::InputFloat("Landslide Penalty",
-                      &(this->gaSettings.landslideProneAreaPenalty));
-    ImGui::InputFloat("Building Distance Weight",
-                      &(this->gaSettings.buildingDistanceWeight));
+    // TODO: Implement templated function that computes enum length.
+    constexpr int32_t numAlgoItems = 3;
+    static const AlgorithmType algoItems[numAlgoItems] = {
+      AlgorithmType::GA, AlgorithmType::GWO, AlgorithmType::HC
+    };
+    if (ImGui::BeginCombo("Algorithm",
+                          castToCString(this->currentAlgorithm))) {
+      for (AlgorithmType item : algoItems) {
+        bool isItemSelected = (this->currentAlgorithm == item);
+        if (ImGui::Selectable(castToCString(item), isItemSelected)) {
+          this->currentAlgorithm = item;
+        }
 
-    if (ImGui::BeginCombo("Selection Type",
-                          castToCString(this->gaSettings.selectionType))) {
-      // Gah. Let's hardcode the selection types for now. This is going
-      // to be ugly.
-      if (ImGui::Selectable(
-        "Ranked Selection",
-        this->gaSettings.selectionType == SelectionType::RS)) {
-        this->gaSettings.selectionType = SelectionType::RS;
-
-        if (this->gaSettings.selectionType == SelectionType::RS) {
+        if (isItemSelected) {
           ImGui::SetItemDefaultFocus();
         }
       }
 
-      if (ImGui::Selectable(
+      ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
+
+    switch (this->currentAlgorithm) {
+      case AlgorithmType::GA: {
+        ImGui::InputFloat("Mutation Rate",
+                          &(this->gaSettings.mutationRate));
+        ImGui::InputInt("Population Size",
+                        &(this->gaSettings.populationSize));
+        ImGui::InputInt("No. of Generations",
+                        &(this->gaSettings.numGenerations));
+        ImGui::InputInt("No. of Prev. Offsprings to Keep",
+                        &(this->gaSettings.numPrevGenOffsprings));
+        ImGui::InputFloat("Flood Penalty",
+                          &(this->gaSettings.floodProneAreaPenalty));
+        ImGui::InputFloat("Landslide Penalty",
+                          &(this->gaSettings.landslideProneAreaPenalty));
+        ImGui::InputFloat("Building Distance Weight",
+                          &(this->gaSettings.buildingDistanceWeight));
+
+        if (ImGui::BeginCombo("Selection Type",
+                              castToCString(this->gaSettings.selectionType))) {
+          // Gah. Let's hardcode the selection types for now. This is going
+          // to be ugly.
+          if (ImGui::Selectable(
+            "Ranked Selection",
+            this->gaSettings.selectionType == SelectionType::RS)) {
+            this->gaSettings.selectionType = SelectionType::RS;
+
+            if (this->gaSettings.selectionType == SelectionType::RS) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
+
+          if (ImGui::Selectable(
             "Roulette Wheel",
             this->gaSettings.selectionType == SelectionType::RWS)) {
-        this->gaSettings.selectionType = SelectionType::RWS;
+            this->gaSettings.selectionType = SelectionType::RWS;
 
-        if (this->gaSettings.selectionType == SelectionType::RWS) {
-          ImGui::SetItemDefaultFocus();
+            if (this->gaSettings.selectionType == SelectionType::RWS) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
+
+          if (ImGui::Selectable(
+            "Tournament",
+            this->gaSettings.selectionType == SelectionType::TS)) {
+            this->gaSettings.selectionType = SelectionType::TS;
+
+            if (this->gaSettings.selectionType == SelectionType::TS) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
+
+          ImGui::EndCombo();
         }
-      }
-
-      if (ImGui::Selectable(
-        "Tournament",
-        this->gaSettings.selectionType == SelectionType::TS)) {
-        this->gaSettings.selectionType = SelectionType::TS;
 
         if (this->gaSettings.selectionType == SelectionType::TS) {
-          ImGui::SetItemDefaultFocus();
+          ImGui::InputInt("Tournament Size",
+                          &(this->gaSettings.tournamentSize));
         }
-      }
 
-      ImGui::EndCombo();
-    }
+        if (ImGui::BeginCombo("Crossover Type",
+                              castToCString(this->gaSettings.crossoverType))) {
+          // Gah. Let's hardcode the selection types for now. This is going
+          // to be ugly.
+          if (ImGui::Selectable(
+            "Uniform",
+            this->gaSettings.crossoverType == CrossoverType::UNIFORM)) {
+            this->gaSettings.crossoverType = CrossoverType::UNIFORM;
 
-    if (this->gaSettings.selectionType == SelectionType::TS) {
-      ImGui::InputInt("Tournament Size",
-                      &(this->gaSettings.tournamentSize));
-    }
+            if (this->gaSettings.crossoverType == CrossoverType::UNIFORM) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
 
-    if (ImGui::BeginCombo("Crossover Type",
-                          castToCString(this->gaSettings.crossoverType))) {
-      // Gah. Let's hardcode the selection types for now. This is going
-      // to be ugly.
-      if (ImGui::Selectable(
-        "Uniform",
-        this->gaSettings.crossoverType == CrossoverType::UNIFORM)) {
-        this->gaSettings.crossoverType = CrossoverType::UNIFORM;
+          if (ImGui::Selectable(
+            "Box",
+            this->gaSettings.crossoverType == CrossoverType::BOX)) {
+            this->gaSettings.crossoverType = CrossoverType::BOX;
 
-        if (this->gaSettings.crossoverType == CrossoverType::UNIFORM) {
-          ImGui::SetItemDefaultFocus();
+            if (this->gaSettings.crossoverType == CrossoverType::BOX) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
+
+          ImGui::EndCombo();
         }
-      }
 
-      if (ImGui::Selectable(
-        "Box",
-        this->gaSettings.crossoverType == CrossoverType::BOX)) {
-        this->gaSettings.crossoverType = CrossoverType::BOX;
+        ImGui::Checkbox("Keep Infeasible Solutions",
+                        &(this->gaSettings.keepInfeasibleSolutions));
+        ImGui::Checkbox("Enable Local Search",
+                        &(this->gaSettings.isLocalSearchEnabled));
 
-        if (this->gaSettings.crossoverType == CrossoverType::BOX) {
-          ImGui::SetItemDefaultFocus();
+        if (this->gaSettings.isLocalSearchEnabled) {
+          static Time timeLimit(this->lsSettings.timeLimit);
+          static int32_t timeData[3] = {
+            timeLimit.hours,
+            timeLimit.minutes,
+            timeLimit.seconds
+          };
+          if (ImGui::InputInt3("Time Limit (hh:mm:ss)", timeData)) {
+            timeData[0] = std::min(std::max(0, timeData[0]), 59);
+            timeData[1] = std::min(std::max(0, timeData[1]), 59);
+            timeData[2] = std::min(std::max(0, timeData[2]), 59);
+
+            this->lsSettings.timeLimit = timeData[2]
+                                         + (timeData[1] * 60)
+                                         + (timeData[0] * 3600);
+          }
         }
-      }
-
-      ImGui::EndCombo();
+      } break;
+      case AlgorithmType::GWO: {
+        ImGui::Text("Hi");
+      } break;
+      case AlgorithmType::HC: {
+        ImGui::Text("WIP");
+      } break;
     }
 
-    ImGui::Checkbox("Run Local Search Only", &(this->isLocalSearchOnly));
-
-    if (!this->isLocalSearchOnly) {
-      ImGui::Checkbox("Enable Local Search",
-                      &(this->gaSettings.isLocalSearchEnabled));
-    }
-
-    if (this->gaSettings.isLocalSearchEnabled || this->isLocalSearchOnly) {
-      static Time timeLimit(this->lsSettings.timeLimit);
-      static int32_t timeData[3] = {
-        timeLimit.hours,
-        timeLimit.minutes,
-        timeLimit.seconds
-      };
-      if (ImGui::InputInt3("Time Limit (hh:mm:ss)", timeData)) {
-        timeData[0] = std::min(std::max(0, timeData[0]), 59);
-        timeData[1] = std::min(std::max(0, timeData[1]), 59);
-        timeData[2] = std::min(std::max(0, timeData[2]), 59);
-
-        this->lsSettings.timeLimit = timeData[2]
-          + (timeData[1] * 60)
-          + (timeData[0] * 3600);
-      }
-    }
-
-    ImGui::Checkbox("Keep Infeasible Solutions",
-                    &(this->gaSettings.keepInfeasibleSolutions));
-
-    if (this->isGAThreadRunning) {
-      ImGui::Text("Running GA... (Generation %d out of %d)",
+    if (this->isAlgoThreadRunning) {
+      ImGui::Text("Running Algorithm... (Generation %d out of %d)",
                   this->geneticAlgo.getCurrentRunGenerationNumber() + 1,
                   this->gaSettings.numGenerations);
     } else {
       if (ImGui::Button("Generate Solution")) {
-        this->isGAThreadRunning = true;
+        this->isAlgoThreadRunning = true;
         this->areNewSolutionsReady = false;
 
         std::thread gaThread{
@@ -1268,51 +1300,35 @@ namespace bpt
             auto floodProneAreasCopy = this->floodProneAreas;
             auto landslideProneAreasCopy = this->landslideProneAreas;
 
-            if (this->isLocalSearchOnly) {
-              // TODO: Store fitnesses of each iteration of the local search.
-              this->solutionBuffer = this->hillClimbingAlgo.generateSolution(
-                inputBuildingsCopy,
-                boundingAreaCopy,
-                flowRatesCopy,
-                floodProneAreasCopy,
-                landslideProneAreasCopy,
-                this->gaSettings.floodProneAreaPenalty,
-                this->gaSettings.landslideProneAreaPenalty,
-                this->gaSettings.buildingDistanceWeight,
-                this->lsSettings.timeLimit
-              );
-              std::cout << "Finished optimizing!\n";
-            } else {
-              this->solutionBuffer = this->geneticAlgo.generateSolutions(
-                inputBuildingsCopy,
-                boundingAreaCopy,
-                flowRatesCopy,
-                floodProneAreasCopy,
-                landslideProneAreasCopy,
-                this->gaSettings.mutationRate,
-                this->gaSettings.populationSize,
-                this->gaSettings.numGenerations,
-                this->gaSettings.tournamentSize,
-                this->gaSettings.numPrevGenOffsprings,
-                this->gaSettings.floodProneAreaPenalty,
-                this->gaSettings.landslideProneAreaPenalty,
-                this->gaSettings.buildingDistanceWeight,
-                this->gaSettings.isLocalSearchEnabled,
-                this->gaSettings.crossoverType,
-                this->gaSettings.selectionType,
-                this->lsSettings.timeLimit,
-                this->gaSettings.keepInfeasibleSolutions
-              );
+            this->solutionBuffer = this->geneticAlgo.generateSolutions(
+              inputBuildingsCopy,
+              boundingAreaCopy,
+              flowRatesCopy,
+              floodProneAreasCopy,
+              landslideProneAreasCopy,
+              this->gaSettings.mutationRate,
+              this->gaSettings.populationSize,
+              this->gaSettings.numGenerations,
+              this->gaSettings.tournamentSize,
+              this->gaSettings.numPrevGenOffsprings,
+              this->gaSettings.floodProneAreaPenalty,
+              this->gaSettings.landslideProneAreaPenalty,
+              this->gaSettings.buildingDistanceWeight,
+              this->gaSettings.isLocalSearchEnabled,
+              this->gaSettings.crossoverType,
+              this->gaSettings.selectionType,
+              this->lsSettings.timeLimit,
+              this->gaSettings.keepInfeasibleSolutions
+            );
 
-              std::cout << "Finished optimizing!\n";
+            std::cout << "Finished optimizing!\n";
 
-              this->recentGARunAvgFitnesses =
-                this->geneticAlgo.getRecentRunAverageFitnesses();
-              this->recentGARunBestFitnesses =
-                this->geneticAlgo.getRecentRunBestFitnesses();
-              this->recentGARunWorstFitnesses =
-                this->geneticAlgo.getRecentRunWorstFitnesses();
-            }
+            this->recentGARunAvgFitnesses =
+              this->geneticAlgo.getRecentRunAverageFitnesses();
+            this->recentGARunBestFitnesses =
+              this->geneticAlgo.getRecentRunBestFitnesses();
+            this->recentGARunWorstFitnesses =
+              this->geneticAlgo.getRecentRunWorstFitnesses();
 
             this->saveResultsToCSVFile();
 
@@ -1328,12 +1344,12 @@ namespace bpt
             //       program crashes instead.
             //
             //       I could fix this now, but it's not a priority. Too bad.
-            this->currSelectedGen = this->solutionBuffer.size() - 1;
-            this->currSelectedGenSolution = 0;
+            this->currSelectedIter = this->solutionBuffer.size() - 1;
+            this->currSelectedIterSolution = 0;
             this->hasSolutionBeenSetup = false;
             this->areNewSolutionsReady = true;
 
-            this->isGAThreadRunning = false;
+            this->isAlgoThreadRunning = false;
           }
         };
 
@@ -1367,12 +1383,12 @@ namespace bpt
 
     // Display combo box for selecting the generation and solution.
     if (ImGui::BeginCombo("Generation",
-                          eastl::to_string(currSelectedGen).c_str())) {
+                          eastl::to_string(currSelectedIter).c_str())) {
       for (int32_t i = 0; i < this->solutions.size(); i++) {
         // Note that i = 0 is the generation with random solutions.
-        const bool isItemSelected = (this->currSelectedGen == i);
+        const bool isItemSelected = (this->currSelectedIter == i);
         if (ImGui::Selectable(eastl::to_string(i).c_str(), isItemSelected)) {
-          this->currSelectedGen = i;
+          this->currSelectedIter = i;
           this->hasSolutionBeenSetup = false;
         }
 
@@ -1386,13 +1402,13 @@ namespace bpt
     }
 
     if (ImGui::BeginCombo("Solution",
-                          eastl::to_string(currSelectedGenSolution).c_str())) {
+                          eastl::to_string(currSelectedIterSolution).c_str())) {
       if (this->solutions.size() > 0) {
-        for (int32_t i = 0; i < this->solutions[currSelectedGen].size(); i++) {
+        for (int32_t i = 0; i < this->solutions[currSelectedIter].size(); i++) {
           // Note that i = 0 is the generation with random solutions.
-          const bool isItemSelected = (this->currSelectedGenSolution == i);
+          const bool isItemSelected = (this->currSelectedIterSolution == i);
           if (ImGui::Selectable(eastl::to_string(i).c_str(), isItemSelected)) {
-            this->currSelectedGenSolution = i;
+            this->currSelectedIterSolution = i;
             this->hasSolutionBeenSetup = false;
           }
 
@@ -1410,8 +1426,8 @@ namespace bpt
 
     if (ImGui::Button("Previous Generation")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGen = corex::core::mod(
-          this->currSelectedGen - 1,
+        this->currSelectedIter = corex::core::mod(
+          this->currSelectedIter - 1,
           this->solutions.size());
         this->hasSolutionBeenSetup = false;
       }
@@ -1421,8 +1437,8 @@ namespace bpt
 
     if (ImGui::Button("Next Generation")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGen = corex::core::mod(
-          this->currSelectedGen + 1,
+        this->currSelectedIter = corex::core::mod(
+          this->currSelectedIter + 1,
           this->solutions.size());
         this->hasSolutionBeenSetup = false;
       }
@@ -1432,9 +1448,9 @@ namespace bpt
 
     if (ImGui::Button("Previous Solution")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGenSolution = corex::core::mod(
-          this->currSelectedGenSolution - 1,
-          this->solutions[currSelectedGen].size());
+        this->currSelectedIterSolution = corex::core::mod(
+          this->currSelectedIterSolution - 1,
+          this->solutions[currSelectedIter].size());
         this->hasSolutionBeenSetup = false;
       }
     }
@@ -1443,9 +1459,9 @@ namespace bpt
 
     if (ImGui::Button("Next Solution")) {
       if (this->solutions.size() > 0) {
-        this->currSelectedGenSolution = corex::core::mod(
-          this->currSelectedGenSolution + 1,
-          this->solutions[currSelectedGen].size());
+        this->currSelectedIterSolution = corex::core::mod(
+          this->currSelectedIterSolution + 1,
+          this->solutions[currSelectedIter].size());
         this->hasSolutionBeenSetup = false;
       }
     }
@@ -1453,15 +1469,15 @@ namespace bpt
     ImGui::Columns(1);
 
     if (this->solutions.size() > 0) {
-      if (ImGui::Button(!(this->isGATimelinePlaying) ? "Play GA Timeline"
-                                                     : "Pause GA Timeline")) {
-        this->isGATimelinePlaying = !(this->isGATimelinePlaying);
+      if (ImGui::Button(!(this->isResultsTimelinePlaying) ? "Play GA Timeline"
+                                                          : "Pause GA Timeline")) {
+        this->isResultsTimelinePlaying = !(this->isResultsTimelinePlaying);
         this->hasSolutionBeenSetup = false;
       }
     }
 
     ImGui::SliderInt("Timeline Playback Speed",
-                     &(this->gaTimelinePlaybackSpeed),
+                     &(this->resultsTimelinePlaybackSpeed),
                      1,
                      4);
 
@@ -1484,19 +1500,19 @@ namespace bpt
 
     ImPlot::SetNextPlotLimits(0.0, 1000, 0.0, 500.0);
     if (ImPlot::BeginPlot("Fitness Over Gen. ID", "Generation", "Fitness")) {
-      if (this->showGAResultsAverage) {
+      if (this->showResultsAverage) {
         ImPlot::PlotLine("Average Fitness",
                          avgFitnesses,
                          this->recentGARunAvgFitnesses.size());
       }
 
-      if (this->showGAResultsBest) {
+      if (this->showResultsBest) {
         ImPlot::PlotLine("Best Fitness",
                          bestFitnesses,
                          this->recentGARunBestFitnesses.size());
       }
 
-      if (this->showGAResultsWorst) {
+      if (this->showResultsWorst) {
         ImPlot::PlotLine("Worst Fitness",
                          worstFitnesses,
                          this->recentGARunWorstFitnesses.size());
@@ -1505,9 +1521,9 @@ namespace bpt
       ImPlot::EndPlot();
     }
 
-    ImGui::Checkbox("Show Average Fitness", &(this->showGAResultsAverage));
-    ImGui::Checkbox("Show Best Fitness", &(this->showGAResultsBest));
-    ImGui::Checkbox("Show Worst Fitness", &(this->showGAResultsWorst));
+    ImGui::Checkbox("Show Average Fitness", &(this->showResultsAverage));
+    ImGui::Checkbox("Show Best Fitness", &(this->showResultsBest));
+    ImGui::Checkbox("Show Worst Fitness", &(this->showResultsWorst));
 
     ImGui::EndChild();
     ImGui::End();
@@ -1520,7 +1536,7 @@ namespace bpt
 
     float floatInputBuffer;
 
-    if (this->hasSolutionBeenSetup && !this->isGATimelinePlaying) {
+    if (this->hasSolutionBeenSetup && !this->isResultsTimelinePlaying) {
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
         ImGui::Text("Building #%d", i);
 
@@ -1560,13 +1576,13 @@ namespace bpt
   void MainScene::handleGATimelinePlayback(float timeDelta)
   {
     static float timeElapsed = 0.f;
-    if (this->isGATimelinePlaying) {
+    if (this->isResultsTimelinePlaying) {
       timeElapsed += timeDelta;
 
-      const float timePerGeneration = 0.15f / this->gaTimelinePlaybackSpeed;
+      const float timePerGeneration = 0.15f / this->resultsTimelinePlaybackSpeed;
       if (corex::core::floatGreEqual(timeElapsed, timePerGeneration)) {
-        this->currSelectedGen = corex::core::mod(
-          this->currSelectedGen + 1,
+        this->currSelectedIter = corex::core::mod(
+          this->currSelectedIter + 1,
           this->solutions.size());
         this->hasSolutionBeenSetup = false;
 

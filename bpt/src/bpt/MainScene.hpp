@@ -23,6 +23,7 @@
 #include <bpt/Context.hpp>
 #include <bpt/GA.hpp>
 #include <bpt/HC.hpp>
+#include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/GASettings.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/LSSettings.hpp>
@@ -63,12 +64,13 @@ namespace bpt
     Context currentContext;
     GA geneticAlgo;
     HC hillClimbingAlgo;
+    AlgorithmType currentAlgorithm;
     GASettings gaSettings;
     LSSettings lsSettings;
     Solution* currentSolution;
     eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<eastl::vector<Solution>> solutionBuffer;
-    std::atomic<bool> isGAThreadRunning;
+    std::atomic<bool> isAlgoThreadRunning;
     bool hasSolutionBeenSetup;
     bool doesInputDataExist;
     bool doesInputBoundingAreaFieldExist;
@@ -77,17 +79,16 @@ namespace bpt
     bool doFloodProneAreasExist;
     bool doLandslideProneAreasExist;
     bool isCloseAreaTriggerEnabled;
-    bool showGAResultsAverage;
-    bool showGAResultsBest;
-    bool showGAResultsWorst;
+    bool showResultsAverage;
+    bool showResultsBest;
+    bool showResultsWorst;
     bool needUpdateBuildingRenderMode;
-    bool isGATimelinePlaying;
-    bool isLocalSearchOnly;
+    bool isResultsTimelinePlaying;
     float cameraMovementSpeed;
     float timeDelta;
-    int32_t currSelectedGen;
-    int32_t currSelectedGenSolution;
-    int32_t gaTimelinePlaybackSpeed;
+    int32_t currSelectedIter;
+    int32_t currSelectedIterSolution;
+    int32_t resultsTimelinePlaybackSpeed;
     corex::core::Circle closeAreaTriggerCircle;
     corex::core::LineSegments wipBoundingArea;
     corex::core::LineSegments wipHazardArea;
