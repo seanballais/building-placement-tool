@@ -46,6 +46,7 @@
 #include <bpt/utils.hpp>
 #include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/CrossoverType.hpp>
+#include <bpt/ds/Result.hpp>
 #include <bpt/ds/SelectionType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Time.hpp>
@@ -58,6 +59,7 @@ namespace bpt
                        corex::core::Camera& camera)
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
+    , gwoAlgo()
     , hillClimbingAlgo()
     , currentAlgorithm(AlgorithmType::GA)
     , gaSettings({
@@ -77,6 +79,7 @@ namespace bpt
     , lsSettings({
         0.0
       })
+    , settings("algorithm_settings.bptstg")
     , currentSolution(nullptr)
     , solutions()
     , solutionBuffer()
@@ -121,9 +124,9 @@ namespace bpt
     , buildingTextEntities()
     , floodProneAreaTextEntities()
     , landslideProneAreaTextEntities()
-    , recentGARunAvgFitnesses()
-    , recentGARunBestFitnesses()
-    , recentGARunWorstFitnesses()
+    , recentRunAvgFitnesses()
+    , recentRunBestFitnesses()
+    , recentRunWorstFitnesses()
     , inputData()
     , areNewSolutionsReady()
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
@@ -1282,78 +1285,146 @@ namespace bpt
     }
 
     if (this->isAlgoThreadRunning) {
-      ImGui::Text("Running Algorithm... (Generation %d out of %d)",
-                  this->geneticAlgo.getCurrentRunGenerationNumber() + 1,
-                  this->gaSettings.numGenerations);
+      ImGui::Text("Running Algorithm...");
     } else {
+      // TODO: Sean, this code sucks. CLEAN IT UP AFTER YOUR MEETING WITH SIR
+      //       YUNO!
       if (ImGui::Button("Generate Solution")) {
         this->isAlgoThreadRunning = true;
         this->areNewSolutionsReady = false;
 
-        std::thread gaThread{
-          [this]() {
-            // We need to copy the following vectors to this thread, because
-            // they somehow get modified as the thread executes.
-            auto inputBuildingsCopy = this->inputBuildings;
-            auto boundingAreaCopy = this->boundingArea;
-            auto flowRatesCopy = this->flowRates;
-            auto floodProneAreasCopy = this->floodProneAreas;
-            auto landslideProneAreasCopy = this->landslideProneAreas;
+        switch (this->currentAlgorithm) {
+          case AlgorithmType::GA: {
+            std::thread gaThread{
+              [this]() {
+                // We need to copy the following vectors to this thread, because
+                // they somehow get modified as the thread executes.
+                auto inputBuildingsCopy = this->inputBuildings;
+                auto boundingAreaCopy = this->boundingArea;
+                auto flowRatesCopy = this->flowRates;
+                auto floodProneAreasCopy = this->floodProneAreas;
+                auto landslideProneAreasCopy = this->landslideProneAreas;
 
-            this->solutionBuffer = this->geneticAlgo.generateSolutions(
-              inputBuildingsCopy,
-              boundingAreaCopy,
-              flowRatesCopy,
-              floodProneAreasCopy,
-              landslideProneAreasCopy,
-              this->gaSettings.mutationRate,
-              this->gaSettings.populationSize,
-              this->gaSettings.numGenerations,
-              this->gaSettings.tournamentSize,
-              this->gaSettings.numPrevGenOffsprings,
-              this->gaSettings.floodProneAreaPenalty,
-              this->gaSettings.landslideProneAreaPenalty,
-              this->gaSettings.buildingDistanceWeight,
-              this->gaSettings.isLocalSearchEnabled,
-              this->gaSettings.crossoverType,
-              this->gaSettings.selectionType,
-              this->lsSettings.timeLimit,
-              this->gaSettings.keepInfeasibleSolutions
-            );
+                this->solutionBuffer = this->geneticAlgo.generateSolutions(
+                  inputBuildingsCopy,
+                  boundingAreaCopy,
+                  flowRatesCopy,
+                  floodProneAreasCopy,
+                  landslideProneAreasCopy,
+                  this->gaSettings.mutationRate,
+                  this->gaSettings.populationSize,
+                  this->gaSettings.numGenerations,
+                  this->gaSettings.tournamentSize,
+                  this->gaSettings.numPrevGenOffsprings,
+                  this->gaSettings.floodProneAreaPenalty,
+                  this->gaSettings.landslideProneAreaPenalty,
+                  this->gaSettings.buildingDistanceWeight,
+                  this->gaSettings.isLocalSearchEnabled,
+                  this->gaSettings.crossoverType,
+                  this->gaSettings.selectionType,
+                  this->lsSettings.timeLimit,
+                  this->gaSettings.keepInfeasibleSolutions
+                );
 
-            std::cout << "Finished optimizing!\n";
+                std::cout << "Finished optimizing!\n";
 
-            this->recentGARunAvgFitnesses =
-              this->geneticAlgo.getRecentRunAverageFitnesses();
-            this->recentGARunBestFitnesses =
-              this->geneticAlgo.getRecentRunBestFitnesses();
-            this->recentGARunWorstFitnesses =
-              this->geneticAlgo.getRecentRunWorstFitnesses();
+                this->recentRunAvgFitnesses =
+                  this->geneticAlgo.getRecentRunAverageFitnesses();
+                this->recentRunBestFitnesses =
+                  this->geneticAlgo.getRecentRunBestFitnesses();
+                this->recentRunWorstFitnesses =
+                  this->geneticAlgo.getRecentRunWorstFitnesses();
 
-            this->saveResultsToCSVFile();
+                this->saveResultsToCSVFile();
 
-            // NOTE: There's a weird bug that occurs when we don't subtract the
-            //       the solution size by one when assigning the value of the
-            //       currently selected generation.
-            //
-            //       When the GA is run without local search, the program will
-            //       not show any buildings upon completion of the optimization.
-            //       Clicking "Next Generation" or "Previous Generation" will
-            //       result in the wrong generation index from being removed
-            //       from the list of generations. If local search is run, the
-            //       program crashes instead.
-            //
-            //       I could fix this now, but it's not a priority. Too bad.
-            this->currSelectedIter = this->solutionBuffer.size() - 1;
-            this->currSelectedIterSolution = 0;
-            this->hasSolutionBeenSetup = false;
-            this->areNewSolutionsReady = true;
+                // NOTE: There's a weird bug that occurs when we don't subtract
+                //       the solution size by one when assigning the value o
+                //       the currently selected generation.
+                //
+                //       When the GA is run without local search, the program
+                //       will not show any buildings upon completion of the
+                //       optimization. Clicking "Next Generation" or
+                //       "Previous Generation" will result in the wrong
+                //       generation index from being removed from the list of
+                //       generations. If local search is run, the program
+                //       crashes instead.
+                //
+                //       I could fix this now, but it's not a priority. Too bad.
+                this->currSelectedIter = this->solutionBuffer.size() - 1;
+                this->currSelectedIterSolution = 0;
+                this->hasSolutionBeenSetup = false;
+                this->areNewSolutionsReady = true;
 
-            this->isAlgoThreadRunning = false;
-          }
-        };
+                this->isAlgoThreadRunning = false;
+              }
+            };
 
-        gaThread.detach();
+            gaThread.detach();
+          } break;
+          case AlgorithmType::GWO: {
+            std::thread gwoThread{
+              [this]() {
+                // We need to copy the following vectors to this thread, because
+                // they somehow get modified as the thread executes.
+                auto inputBuildingsCopy = this->inputBuildings;
+                auto boundingAreaCopy = this->boundingArea;
+                auto flowRatesCopy = this->flowRates;
+                auto floodProneAreasCopy = this->floodProneAreas;
+                auto landslideProneAreasCopy = this->landslideProneAreas;
+
+                Result result = this->gwoAlgo.generateSolutions(
+                  inputBuildingsCopy,
+                  boundingAreaCopy,
+                  flowRatesCopy,
+                  floodProneAreasCopy,
+                  landslideProneAreasCopy,
+                  15, // Temporary. Will change after the GUI integration.
+                  1000, // Temporary. Same reason as above.
+                  10000, // Temporary. Same reason as above.
+                  25000, // Temporary. Same reason as above.
+                  1.0f, // Temporary. Same reason as above.
+                  CrossoverType::UNIFORM, // Temporary. Same reason as above.
+                  true); // Temporary. Same reason as above.
+
+                std::cout << "Finished optimizing!\n";
+
+                this->solutionBuffer = result.solutions;
+                this->recentRunAvgFitnesses = eastl::vector<double>(
+                  result.averageFitnesses);
+                this->recentRunBestFitnesses = eastl::vector<double>(
+                  result.bestFitnesses);
+                this->recentRunWorstFitnesses = eastl::vector<double>(
+                  result.worstFitnesses);
+
+                // TODO: Save the results to a CSV file.
+
+                // NOTE: There's a weird bug that occurs when we don't subtract
+                //       the solution size by one when assigning the value o
+                //       the currently selected generation.
+                //
+                //       When the GA is run without local search, the program
+                //       will not show any buildings upon completion of the
+                //       optimization. Clicking "Next Generation" or
+                //       "Previous Generation" will result in the wrong
+                //       generation index from being removed from the list of
+                //       generations. If local search is run, the program
+                //       crashes instead.
+                //
+                //       I could fix this now, but it's not a priority. Too bad.
+                this->currSelectedIter = this->solutionBuffer.size() - 1;
+                this->currSelectedIterSolution = 0;
+                this->hasSolutionBeenSetup = false;
+                this->areNewSolutionsReady = true;
+
+                this->isAlgoThreadRunning = false;
+              }
+            };
+
+            gwoThread.detach();
+          } break;
+          case AlgorithmType::HC:
+            break;
+        }
       }
     }
 
@@ -1483,19 +1554,19 @@ namespace bpt
 
     ImGui::Separator();
 
-    float avgFitnesses[this->recentGARunAvgFitnesses.size()];
-    for (int32_t i = 0; i < this->recentGARunAvgFitnesses.size(); i++) {
-      avgFitnesses[i] = this->recentGARunAvgFitnesses[i];
+    float avgFitnesses[this->recentRunAvgFitnesses.size()];
+    for (int32_t i = 0; i < this->recentRunAvgFitnesses.size(); i++) {
+      avgFitnesses[i] = this->recentRunAvgFitnesses[i];
     }
 
-    float bestFitnesses[this->recentGARunBestFitnesses.size()];
-    for (int32_t i = 0; i < this->recentGARunBestFitnesses.size(); i++) {
-      bestFitnesses[i] = this->recentGARunBestFitnesses[i];
+    float bestFitnesses[this->recentRunBestFitnesses.size()];
+    for (int32_t i = 0; i < this->recentRunBestFitnesses.size(); i++) {
+      bestFitnesses[i] = this->recentRunBestFitnesses[i];
     }
 
-    float worstFitnesses[this->recentGARunWorstFitnesses.size()];
-    for (int32_t i = 0; i < this->recentGARunWorstFitnesses.size(); i++) {
-      worstFitnesses[i] = this->recentGARunWorstFitnesses[i];
+    float worstFitnesses[this->recentRunWorstFitnesses.size()];
+    for (int32_t i = 0; i < this->recentRunWorstFitnesses.size(); i++) {
+      worstFitnesses[i] = this->recentRunWorstFitnesses[i];
     }
 
     ImPlot::SetNextPlotLimits(0.0, 1000, 0.0, 500.0);
@@ -1503,19 +1574,19 @@ namespace bpt
       if (this->showResultsAverage) {
         ImPlot::PlotLine("Average Fitness",
                          avgFitnesses,
-                         this->recentGARunAvgFitnesses.size());
+                         this->recentRunAvgFitnesses.size());
       }
 
       if (this->showResultsBest) {
         ImPlot::PlotLine("Best Fitness",
                          bestFitnesses,
-                         this->recentGARunBestFitnesses.size());
+                         this->recentRunBestFitnesses.size());
       }
 
       if (this->showResultsWorst) {
         ImPlot::PlotLine("Worst Fitness",
                          worstFitnesses,
-                         this->recentGARunWorstFitnesses.size());
+                         this->recentRunWorstFitnesses.size());
       }
 
       ImPlot::EndPlot();
@@ -1857,19 +1928,19 @@ namespace bpt
     resultsFile << "\n";
 
     resultsFile << "Average Fitness";
-    for (float& fitness : this->recentGARunAvgFitnesses) {
+    for (double& fitness : this->recentRunAvgFitnesses) {
       resultsFile << "," << fitness;
     }
     resultsFile << "\n";
 
     resultsFile << "Best Fitness";
-    for (float& fitness : this->recentGARunBestFitnesses) {
+    for (double& fitness : this->recentRunBestFitnesses) {
       resultsFile << "," << fitness;
     }
     resultsFile << "\n";
 
     resultsFile << "Worst Fitness";
-    for (float& fitness : this->recentGARunWorstFitnesses) {
+    for (double& fitness : this->recentRunWorstFitnesses) {
       resultsFile << "," << fitness;
     }
     resultsFile << "\n";

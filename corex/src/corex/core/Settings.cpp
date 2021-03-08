@@ -24,6 +24,15 @@ namespace corex::core
     this->loadSettingsFile();
   }
 
+  Settings::Settings(const eastl::string& filename)
+    : settings()
+    , settingsFilePath(
+        stdStrToEAStr((getSettingsFolder() / eaStrToStdStr(filename)).string())
+      )
+  {
+    this->loadSettingsFile();
+  }
+
   void Settings::setVariable(const eastl::string& name, CoreXNull)
   {
     this->settings[name] = coreXNull;

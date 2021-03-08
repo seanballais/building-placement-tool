@@ -10,6 +10,7 @@
 #include <corex/core/AssetManager.hpp>
 #include <corex/core/Camera.hpp>
 #include <corex/core/Scene.hpp>
+#include <corex/core/Settings.hpp>
 #include <corex/core/ds/Circle.hpp>
 #include <corex/core/ds/LineSegments.hpp>
 #include <corex/core/ds/NPolygon.hpp>
@@ -22,6 +23,7 @@
 
 #include <bpt/Context.hpp>
 #include <bpt/GA.hpp>
+#include <bpt/GWO.hpp>
 #include <bpt/HC.hpp>
 #include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/GASettings.hpp>
@@ -63,10 +65,12 @@ namespace bpt
 
     Context currentContext;
     GA geneticAlgo;
+    GWO gwoAlgo;
     HC hillClimbingAlgo;
     AlgorithmType currentAlgorithm;
     GASettings gaSettings;
     LSSettings lsSettings;
+    cx::Settings settings;
     Solution* currentSolution;
     eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<eastl::vector<Solution>> solutionBuffer;
@@ -109,9 +113,9 @@ namespace bpt
     eastl::vector<entt::entity> buildingTextEntities;
     eastl::vector<entt::entity> floodProneAreaTextEntities;
     eastl::vector<entt::entity> landslideProneAreaTextEntities;
-    eastl::vector<float> recentGARunAvgFitnesses;
-    eastl::vector<float> recentGARunBestFitnesses;
-    eastl::vector<float> recentGARunWorstFitnesses;
+    eastl::vector<double> recentRunAvgFitnesses;
+    eastl::vector<double> recentRunBestFitnesses;
+    eastl::vector<double> recentRunWorstFitnesses;
     nlohmann::json inputData;
     bool areNewSolutionsReady;
   };

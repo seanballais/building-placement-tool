@@ -31,26 +31,23 @@ namespace bpt
         inputBuildings[i].length,
         buildingRotation
       };
-      do {
-        const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
-          boundingAreaTriangles,
-          triangleAreas);
-        cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
 
-        buildingPos.x = newBuildingPos.x;
-        buildingPos.y = newBuildingPos.y;
-        buildingRotation = corex::core::generateRandomReal(
-          rotationDistribution);
-        buildingRect.x = buildingPos.x;
-        buildingRect.y = buildingPos.y;
-        buildingRect.angle = buildingRotation;
+      const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
+        boundingAreaTriangles,
+        triangleAreas);
+      cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
 
-        solution.setBuildingXPos(i, buildingPos.x);
-        solution.setBuildingYPos(i, buildingPos.y);
-        solution.setBuildingAngle(i, buildingRotation);
-      } while (!isRectWithinNPolygon(buildingRect, boundingArea)
-               || !doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                          inputBuildings));
+      buildingPos.x = newBuildingPos.x;
+      buildingPos.y = newBuildingPos.y;
+      buildingRotation = corex::core::generateRandomReal(
+        rotationDistribution);
+      buildingRect.x = buildingPos.x;
+      buildingRect.y = buildingPos.y;
+      buildingRect.angle = buildingRotation;
+
+      solution.setBuildingXPos(i, buildingPos.x);
+      solution.setBuildingYPos(i, buildingPos.y);
+      solution.setBuildingAngle(i, buildingRotation);
     }
 
     return solution;

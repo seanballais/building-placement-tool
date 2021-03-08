@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/array.h>
@@ -48,8 +49,10 @@ namespace bpt
 
     // Generate initial wolves.
     for (int32_t i = 0; i < numWolves; i++) {
+      std::cout << "Generating Wolf #" << i << "\n";
       wolves.push_back(generateRandomSolution(inputBuildings,
                                               boundingArea));
+      wolfMutationRates.push_back(0.0);
     }
 
     // Evaluate individual fitness and mutation rate.
@@ -66,6 +69,7 @@ namespace bpt
       buildingDistanceWeight);
 
     for (int32_t i = 0; i < numIterations; i++) {
+      std::cout << "Iteration #" << i << " " << std::endl;
       // Update individuals based on a custom search operator.
       this->updateWolves(
         wolves,
@@ -188,17 +192,17 @@ namespace bpt
     eastl::array<Solution*, 3> bestWolves{ nullptr, nullptr, nullptr };
 
     for (Solution& wolf : wolves) {
-      if (wolf.getFitness() < bestWolves[0]->getFitness()
-          || bestWolves[0] == nullptr) {
+      if (bestWolves[0] == nullptr
+          || wolf.getFitness() < bestWolves[0]->getFitness()) {
         bestWolves[2] = bestWolves[1];
         bestWolves[1] = bestWolves[0];
         bestWolves[0] = &wolf;
-      } else if (wolf.getFitness() < bestWolves[1]->getFitness()
-                 || bestWolves[1] == nullptr) {
+      } else if (bestWolves[1] == nullptr
+                 || wolf.getFitness() < bestWolves[1]->getFitness()) {
         bestWolves[2] = bestWolves[1];
         bestWolves[1] = &wolf;
-      } else if (wolf.getFitness() < bestWolves[2]->getFitness()
-                 || bestWolves[2] == nullptr) {
+      } else if (bestWolves[2] == nullptr
+                 || wolf.getFitness() < bestWolves[2]->getFitness()) {
         bestWolves[2] = &wolf;
       }
     }
@@ -305,10 +309,10 @@ namespace bpt
       tempSolution = solution;
       const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
         0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      mutationFunctions[mutationFuncIndex](tempSolution,
-                                           boundingArea,
-                                           inputBuildings,
-                                           keepInfeasibleSolutions);
+      mutationFunctions[0](tempSolution,
+                           boundingArea,
+                           inputBuildings,
+                           keepInfeasibleSolutions);
     } while (!keepInfeasibleSolutions
              && !isSolutionFeasible(tempSolution, boundingArea,
                                     inputBuildings));

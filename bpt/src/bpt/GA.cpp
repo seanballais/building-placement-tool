@@ -105,13 +105,9 @@ namespace bpt
     }
 
     fitnessAverage = fitnessAverage / population.size();
-    this->recentRunAvgFitnesses.push_back(static_cast<float>(fitnessAverage));
-
-    this->recentRunBestFitnesses.push_back(static_cast<float>(
-                                             bestSolution.getFitness()));
-
-    this->recentRunWorstFitnesses.push_back(static_cast<float>(
-                                              worstSolution.getFitness()));
+    this->recentRunAvgFitnesses.push_back(fitnessAverage);
+    this->recentRunBestFitnesses.push_back(bestSolution.getFitness());
+    this->recentRunWorstFitnesses.push_back(worstSolution.getFitness());
 
     const int32_t numOffspringsToMake = populationSize - numPrevGenOffsprings;
     for (int32_t i = 0; i < numGenerations; i++) {
@@ -247,17 +243,17 @@ namespace bpt
     return this->currRunGenerationNumber;
   }
 
-  eastl::vector<float> GA::getRecentRunAverageFitnesses()
+  eastl::vector<double> GA::getRecentRunAverageFitnesses()
   {
     return this->recentRunAvgFitnesses;
   }
 
-  eastl::vector<float> GA::getRecentRunBestFitnesses()
+  eastl::vector<double> GA::getRecentRunBestFitnesses()
   {
     return this->recentRunBestFitnesses;
   }
 
-  eastl::vector<float> GA::getRecentRunWorstFitnesses()
+  eastl::vector<double> GA::getRecentRunWorstFitnesses()
   {
     return this->recentRunWorstFitnesses;
   }

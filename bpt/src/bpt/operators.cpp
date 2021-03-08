@@ -33,7 +33,6 @@ namespace bpt
         int32_t parentIndex;
         for (int32_t i = 0; i < numBuildings; i++) {
           parentIndex = cx::getRandomIntUniformly(0, 1);
-          std::cout << "Uniform Crossover 1: ";
           child.setBuildingXPos(i, parents[parentIndex]->getBuildingXPos(i));
 
           parentIndex = cx::getRandomIntUniformly(0, 1);
@@ -68,10 +67,8 @@ namespace bpt
         // Perform Box Crossover.
         for (int32_t i = 0; i < numBuildings; i++) {
           // Compute child's new x position.
-          std::cout << "Box crossover 1: ";
           float lowerXBound = std::min(parents[0]->getBuildingXPos(i),
                                        parents[1]->getBuildingXPos(i));
-          std::cout << "Box crossover 2: ";
           float upperXBound = std::max(parents[0]->getBuildingXPos(i),
                                        parents[1]->getBuildingXPos(i));
           child.setBuildingXPos(

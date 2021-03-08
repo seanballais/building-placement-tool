@@ -43,9 +43,9 @@ namespace bpt
       const double timeLimit,
       const bool& keepInfeasibleSolutions);
     int32_t getCurrentRunGenerationNumber();
-    eastl::vector<float> getRecentRunAverageFitnesses();
-    eastl::vector<float> getRecentRunBestFitnesses();
-    eastl::vector<float> getRecentRunWorstFitnesses();
+    eastl::vector<double> getRecentRunAverageFitnesses();
+    eastl::vector<double> getRecentRunBestFitnesses();
+    eastl::vector<double> getRecentRunWorstFitnesses();
     double getRecentRunElapsedTime();
   private:
     eastl::vector<Solution> generateInitialPopulation(
@@ -114,9 +114,9 @@ namespace bpt
     }
 
     int32_t currRunGenerationNumber;
-    eastl::vector<float> recentRunAvgFitnesses;
-    eastl::vector<float> recentRunBestFitnesses;
-    eastl::vector<float> recentRunWorstFitnesses;
+    eastl::vector<double> recentRunAvgFitnesses;
+    eastl::vector<double> recentRunBestFitnesses;
+    eastl::vector<double> recentRunWorstFitnesses;
     cx::Timer runTimer;
     double recentRunElapsedTime;
     HC hillClimbing;

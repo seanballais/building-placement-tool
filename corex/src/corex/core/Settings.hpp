@@ -19,6 +19,7 @@ namespace corex::core
   {
   public:
     Settings();
+    Settings(const eastl::string& filename);
 
     void setVariable(const eastl::string& name, CoreXNull);
     void setVariable(const eastl::string& name, bool value);
@@ -63,6 +64,11 @@ namespace corex::core
     eastl::unordered_map<eastl::string, SVar> settings;
     eastl::string settingsFilePath;
   };
+}
+
+namespace cx
+{
+  using namespace corex::core;
 }
 
 #endif
