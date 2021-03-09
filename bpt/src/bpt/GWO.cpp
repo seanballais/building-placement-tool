@@ -309,10 +309,10 @@ namespace bpt
       tempSolution = solution;
       const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
         0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      mutationFunctions[0](tempSolution,
-                           boundingArea,
-                           inputBuildings,
-                           keepInfeasibleSolutions);
+      mutationFunctions[mutationFuncIndex](tempSolution,
+                                           boundingArea,
+                                           inputBuildings,
+                                           keepInfeasibleSolutions);
     } while (!keepInfeasibleSolutions
              && !isSolutionFeasible(tempSolution, boundingArea,
                                     inputBuildings));

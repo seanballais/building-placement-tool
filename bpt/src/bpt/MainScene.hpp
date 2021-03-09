@@ -116,6 +116,7 @@ namespace bpt
     eastl::vector<double> recentRunAvgFitnesses;
     eastl::vector<double> recentRunBestFitnesses;
     eastl::vector<double> recentRunWorstFitnesses;
+    double recentRunElapsedTime;
     nlohmann::json inputData;
     bool areNewSolutionsReady;
   };

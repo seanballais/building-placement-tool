@@ -41,6 +41,7 @@
 
 #include <bpt/Context.hpp>
 #include <bpt/evaluator.hpp>
+#include <bpt/gui.hpp>
 #include <bpt/json_specializations.hpp>
 #include <bpt/MainScene.hpp>
 #include <bpt/utils.hpp>
@@ -127,6 +128,7 @@ namespace bpt
     , recentRunAvgFitnesses()
     , recentRunBestFitnesses()
     , recentRunWorstFitnesses()
+    , recentRunElapsedTime(0.0)
     , inputData()
     , areNewSolutionsReady()
     , corex::core::Scene(registry, eventDispatcher, assetManager, camera) {}
@@ -1149,21 +1151,7 @@ namespace bpt
     static const AlgorithmType algoItems[numAlgoItems] = {
       AlgorithmType::GA, AlgorithmType::GWO, AlgorithmType::HC
     };
-    if (ImGui::BeginCombo("Algorithm",
-                          castToCString(this->currentAlgorithm))) {
-      for (AlgorithmType item : algoItems) {
-        bool isItemSelected = (this->currentAlgorithm == item);
-        if (ImGui::Selectable(castToCString(item), isItemSelected)) {
-          this->currentAlgorithm = item;
-        }
-
-        if (isItemSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
-      }
-
-      ImGui::EndCombo();
-    }
+    drawComboBox("Algorithm", this->currentAlgorithm, algoItems);
 
     ImGui::Separator();
 
@@ -1184,74 +1172,31 @@ namespace bpt
         ImGui::InputFloat("Building Distance Weight",
                           &(this->gaSettings.buildingDistanceWeight));
 
-        if (ImGui::BeginCombo("Selection Type",
-                              castToCString(this->gaSettings.selectionType))) {
-          // Gah. Let's hardcode the selection types for now. This is going
-          // to be ugly.
-          if (ImGui::Selectable(
-            "Ranked Selection",
-            this->gaSettings.selectionType == SelectionType::RS)) {
-            this->gaSettings.selectionType = SelectionType::RS;
-
-            if (this->gaSettings.selectionType == SelectionType::RS) {
-              ImGui::SetItemDefaultFocus();
-            }
-          }
-
-          if (ImGui::Selectable(
-            "Roulette Wheel",
-            this->gaSettings.selectionType == SelectionType::RWS)) {
-            this->gaSettings.selectionType = SelectionType::RWS;
-
-            if (this->gaSettings.selectionType == SelectionType::RWS) {
-              ImGui::SetItemDefaultFocus();
-            }
-          }
-
-          if (ImGui::Selectable(
-            "Tournament",
-            this->gaSettings.selectionType == SelectionType::TS)) {
-            this->gaSettings.selectionType = SelectionType::TS;
-
-            if (this->gaSettings.selectionType == SelectionType::TS) {
-              ImGui::SetItemDefaultFocus();
-            }
-          }
-
-          ImGui::EndCombo();
-        }
+        constexpr int32_t numSelectionItems = 4;
+        static const SelectionType selectionItems[numSelectionItems] = {
+          SelectionType::NONE,
+          SelectionType::TS,
+          SelectionType::RWS,
+          SelectionType::RS
+        };
+        drawComboBox("Selection Type",
+                     this->gaSettings.selectionType,
+                     selectionItems);
 
         if (this->gaSettings.selectionType == SelectionType::TS) {
           ImGui::InputInt("Tournament Size",
                           &(this->gaSettings.tournamentSize));
         }
 
-        if (ImGui::BeginCombo("Crossover Type",
-                              castToCString(this->gaSettings.crossoverType))) {
-          // Gah. Let's hardcode the selection types for now. This is going
-          // to be ugly.
-          if (ImGui::Selectable(
-            "Uniform",
-            this->gaSettings.crossoverType == CrossoverType::UNIFORM)) {
-            this->gaSettings.crossoverType = CrossoverType::UNIFORM;
-
-            if (this->gaSettings.crossoverType == CrossoverType::UNIFORM) {
-              ImGui::SetItemDefaultFocus();
-            }
-          }
-
-          if (ImGui::Selectable(
-            "Box",
-            this->gaSettings.crossoverType == CrossoverType::BOX)) {
-            this->gaSettings.crossoverType = CrossoverType::BOX;
-
-            if (this->gaSettings.crossoverType == CrossoverType::BOX) {
-              ImGui::SetItemDefaultFocus();
-            }
-          }
-
-          ImGui::EndCombo();
-        }
+        constexpr int32_t numCrossoverItems = 3;
+        static const CrossoverType crossoverItems[numCrossoverItems] = {
+          CrossoverType::NONE,
+          CrossoverType::UNIFORM,
+          CrossoverType::BOX
+        };
+        drawComboBox("Crossover Type",
+                     this->gaSettings.crossoverType,
+                     crossoverItems);
 
         ImGui::Checkbox("Keep Infeasible Solutions",
                         &(this->gaSettings.keepInfeasibleSolutions));
@@ -1287,8 +1232,6 @@ namespace bpt
     if (this->isAlgoThreadRunning) {
       ImGui::Text("Running Algorithm...");
     } else {
-      // TODO: Sean, this code sucks. CLEAN IT UP AFTER YOUR MEETING WITH SIR
-      //       YUNO!
       if (ImGui::Button("Generate Solution")) {
         this->isAlgoThreadRunning = true;
         this->areNewSolutionsReady = false;
@@ -1334,6 +1277,8 @@ namespace bpt
                   this->geneticAlgo.getRecentRunBestFitnesses();
                 this->recentRunWorstFitnesses =
                   this->geneticAlgo.getRecentRunWorstFitnesses();
+                this->recentRunElapsedTime = this->geneticAlgo
+                                                  .getRecentRunElapsedTime();
 
                 this->saveResultsToCSVFile();
 
@@ -1378,7 +1323,7 @@ namespace bpt
                   flowRatesCopy,
                   floodProneAreasCopy,
                   landslideProneAreasCopy,
-                  15, // Temporary. Will change after the GUI integration.
+                  15,  // Temporary. Will change after the GUI integration.
                   1000, // Temporary. Same reason as above.
                   10000, // Temporary. Same reason as above.
                   25000, // Temporary. Same reason as above.
@@ -1395,6 +1340,7 @@ namespace bpt
                   result.bestFitnesses);
                 this->recentRunWorstFitnesses = eastl::vector<double>(
                   result.worstFitnesses);
+                this->recentRunElapsedTime = result.elapsedTime;
 
                 // TODO: Save the results to a CSV file.
 
@@ -1441,7 +1387,7 @@ namespace bpt
                 (this->currentSolution) ? this->currentSolution->getFitness()
                                         : 0.f);
 
-    double elapsedTime = this->geneticAlgo.getRecentRunElapsedTime();
+    double elapsedTime = this->recentRunElapsedTime;
     int32_t hours = elapsedTime / 3600;
 
     elapsedTime = fmod(elapsedTime, 3600.0);

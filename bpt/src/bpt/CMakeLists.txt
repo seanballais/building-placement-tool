@@ -7,6 +7,7 @@ add_executable(bpt
     GA.cpp
     GD.cpp
     GWO.cpp
+    gui.hpp
     generator.cpp
     evaluator.cpp
     HC.cpp
