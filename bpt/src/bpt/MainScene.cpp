@@ -1222,7 +1222,13 @@ namespace bpt
         }
       } break;
       case AlgorithmType::GWO: {
-        ImGui::Text("Hi");
+        // Input for number of wolves.
+        // Input for number of iterations.
+        // Input for flood-prone area penalty value.
+        // Input for landslide-prone area penalty value.
+        // Input for building distance weight.
+        // Input for crossover type.
+        // Input to whether or not keep infeasible solutions.
       } break;
       case AlgorithmType::HC: {
         ImGui::Text("WIP");
