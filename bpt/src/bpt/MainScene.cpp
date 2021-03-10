@@ -276,6 +276,58 @@ namespace bpt
         }
       }
     }
+
+    // Give GWO settings default values if they don't exist.
+    cx::ReturnState returnState;
+
+    returnState = this->settings.getIntegerVariable("gwoNumWolves").returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoNumWolves", 30);
+    }
+
+    returnState = this->settings
+                       .getIntegerVariable("gwoNumIterations")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoNumIterations", 1000);
+    }
+
+    returnState = this->settings
+                       .getFloatVariable("gwoFloodPenalty")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoFloodPenalty", 10000.f);
+    }
+
+    returnState = this->settings
+                       .getFloatVariable("gwoLandslidePenalty")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoLandslidePenalty", 25000.f);
+    }
+
+    returnState = this->settings
+                       .getFloatVariable("gwoBuildingDistanceWeight")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoBuildingDistanceWeight", 1.f);
+    }
+
+    returnState = this->settings
+                       .getFloatVariable("gwoCrossoverType")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable(
+        "gwoCrossoverType",
+        eastl::string(castToCString(CrossoverType::NONE)));
+    }
+
+    returnState = this->settings
+                       .getBooleanVariable("gwoKeepInfeasibleSolutions")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoKeepInfeasibleSolutions", true);
+    }
   }
 
   void MainScene::update(float timeDelta)
@@ -787,6 +839,8 @@ namespace bpt
       std::ofstream dataFile(inputFilePath, std::ios::trunc);
       dataFile << this->inputData;
     }
+
+    this->settings.save();
   }
 
   void MainScene::buildConstructBoundingAreaWindow()
@@ -1222,13 +1276,49 @@ namespace bpt
         }
       } break;
       case AlgorithmType::GWO: {
-        // Input for number of wolves.
-        // Input for number of iterations.
-        // Input for flood-prone area penalty value.
-        // Input for landslide-prone area penalty value.
-        // Input for building distance weight.
-        // Input for crossover type.
-        // Input to whether or not keep infeasible solutions.
+        static int32_t numWolves =
+          this->settings.getIntegerVariable("gwoNumWolves").value;
+        static int32_t numIterations =
+          this->settings.getIntegerVariable("gwoNumIterations").value;
+        static float floodProneAreasPenalty =
+          this->settings.getFloatVariable("gwoFloodPenalty").value;
+        static float landslideProneAreasPenalty =
+          this->settings.getFloatVariable("gwoLandslidePenalty").value;
+        static float buildingDistanceWeight =
+          this->settings.getFloatVariable("gwoBuildingDistanceWeight").value;
+        static CrossoverType crossoverType =
+          cStringToCrossoverType(
+            this->settings.getStringVariable("gwoCrossoverType").value.c_str());
+        static bool keepInfeasibleSolutions =
+          this->settings.getBooleanVariable("gwoKeepInfeasibleSolutions").value;
+
+        ImGui::InputInt("No. of Wolves", &numWolves);
+        ImGui::InputInt("No. of Iterations", &numIterations);
+        ImGui::InputFloat("Flood Penalty", &floodProneAreasPenalty);
+        ImGui::InputFloat("Landslide Penalty", &landslideProneAreasPenalty);
+        ImGui::InputFloat("Building Distance Weight", &buildingDistanceWeight);
+
+        constexpr int32_t numCrossoverItems = 3;
+        static const CrossoverType crossoverItems[numCrossoverItems] = {
+          CrossoverType::NONE,
+          CrossoverType::UNIFORM,
+          CrossoverType::BOX
+        };
+        drawComboBox("Crossover Type", crossoverType, crossoverItems);
+
+        ImGui::Checkbox("Keep Infeasible Solutions", &keepInfeasibleSolutions);
+
+        this->settings.setVariable("gwoNumWolves", numWolves);
+        this->settings.setVariable("gwoNumIterations", numIterations);
+        this->settings.setVariable("gwoFloodPenalty", floodProneAreasPenalty);
+        this->settings.setVariable("gwoLandslidePenalty",
+                                   landslideProneAreasPenalty);
+        this->settings.setVariable("gwoBuildingDistanceWeight",
+                                   buildingDistanceWeight);
+        this->settings.setVariable("gwoCrossoverType",
+                                   eastl::string(castToCString(crossoverType)));
+        this->settings.setVariable("gwoKeepInfeasibleSolutions",
+                                   keepInfeasibleSolutions);
       } break;
       case AlgorithmType::HC: {
         ImGui::Text("WIP");
@@ -1329,13 +1419,19 @@ namespace bpt
                   flowRatesCopy,
                   floodProneAreasCopy,
                   landslideProneAreasCopy,
-                  15,  // Temporary. Will change after the GUI integration.
-                  1000, // Temporary. Same reason as above.
-                  10000, // Temporary. Same reason as above.
-                  25000, // Temporary. Same reason as above.
-                  1.0f, // Temporary. Same reason as above.
-                  CrossoverType::UNIFORM, // Temporary. Same reason as above.
-                  true); // Temporary. Same reason as above.
+                  this->settings.getIntegerVariable("gwoNumWolves").value,
+                  this->settings.getIntegerVariable("gwoNumIterations").value,
+                  this->settings.getFloatVariable("gwoFloodPenalty").value,
+                  this->settings.getFloatVariable("gwoLandslidePenalty").value,
+                  this->settings.getFloatVariable("gwoBuildingDistanceWeight")
+                                .value,
+                  cStringToCrossoverType(
+                    this->settings.getStringVariable("gwoCrossoverType")
+                                  .value
+                                  .c_str()),
+                  this->settings
+                       .getBooleanVariable("gwoKeepInfeasibleSolutions")
+                       .value);
 
                 std::cout << "Finished optimizing!\n";
 

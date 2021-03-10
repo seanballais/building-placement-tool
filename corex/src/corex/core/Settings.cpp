@@ -21,7 +21,7 @@ namespace corex::core
         stdStrToEAStr((getSettingsFolder() / "settings.cxstg").string())
       )
   {
-    this->loadSettingsFile();
+    this->loadSavedSettings();
   }
 
   Settings::Settings(const eastl::string& filename)
@@ -30,7 +30,7 @@ namespace corex::core
         stdStrToEAStr((getSettingsFolder() / eaStrToStdStr(filename)).string())
       )
   {
-    this->loadSettingsFile();
+    this->loadSavedSettings();
   }
 
   void Settings::setVariable(const eastl::string& name, CoreXNull)
@@ -126,10 +126,10 @@ namespace corex::core
   void Settings::reset()
   {
     this->settings.clear();
-    this->loadSettingsFile();
+    this->loadSavedSettings();
   }
 
-  void Settings::loadSettingsFile()
+  void Settings::loadSavedSettings()
   {
     std::ifstream settingsFile(eaStrToStdStr(this->settingsFilePath),
                                std::ifstream::in);
@@ -139,6 +139,10 @@ namespace corex::core
       return;
     }
 
+    // TODO: Add `type` attribute for integer values since JSON does not have
+    //       signed or unsigned data types. It only has a number. The `type`
+    //       attribute will let us easily know which keys are signed or
+    //       unsigned.
     nlohmann::json settingsJSON;
     settingsFile >> settingsJSON;
 

@@ -8,8 +8,10 @@
 namespace bpt
 {
   const char* castToCString(AlgorithmType type);
-  const char* castToCString(SelectionType type);
   const char* castToCString(CrossoverType type);
+  const char* castToCString(SelectionType type);
+
+  CrossoverType cStringToCrossoverType(const char* str);
 }
 
 #endif

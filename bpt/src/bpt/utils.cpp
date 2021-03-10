@@ -1,3 +1,6 @@
+#include <cassert>
+#include <cstring>
+
 #include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/SelectionType.hpp>
 #include <bpt/utils.hpp>
@@ -16,6 +19,18 @@ namespace bpt
     }
   }
 
+  const char* castToCString(CrossoverType type)
+  {
+    switch (type) {
+      case CrossoverType::NONE:
+        return "None";
+      case CrossoverType::UNIFORM:
+        return "Uniform";
+      case CrossoverType::BOX:
+        return "Box";
+    }
+  }
+
   const char* castToCString(SelectionType type)
   {
     switch (type) {
@@ -30,15 +45,16 @@ namespace bpt
     }
   }
 
-  const char* castToCString(CrossoverType type)
+  CrossoverType cStringToCrossoverType(const char* str)
   {
-    switch (type) {
-      case CrossoverType::NONE:
-        return "None";
-      case CrossoverType::UNIFORM:
-        return "Uniform";
-      case CrossoverType::BOX:
-        return "Box";
+    if (strcmp(str, "None") == 0) {
+      return CrossoverType::NONE;
+    } else if (strcmp(str, "Uniform") == 0) {
+      return CrossoverType::UNIFORM;
+    } else if (strcmp(str, "Box") == 0) {
+      return CrossoverType::BOX;
+    } else {
+      assert(false);
     }
   }
 }
