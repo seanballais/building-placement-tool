@@ -12,6 +12,7 @@
 #include <bpt/evaluator.hpp>
 #include <bpt/generator.hpp>
 #include <bpt/GWO.hpp>
+#include <bpt/HC.hpp>
 #include <bpt/operators.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
@@ -21,9 +22,11 @@ namespace bpt
 {
   GWO::GWO()
     : runTimer()
-    , currRunIterationNumber(0) {}
+    , currRunIterationNumber(0)
+    , hillClimbing() {}
 
-  Result GWO::generateSolutions(
+  Result
+  GWO::generateSolutions(
     const eastl::vector<InputBuilding> &inputBuildings,
     const corex::core::NPolygon &boundingArea,
     const eastl::vector<eastl::vector<float>> &flowRates,
@@ -34,8 +37,10 @@ namespace bpt
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
+    const bool isLocalSearchEnabled,
     const CrossoverType crossoverType,
-    const bool& keepInfeasibleSolutions)
+    const double timeLimit,
+    const bool &keepInfeasibleSolutions)
   {
     eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<Solution> wolves;
@@ -121,6 +126,34 @@ namespace bpt
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
       solutions.push_back(wolves);
+    }
+
+    if (isLocalSearchEnabled) {
+      Solution& bestSolution = *eastl::min_element(
+        wolves.begin(),
+        wolves.end(),
+        [](const Solution& solutionA, const Solution& solutionB) -> bool {
+          return solutionA.getFitness() < solutionB.getFitness();
+        });
+      auto lsGeneratedSolutions = this->hillClimbing.generateSolution(
+        bestSolution,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight,
+        timeLimit);
+
+      for (const eastl::vector<Solution>& solution : lsGeneratedSolutions) {
+        bestFitnesses.push_back(solution[0].getFitness());
+      }
+
+      solutions.insert(solutions.end(),
+                       lsGeneratedSolutions.begin(),
+                       lsGeneratedSolutions.end());
     }
 
     Result runResult {

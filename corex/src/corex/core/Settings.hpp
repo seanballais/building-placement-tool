@@ -27,6 +27,7 @@ namespace corex::core
     void setVariable(const eastl::string& name, int32_t value);
     void setVariable(const eastl::string& name, uint32_t value);
     void setVariable(const eastl::string& name, float value);
+    void setVariable(const eastl::string& name, double value);
 
     SettingsValue<CoreXNull> getNullVariable(const eastl::string& name);
     SettingsValue<bool> getBooleanVariable(const eastl::string& name);
@@ -34,6 +35,7 @@ namespace corex::core
     SettingsValue<int32_t> getIntegerVariable(const eastl::string& name);
     SettingsValue<uint32_t> getUnsignedIntVariable(const eastl::string& name);
     SettingsValue<float> getFloatVariable(const eastl::string& name);
+    SettingsValue<double> getDoubleVariable(const eastl::string& name);
 
     void save();
     void reset();

@@ -16,6 +16,7 @@ namespace corex::core
     int32_t,
     uint32_t,
     float,
+    double,
     bool,
     CoreXNull,
     eastl::string

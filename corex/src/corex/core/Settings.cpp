@@ -63,6 +63,11 @@ namespace corex::core
     this->settings[name] = value;
   }
 
+  void Settings::setVariable(const eastl::string& name, double value)
+  {
+    this->settings[name] = value;
+  }
+
   SettingsValue<CoreXNull> Settings::getNullVariable(const eastl::string& name)
   {
     return this->getVariable<CoreXNull>(name);
@@ -95,6 +100,11 @@ namespace corex::core
     return this->getVariable<float>(name);
   }
 
+  SettingsValue<double> Settings::getDoubleVariable(const eastl::string& name)
+  {
+    return this->getVariable<double>(name);
+  }
+
   void Settings::save()
   {
     nlohmann::json settingsJSON;
@@ -119,7 +129,15 @@ namespace corex::core
             { "value", eastl::get<uint32_t>(value) }
           };
         } else if (eastl::holds_alternative<float>(value)) {
-          settingsJSON[name] = eastl::get<float>(value);
+          settingsJSON[name] = {
+            { "type", "float" },
+            { "value", eastl::get<float>(value) }
+          };
+        } else if (eastl::holds_alternative<double>(value)) {
+          settingsJSON[name] = {
+            { "type", "double" },
+            { "value", eastl::get<double>(value) }
+          };
         }
       }, value);
     }
@@ -166,7 +184,9 @@ namespace corex::core
           && value.find("type") != value.end()
           && value.find("value") != value.end()
           && (value["type"].get<std::string>() == "int"
-              || value["type"].get<std::string>() == "uint")) {
+              || value["type"].get<std::string>() == "uint"
+              || value["type"].get<std::string>() == "float"
+              || value["type"].get<std::string>() == "double")) {
         // JSON does not have a concept of signed and unsigned integers. To have
         // that, we'll save an integer object instead which includes a type
         // attribute that determines whether the integer is signed or not.
@@ -174,6 +194,10 @@ namespace corex::core
           settingSVar = value["value"].get<int32_t>();
         } else if (value["type"].get<std::string>() == "uint") {
           settingSVar = value["value"].get<uint32_t>();
+        } else if (value["type"].get<std::string>() == "float") {
+          settingSVar = value["value"].get<float>();
+        } else if (value["type"].get<std::string>() == "double") {
+          settingSVar = value["value"].get<double>();
         } else {
           STUBBED("Handle fail states for specifying an unsupported data type "
                   "in an integer object.");

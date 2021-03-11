@@ -328,6 +328,20 @@ namespace bpt
     if (returnState == cx::ReturnState::RETURN_FAIL) {
       this->settings.setVariable("gwoKeepInfeasibleSolutions", true);
     }
+
+    returnState = this->settings
+                       .getBooleanVariable("gwoIsLocalSearchEnabled")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoIsLocalSearchEnabled", true);
+    }
+
+    returnState = this->settings
+                       .getDoubleVariable("gwoTimeLimit")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoTimeLimit", 300.0);
+    }
   }
 
   void MainScene::update(float timeDelta)
@@ -1291,6 +1305,10 @@ namespace bpt
             this->settings.getStringVariable("gwoCrossoverType").value.c_str());
         static bool keepInfeasibleSolutions =
           this->settings.getBooleanVariable("gwoKeepInfeasibleSolutions").value;
+        static bool isLocalSearchEnabled =
+          this->settings.getBooleanVariable("gwoIsLocalSearchEnabled").value;
+        static double rawTimeLimit =
+          this->settings.getDoubleVariable("gwoTimeLimit").value;
 
         ImGui::InputInt("No. of Wolves", &numWolves);
         ImGui::InputInt("No. of Iterations", &numIterations);
@@ -1307,6 +1325,25 @@ namespace bpt
         drawComboBox("Crossover Type", crossoverType, crossoverItems);
 
         ImGui::Checkbox("Keep Infeasible Solutions", &keepInfeasibleSolutions);
+        ImGui::Checkbox("Enable Local Search", &isLocalSearchEnabled);
+
+        if (isLocalSearchEnabled) {
+          static Time timeLimit(rawTimeLimit);
+          static int32_t timeData[3] = {
+            timeLimit.hours,
+            timeLimit.minutes,
+            timeLimit.seconds
+          };
+          if (ImGui::InputInt3("Time Limit (hh:mm:ss)", timeData)) {
+            timeData[0] = std::min(std::max(0, timeData[0]), 59);
+            timeData[1] = std::min(std::max(0, timeData[1]), 59);
+            timeData[2] = std::min(std::max(0, timeData[2]), 59);
+
+            rawTimeLimit = timeData[2]
+                           + (timeData[1] * 60)
+                           + (timeData[0] * 3600);
+          }
+        }
 
         this->settings.setVariable("gwoNumWolves", numWolves);
         this->settings.setVariable("gwoNumIterations", numIterations);
@@ -1319,6 +1356,9 @@ namespace bpt
                                    eastl::string(castToCString(crossoverType)));
         this->settings.setVariable("gwoKeepInfeasibleSolutions",
                                    keepInfeasibleSolutions);
+        this->settings.setVariable("gwoIsLocalSearchEnabled",
+                                   isLocalSearchEnabled);
+        this->settings.setVariable("gwoTimeLimit", rawTimeLimit);
       } break;
       case AlgorithmType::HC: {
         ImGui::Text("WIP");
@@ -1334,7 +1374,7 @@ namespace bpt
         } break;
         case AlgorithmType::GWO: {
           ImGui::Text("Progress: Iteration %d out of %d",
-                      this->gwoAlgo.getCurrentRunIterationNumber(),
+                      this->gwoAlgo.getCurrentRunIterationNumber() + 1,
                       this->settings.getIntegerVariable("gwoNumIterations")
                                     .value);
         } break;
@@ -1436,11 +1476,14 @@ namespace bpt
                   this->settings.getFloatVariable("gwoFloodPenalty").value,
                   this->settings.getFloatVariable("gwoLandslidePenalty").value,
                   this->settings.getFloatVariable("gwoBuildingDistanceWeight")
-                                .value,
+                       .value,
+                  this->settings.getBooleanVariable("gwoIsLocalSearchEnabled")
+                       .value,
                   cStringToCrossoverType(
                     this->settings.getStringVariable("gwoCrossoverType")
-                                  .value
-                                  .c_str()),
+                         .value
+                         .c_str()),
+                  this->settings.getDoubleVariable("gwoTimeLimit").value,
                   this->settings
                        .getBooleanVariable("gwoKeepInfeasibleSolutions")
                        .value);

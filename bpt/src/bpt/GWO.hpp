@@ -8,6 +8,7 @@
 #include <corex/core/Timer.hpp>
 #include <corex/core/ds/NPolygon.hpp>
 
+#include <bpt/HC.hpp>
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Result.hpp>
@@ -18,7 +19,8 @@ namespace bpt
   {
   public:
     GWO();
-    Result generateSolutions(
+    Result
+    generateSolutions(
       const eastl::vector<InputBuilding> &inputBuildings,
       const corex::core::NPolygon &boundingArea,
       const eastl::vector<eastl::vector<float>> &flowRates,
@@ -29,8 +31,10 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
+      const bool isLocalSearchEnabled,
       const CrossoverType crossoverType,
-      const bool& keepInfeasibleSolutions);
+      const double timeLimit,
+      const bool &keepInfeasibleSolutions);
     int32_t getCurrentRunIterationNumber();
   private:
     void computeWolfValues(
@@ -70,6 +74,7 @@ namespace bpt
 
     cx::Timer runTimer;
     int32_t currRunIterationNumber;
+    HC hillClimbing;
   };
 }
 
