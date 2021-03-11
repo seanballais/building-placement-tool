@@ -20,7 +20,8 @@
 namespace bpt
 {
   GWO::GWO()
-    : runTimer() {}
+    : runTimer()
+    , currRunIterationNumber(0) {}
 
   Result GWO::generateSolutions(
     const eastl::vector<InputBuilding> &inputBuildings,
@@ -69,7 +70,7 @@ namespace bpt
       buildingDistanceWeight);
 
     for (int32_t i = 0; i < numIterations; i++) {
-      std::cout << "Iteration #" << i << " " << std::endl;
+      this->currRunIterationNumber = i;
       // Update individuals based on a custom search operator.
       this->updateWolves(
         wolves,
@@ -134,6 +135,11 @@ namespace bpt
 
     return runResult;
   };
+
+  int32_t GWO::getCurrentRunIterationNumber()
+  {
+    return this->currRunIterationNumber;
+  }
 
   void GWO::computeWolfValues(
     eastl::vector<Solution>& wolves,

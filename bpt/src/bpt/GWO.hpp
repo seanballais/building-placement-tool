@@ -31,6 +31,7 @@ namespace bpt
       const float buildingDistanceWeight,
       const CrossoverType crossoverType,
       const bool& keepInfeasibleSolutions);
+    int32_t getCurrentRunIterationNumber();
   private:
     void computeWolfValues(
       eastl::vector<Solution>& wolves,
@@ -68,6 +69,7 @@ namespace bpt
                         const bool& keepInfeasibleSolutions);
 
     cx::Timer runTimer;
+    int32_t currRunIterationNumber;
   };
 }
 

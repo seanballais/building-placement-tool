@@ -1326,7 +1326,19 @@ namespace bpt
     }
 
     if (this->isAlgoThreadRunning) {
-      ImGui::Text("Running Algorithm...");
+      switch (this->currentAlgorithm) {
+        case AlgorithmType::GA: {
+          ImGui::Text("Progress: Generation %d out of %d",
+                      this->geneticAlgo.getCurrentRunGenerationNumber() + 1,
+                      this->gaSettings.numGenerations);
+        } break;
+        case AlgorithmType::GWO: {
+          ImGui::Text("Progress: Iteration %d out of %d",
+                      this->gwoAlgo.getCurrentRunIterationNumber(),
+                      this->settings.getIntegerVariable("gwoNumIterations")
+                                    .value);
+        } break;
+      }
     } else {
       if (ImGui::Button("Generate Solution")) {
         this->isAlgoThreadRunning = true;

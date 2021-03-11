@@ -61,7 +61,6 @@ namespace bpt
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
     eastl::vector<Solution> children{ solutionA, solutionA };
     // Perform Box Crossover.
-    std::cout << "Boxy doxy crossover, yeah!\n";
     for (Solution& child : children) {
       do {
         // Perform Box Crossover.
