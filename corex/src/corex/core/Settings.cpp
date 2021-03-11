@@ -109,9 +109,15 @@ namespace corex::core
         } else if (eastl::holds_alternative<eastl::string>(value)) {
           settingsJSON[name] = eaStrToStdStr(eastl::get<eastl::string>(value));
         } else if (eastl::holds_alternative<int32_t>(value)) {
-          settingsJSON[name] = eastl::get<int32_t>(value);
+          settingsJSON[name] = {
+            { "type", "int" },
+            { "value", eastl::get<int32_t>(value) }
+          };
         } else if (eastl::holds_alternative<uint32_t>(value)) {
-          settingsJSON[name] = eastl::get<uint32_t>(value);
+          settingsJSON[name] = {
+            { "type", "uint" },
+            { "value", eastl::get<uint32_t>(value) }
+          };
         } else if (eastl::holds_alternative<float>(value)) {
           settingsJSON[name] = eastl::get<float>(value);
         }
@@ -156,17 +162,29 @@ namespace corex::core
       eastl::string varName = stdStrToEAStr(key);
 
       SVar settingSVar;
-      if (value.type() == nlohmann::json::value_t::null) {
+      if (value.is_object()
+          && value.find("type") != value.end()
+          && value.find("value") != value.end()
+          && (value["type"].get<std::string>() == "int"
+              || value["type"].get<std::string>() == "uint")) {
+        // JSON does not have a concept of signed and unsigned integers. To have
+        // that, we'll save an integer object instead which includes a type
+        // attribute that determines whether the integer is signed or not.
+        if (value["type"].get<std::string>() == "int") {
+          settingSVar = value["value"].get<int32_t>();
+        } else if (value["type"].get<std::string>() == "uint") {
+          settingSVar = value["value"].get<uint32_t>();
+        } else {
+          STUBBED("Handle fail states for specifying an unsupported data type "
+                  "in an integer object.");
+        }
+      } else if (value.is_null()) {
         settingSVar = coreXNull;
-      } else if (value.type() == nlohmann::json::value_t::boolean) {
+      } else if (value.is_boolean()) {
         settingSVar = value.get<bool>();
-      } else if (value.type() == nlohmann::json::value_t::string) {
+      } else if (value.is_string()) {
         settingSVar = stdStrToEAStr(value.get<std::string>());
-      } else if (value.type() == nlohmann::json::value_t::number_integer) {
-        settingSVar = value.get<int32_t>();
-      } else if (value.type() == nlohmann::json::value_t::number_unsigned) {
-        settingSVar = value.get<uint32_t>();
-      } else if (value.type() == nlohmann::json::value_t::number_float) {
+      } else if (value.is_number_float()) {
         settingSVar = value.get<float>();
       } else {
         STUBBED("Handle fail states for loading an unsupported data type.");
