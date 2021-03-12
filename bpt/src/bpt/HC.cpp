@@ -134,15 +134,13 @@ namespace bpt
     };
 
     Solution tempSolution;
-    do {
-      tempSolution = solution;
-      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
-        0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      mutationFunctions[mutationFuncIndex](tempSolution,
-                                           boundingArea,
-                                           inputBuildings,
-                                           true);
-    } while (!isSolutionFeasible(tempSolution, boundingArea, inputBuildings));
+    tempSolution = solution;
+    const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+      0, static_cast<int32_t>(mutationFunctions.size() - 1));
+    mutationFunctions[mutationFuncIndex](tempSolution,
+                                         boundingArea,
+                                         inputBuildings,
+                                         true);
     solution = tempSolution;
     solution.setFitness(computeSolutionFitness(solution,
                                                inputBuildings,
