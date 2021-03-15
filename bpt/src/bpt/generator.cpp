@@ -39,8 +39,8 @@ namespace bpt
 
       buildingPos.x = newBuildingPos.x;
       buildingPos.y = newBuildingPos.y;
-      buildingRotation = corex::core::generateRandomReal(
-        rotationDistribution);
+      buildingRotation = cx::selectItemRandomly(
+        eastl::vector<float>{ 0.f, 90.f });
       buildingRect.x = buildingPos.x;
       buildingRect.y = buildingPos.y;
       buildingRect.angle = buildingRotation;

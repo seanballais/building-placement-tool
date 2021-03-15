@@ -234,6 +234,7 @@ namespace corex::core
     return nPolygon;
   }
 
+  // Disallow weights that are non-float.
   template <
     template<class, class> class V, class T, class VAllocator,
     template<class, class> class W, class U, class WAllocator
@@ -272,6 +273,14 @@ namespace corex::core
     }
 
     return items[selectedItemIndex];
+  }
+
+  template <
+    template<class, class> class V, class T, class VAllocator
+  > const T selectItemRandomly(const V<T, VAllocator>& items)
+  {
+    eastl::vector<float> weights(items.size(), 1.f);
+    return selectRandomItemWithWeights(items, weights);
   }
 
   template <class RealType>

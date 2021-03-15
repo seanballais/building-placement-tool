@@ -84,13 +84,9 @@ namespace bpt
             cx::getRandomRealUniformly(lowerYBound, upperYBound));
 
           // Compute child's new angle.
-          float lowerAngleBound = std::min(parents[0]->getBuildingAngle(i),
-                                           parents[1]->getBuildingAngle(i));
-          float upperAngleBound = std::max(parents[0]->getBuildingAngle(i),
-                                           parents[1]->getBuildingAngle(i));
           child.setBuildingAngle(
             i,
-            cx::getRandomRealUniformly(lowerAngleBound, upperAngleBound));
+            cx::selectItemRandomly(eastl::vector<float>{ 0.f, 90.f }));
         }
       } while (!keepInfeasibleSolutions
                && !isSolutionFeasible(child, boundingArea, inputBuildings));
@@ -198,7 +194,7 @@ namespace bpt
       // if length > width. Parallel, otherwise.
       distContactToBuddyCenter = inputBuildings[dynamicBuddy].length / 2.f;
       extLength = inputBuildings[dynamicBuddy].width / 2.f;
-      dynamicBuddyAngle = contactLineAngle + 45.f;
+      dynamicBuddyAngle = contactLineAngle + 90.f;
     }
 
     // Adjust the distance of the dynamic buddy centroid to the contact line
@@ -272,11 +268,11 @@ namespace bpt
 
     std::uniform_real_distribution<float> xPosDistribution{ minX, maxX };
     std::uniform_real_distribution<float> yPosDistribution{ minY, maxY };
-    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
 
     float newXPos = corex::core::generateRandomReal(xPosDistribution);
     float newYPos = corex::core::generateRandomReal(yPosDistribution);
-    float newRotation = corex::core::generateRandomReal(rotationDistribution);
+    float newRotation = cx::selectItemRandomly(
+      eastl::vector<float>{ 0.f, 90.f });
 
     solution.setBuildingXPos(targetGeneIndex, newXPos);
     solution.setBuildingYPos(targetGeneIndex, newYPos);
@@ -295,10 +291,6 @@ namespace bpt
     std::uniform_real_distribution<float> shiftDistrib{ 0, maxShiftAmount };
     std::uniform_int_distribution<int32_t> buildingIndexDistrib{
       0, static_cast<int32_t>(inputBuildings.size() - 1)
-    };
-    std::uniform_real_distribution<float> rotShiftDistrib{
-      -maxRotShiftAmount,
-      maxRotShiftAmount
     };
     static const
     eastl::array<eastl::function<Solution(Solution, int32_t)>,
@@ -400,17 +392,14 @@ namespace bpt
       0, static_cast<int32_t>(jiggleFunctions.size() - 1)
     };
 
-    const int32_t targetBuildingIndex = corex::core::generateRandomInt(
+    const int32_t targetBuildingIndex = cx::generateRandomInt(
       buildingIndexDistrib);
-    const int32_t jiggleFuncIndex = corex::core::generateRandomInt(
-      jiggleFuncDistrib);
+    const int32_t jiggleFuncIndex = cx::generateRandomInt(jiggleFuncDistrib);
 
     solution = jiggleFunctions[jiggleFuncIndex](solution,
                                                 targetBuildingIndex);
-
-    const float rotDelta = corex::core::generateRandomReal(rotShiftDistrib);
-    const float newRot = solution.getBuildingAngle(targetBuildingIndex)
-                         + rotDelta;
-    solution.setBuildingAngle(targetBuildingIndex, newRot);
+    solution.setBuildingAngle(
+      targetBuildingIndex,
+      cx::selectItemRandomly(eastl::vector<float>{ 0.f, 90.f }));
   }
 }
