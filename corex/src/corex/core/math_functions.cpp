@@ -470,6 +470,20 @@ namespace corex::core
                         4);
   }
 
+  Polygon<4> createRectangle(const Point& startingPoint,
+                             float width,
+                             float height)
+  {
+    return Polygon<4> {
+      {
+        startingPoint,
+        startingPoint + cx::Point{ width, 0.f },
+        startingPoint + cx::Point{ width, height },
+        startingPoint + cx::Point{ 0.f, height },
+      }
+    };
+  }
+
   Polygon<4> rotateRectangle(float centerX, float centerY, float width,
                              float height, float angle)
   {

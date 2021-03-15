@@ -280,6 +280,20 @@ namespace bpt
     // Give GWO settings default values if they don't exist.
     cx::ReturnState returnState;
 
+    // General Settings
+    returnState = this->settings.getFloatVariable("boundingAreaLength")
+                                .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("boundingAreaLength", 450.f);
+    }
+
+    returnState = this->settings.getFloatVariable("boundingAreaHeight")
+                                .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("boundingAreaHeight", 250.f);
+    }
+
+    // GWO Settings
     returnState = this->settings.getIntegerVariable("gwoNumWolves").returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
       this->settings.setVariable("gwoNumWolves", 30);
@@ -861,44 +875,46 @@ namespace bpt
   {
     ImGui::Begin("Bounding Area");
 
-    switch (this->currentContext) {
-      case Context::NO_ACTION:
-        if (ImGui::Button("Create Bounding Area")) {
-          this->currentContext = Context::DRAW_AREA_BOUND;
+    static bool isFirstRun = true;
+    static float areaLength = this->settings
+                                   .getFloatVariable("boundingAreaLength")
+                                   .value;
+    static float areaHeight = this->settings
+                                   .getFloatVariable("boundingAreaHeight")
+                                   .value;
+    static float prevAreaLength = areaLength;
+    static float prevAreaHeight = areaHeight;
 
-          // Just doing this to make sure we don't get unneeded vertices.
-          this->wipBoundingArea.vertices.clear();
-          this->wipBoundingArea.vertices.push_back(corex::core::Point{});
-        }
+    ImGui::InputFloat("Length", &areaLength);
+    ImGui::InputFloat("Height", &areaHeight);
 
-        break;
-      case Context::DRAW_AREA_BOUND:
-        ImGui::Text("Press the Right Mouse Button to Cancel.");
-        break;
-      case Context::DRAW_FLOOD_PRONE_AREA:
-        ImGui::Text("Finish drawing a flood-prone area first.");
-        break;
-      case Context::DRAW_LANDSLIDE_PRONE_AREA:
-        ImGui::Text("Finish drawing a landslide-prone area first.");
-        break;
-      default:
-        break;
+    if (isFirstRun
+        || (areaLength != prevAreaLength)
+        || (areaHeight != prevAreaHeight)) {
+      cx::Point startingPoint{ 734.f, 11.f };
+      cx::Polygon<4> boundingAreaRect = cx::createRectangle(startingPoint,
+                                                            areaLength,
+                                                            areaHeight);
+      this->boundingArea.vertices = eastl::vector<cx::Point>(
+        boundingAreaRect.vertices.begin(),
+        boundingAreaRect.vertices.end());
+      this->boundingAreaTriangles = cx::earClipTriangulate(this->boundingArea);
+
+      prevAreaLength = areaLength;
+      prevAreaHeight = areaHeight;
     }
 
     ImGui::Text("Bound Area Vertices");
     ImGui::BeginChild("Vertices List");
-    if (this->currentContext == Context::NO_ACTION) {
-      for (corex::core::Point& pt : this->boundingArea.vertices) {
-        ImGui::Text("%f, %f", pt.x, pt.y);
-      }
-    } else if (this->currentContext == Context::DRAW_AREA_BOUND) {
-      for (corex::core::Point& pt : this->wipBoundingArea.vertices) {
-        ImGui::Text("%f, %f", pt.x, pt.y);
-      }
+    for (corex::core::Point& pt : this->boundingArea.vertices) {
+      ImGui::Text("%f, %f", pt.x, pt.y);
     }
     ImGui::EndChild();
 
     ImGui::End();
+
+    this->settings.setVariable("boundingAreaLength", areaLength);
+    this->settings.setVariable("boundingAreaHeight", areaHeight);
   }
 
   void MainScene::buildHazardsWindow()
