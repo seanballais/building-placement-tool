@@ -1,9 +1,12 @@
 #include <cassert>
 #include <cstring>
 
+#include <corex/core/ds/VecN.hpp>
+
+#include <bpt/utils.hpp>
 #include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/SelectionType.hpp>
-#include <bpt/utils.hpp>
+#include <bpt/ds/Solution.hpp>
 
 namespace bpt
 {
@@ -56,5 +59,33 @@ namespace bpt
     } else {
       assert(false);
     }
+  }
+
+  cx::VecN convertSolutionToVecN(const Solution& solution)
+  {
+    const int32_t vecNSize = solution.getNumBuildings() * 3;
+    cx::VecN vecN{vecNSize};
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      vecN[i * 3] = solution.getBuildingXPos(i);
+      vecN[(i * 3) + 1] = solution.getBuildingYPos(i);
+      vecN[(i * 3) + 2] = solution.getBuildingAngle(i);
+    }
+
+    return vecN;
+  }
+
+  Solution convertVecNToSolution(const cx::VecN& vecN)
+  {
+    assert((vecN.size() % 3) == 0);
+
+    int32_t numBuildings = static_cast<int32_t>(vecN.size() / 3);
+    Solution solution{numBuildings};
+    for (int32_t i = 0; i < numBuildings; i++) {
+      solution.setBuildingXPos(i, vecN[i * 3]);
+      solution.setBuildingYPos(i, vecN[(i * 3) + 1]);
+      solution.setBuildingAngle(i, vecN[(i * 3) + 2]);
+    }
+
+    return solution;
   }
 }

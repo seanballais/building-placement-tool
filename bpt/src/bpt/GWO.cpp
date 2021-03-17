@@ -5,9 +5,11 @@
 #include <EASTL/array.h>
 #include <EASTL/vector.h>
 
+#include <corex/core/math_functions.hpp>
 #include <corex/core/Timer.hpp>
 #include <corex/core/utils.hpp>
 #include <corex/core/ds/NPolygon.hpp>
+#include <corex/core/ds/VecN.hpp>
 
 #include <bpt/evaluator.hpp>
 #include <bpt/generator.hpp>
@@ -34,11 +36,11 @@ namespace bpt
     const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
     const int32_t numWolves,
     const int32_t numIterations,
+    const float alphaDecayRate,
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
     const bool isLocalSearchEnabled,
-    const CrossoverType crossoverType,
     const double timeLimit,
     const bool &keepInfeasibleSolutions)
   {
@@ -79,7 +81,7 @@ namespace bpt
       // Update individuals based on a custom search operator.
       this->updateWolves(
         wolves,
-        crossoverType,
+        alphaDecayRate,
         boundingArea,
         inputBuildings,
         keepInfeasibleSolutions);
@@ -219,7 +221,7 @@ namespace bpt
 
   void GWO::updateWolves(
     eastl::vector<Solution>& wolves,
-    const CrossoverType crossoverType,
+    const cx::VecN& alpha,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
@@ -245,6 +247,12 @@ namespace bpt
         bestWolves[2] = &wolf;
       }
     }
+
+    int32_t coefficientSize = bestWolves[0]->getNumBuildings() * 3;
+    cx::VecN r1{coefficientSize};
+    cx::VecN r2{coefficientSize};
+    cx::VecN A = cx::multiplyTwoVecN((2 * alpha), r1) - alpha;
+    cx::VecN C = 2 * r2;
 
     // Breeding time, boys and girls!
     for (Solution& wolf : wolves) {
@@ -276,33 +284,6 @@ namespace bpt
                              keepInfeasibleSolutions);
       }
     }
-  }
-
-  eastl::vector<Solution> GWO::crossoverSolutions(
-    const CrossoverType& type,
-    const Solution& solutionA,
-    const Solution& solutionB,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings,
-    const bool& keepInfeasibleSolutions)
-  {
-    assert(type != CrossoverType::NONE);
-
-    switch (type) {
-      case CrossoverType::UNIFORM:
-        return performUniformCrossover(solutionA, solutionB,
-                                       boundingArea, inputBuildings,
-                                       keepInfeasibleSolutions);
-      case CrossoverType::BOX:
-        return performBoxCrossover(solutionA, solutionB,
-                                   boundingArea, inputBuildings,
-                                   keepInfeasibleSolutions);
-      default:
-        // TODO: Raise an error since we did not choose a crossover operator.
-        break;
-    }
-
-    return {};
   }
 
   void GWO::mutateSolution(
@@ -357,5 +338,15 @@ namespace bpt
                                     inputBuildings));
 
     solution = tempSolution;
+  }
+
+  cx::VecN GWO::createRandomVector(const int32_t vectorSize)
+  {
+    VecN randomVecN{vectorSize};
+    for (int32_t i = 0; i < vectorSize; i++) {
+      randomVecN[i] = cx::getRandomRealUniformly(0.f, 1.f);
+    }
+
+    return randomVecN;
   }
 }

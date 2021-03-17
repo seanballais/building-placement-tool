@@ -5,8 +5,6 @@
 
 #include <EASTL/vector.h>
 
-#include <corex/core/math_functions.hpp>
-
 namespace corex::core
 {
   class VecN

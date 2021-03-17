@@ -14,6 +14,7 @@
 #include <corex/core/ds/Point.hpp>
 #include <corex/core/ds/Rectangle.hpp>
 #include <corex/core/ds/Vec2.hpp>
+#include <corex/core/ds/VecN.hpp>
 
 namespace corex::core
 {
@@ -462,6 +463,17 @@ namespace corex::core
     // clockwise. As such, we have to use negative angles to rotate the unit
     // vectors counterclockwise to get the proper normal vectors of lines.
     return rotateVec2(lineDirectionVector(line), -90.f);
+  }
+
+  VecN multiplyTwoVecN(const VecN& p, const VecN& q)
+  {
+    // This is unlike dot product, which produces a scalar value.
+    VecN r = p;
+    for (int32_t i = 0; i < r.size(); i++) {
+      r[i] *= q[i];
+    }
+
+    return r;
   }
 
   float signedDistPointToInfLine(const Point& point, const Line& line)

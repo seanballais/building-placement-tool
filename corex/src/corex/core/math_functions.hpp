@@ -20,6 +20,7 @@
 #include <corex/core/ds/Polygon.hpp>
 #include <corex/core/ds/Rectangle.hpp>
 #include <corex/core/ds/Vec2.hpp>
+#include <corex/core/ds/VecN.hpp>
 
 namespace corex::core
 {
@@ -95,6 +96,7 @@ namespace corex::core
   Vec2 lineToVec(const Line& line);
   Vec2 lineDirectionVector(const Line& line);
   Vec2 lineNormalVector(const Line& line);
+  VecN multiplyTwoVecN(const VecN& p, const VecN& q);
 
   template <typename... Args>
   inline constexpr auto rotatePoint(Args&&... args)

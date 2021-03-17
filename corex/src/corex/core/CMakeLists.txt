@@ -15,6 +15,7 @@ add_library(corex-core SHARED
     math_functions.cpp
     components/Text.cpp
     ds/Vec2.cpp
+    ds/VecN.cpp
     systems/BaseSystem.cpp
     systems/KeyboardHandler.cpp
     systems/MouseHandler.cpp
