@@ -10,8 +10,8 @@ namespace corex::core
   class VecN
   {
   public:
-    VecN(int32_t size);
-    VecN(eastl::vector<float> elements);
+    explicit VecN(int32_t size);
+    explicit VecN(eastl::vector<float> elements);
     VecN(const VecN& rhs) = default;
 
     size_t size() const;

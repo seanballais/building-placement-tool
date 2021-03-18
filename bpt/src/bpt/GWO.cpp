@@ -16,6 +16,7 @@
 #include <bpt/GWO.hpp>
 #include <bpt/HC.hpp>
 #include <bpt/operators.hpp>
+#include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 #include <bpt/ds/Result.hpp>
@@ -76,12 +77,13 @@ namespace bpt
       landslideProneAreaPenalty,
       buildingDistanceWeight);
 
+    cx::VecN alpha{static_cast<int32_t>(inputBuildings.size() * 3)};
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
       // Update individuals based on a custom search operator.
       this->updateWolves(
         wolves,
-        alphaDecayRate,
+        alpha,
         boundingArea,
         inputBuildings,
         keepInfeasibleSolutions);
@@ -102,6 +104,11 @@ namespace bpt
         floodProneAreaPenalty,
         landslideProneAreaPenalty,
         buildingDistanceWeight);
+
+      // Reduce values of alpha vector.
+      for (int32_t j = 0; i < alpha.size(); i++) {
+        alpha[j] = cx::clamp(alpha[j] - alphaDecayRate, 0.f, 2.f);
+      }
 
       // Compute statistical data.
       double worstFitness = eastl::max_element(
@@ -249,23 +256,27 @@ namespace bpt
     }
 
     int32_t coefficientSize = bestWolves[0]->getNumBuildings() * 3;
-    cx::VecN r1{coefficientSize};
-    cx::VecN r2{coefficientSize};
+    cx::VecN r1 = this->createRandomVector(coefficientSize);
+    cx::VecN r2 = this->createRandomVector(coefficientSize);
     cx::VecN A = cx::multiplyTwoVecN((2 * alpha), r1) - alpha;
     cx::VecN C = 2 * r2;
 
+    cx::VecN alphaSolVecN = convertSolutionToVecN(*bestWolves[0]);
+    cx::VecN betaSolVecN = convertSolutionToVecN(*bestWolves[1]);
+    cx::VecN deltaSolVecN = convertSolutionToVecN(*bestWolves[2]);
+
     // Breeding time, boys and girls!
     for (Solution& wolf : wolves) {
-      int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
-      Solution* partner = bestWolves[partnerIndex];
+      cx::VecN X = convertSolutionToVecN(wolf);
+      cx::VecN alphaD = cx::multiplyTwoVecN(C, alphaSolVecN) - X;
+      cx::VecN betaD = cx::multiplyTwoVecN(C, betaSolVecN) - X;
+      cx::VecN deltaD = cx::multiplyTwoVecN(C, deltaSolVecN) - X;
 
-      wolf = this->crossoverSolutions(
-        crossoverType,
-        wolf,
-        *partner,
-        boundingArea,
-        inputBuildings,
-        keepInfeasibleSolutions)[0];
+      cx::VecN X1 = alphaSolVecN - cx::multiplyTwoVecN(A, alphaD);
+      cx::VecN X2 = betaSolVecN - cx::multiplyTwoVecN(A, betaD);
+      cx::VecN X3 = deltaSolVecN - cx::multiplyTwoVecN(A, deltaD);
+
+      wolf = convertVecNToSolution((X1 + X2 + X3) / 3);
     }
   }
 
@@ -342,7 +353,7 @@ namespace bpt
 
   cx::VecN GWO::createRandomVector(const int32_t vectorSize)
   {
-    VecN randomVecN{vectorSize};
+    cx::VecN randomVecN{vectorSize};
     for (int32_t i = 0; i < vectorSize; i++) {
       randomVecN[i] = cx::getRandomRealUniformly(0.f, 1.f);
     }

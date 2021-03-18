@@ -9,7 +9,7 @@
 namespace corex::core
 {
   VecN::VecN(int32_t size)
-    : elements()
+    : elements(size, 0.f)
     , maxNumElements(size) {}
 
   VecN::VecN(eastl::vector<float> elements)
@@ -53,7 +53,7 @@ namespace corex::core
     return p;
   }
 
-  VecN operator+(const VecN& p, VecN& q)
+  VecN operator+(const VecN& p, const VecN& q)
   {
     assert(p.size() == q.size());
 

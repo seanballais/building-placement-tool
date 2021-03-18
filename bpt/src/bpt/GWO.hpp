@@ -65,7 +65,7 @@ namespace bpt
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings,
                         const bool& keepInfeasibleSolutions);
-    VecN createRandomVector(const int32_t vectorSize);
+    cx::VecN createRandomVector(const int32_t vectorSize);
 
     cx::Timer runTimer;
     int32_t currRunIterationNumber;

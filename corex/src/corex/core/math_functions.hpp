@@ -66,6 +66,18 @@ namespace corex::core
   double setDecPlaces(double n, int32_t numDecPlaces);
   bool isFloatInclusiveBetween(float a, float val, float b);
 
+  template <class T>
+  T clamp(T val, T min, T max)
+  {
+    if (val < min) {
+      return min;
+    } else if (val > max) {
+      return max;
+    }
+
+    return val;
+  }
+
   int32_t abs(int32_t n);
   int32_t factorial(int32_t n);
   int32_t mod(int32_t x, int32_t divisor);

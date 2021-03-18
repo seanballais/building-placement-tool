@@ -307,6 +307,13 @@ namespace bpt
     }
 
     returnState = this->settings
+                       .getFloatVariable("gwoAlphaDecayRate")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoAlphaDecayRate", 0.01f);
+    }
+
+    returnState = this->settings
                        .getFloatVariable("gwoFloodPenalty")
                        .returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
@@ -325,15 +332,6 @@ namespace bpt
                        .returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
       this->settings.setVariable("gwoBuildingDistanceWeight", 1.f);
-    }
-
-    returnState = this->settings
-                       .getFloatVariable("gwoCrossoverType")
-                       .returnState;
-    if (returnState == cx::ReturnState::RETURN_FAIL) {
-      this->settings.setVariable(
-        "gwoCrossoverType",
-        eastl::string(castToCString(CrossoverType::NONE)));
     }
 
     returnState = this->settings
@@ -1310,15 +1308,14 @@ namespace bpt
           this->settings.getIntegerVariable("gwoNumWolves").value;
         static int32_t numIterations =
           this->settings.getIntegerVariable("gwoNumIterations").value;
+        static float alphaDecayRate =
+          this->settings.getFloatVariable("gwoAlphaDecayRate").value;
         static float floodProneAreasPenalty =
           this->settings.getFloatVariable("gwoFloodPenalty").value;
         static float landslideProneAreasPenalty =
           this->settings.getFloatVariable("gwoLandslidePenalty").value;
         static float buildingDistanceWeight =
           this->settings.getFloatVariable("gwoBuildingDistanceWeight").value;
-        static CrossoverType crossoverType =
-          cStringToCrossoverType(
-            this->settings.getStringVariable("gwoCrossoverType").value.c_str());
         static bool keepInfeasibleSolutions =
           this->settings.getBooleanVariable("gwoKeepInfeasibleSolutions").value;
         static bool isLocalSearchEnabled =
@@ -1328,18 +1325,10 @@ namespace bpt
 
         ImGui::InputInt("No. of Wolves", &numWolves);
         ImGui::InputInt("No. of Iterations", &numIterations);
+        ImGui::SliderFloat("Alpha Decay Rate", &alphaDecayRate, 0.f, 1.f);
         ImGui::InputFloat("Flood Penalty", &floodProneAreasPenalty);
         ImGui::InputFloat("Landslide Penalty", &landslideProneAreasPenalty);
         ImGui::InputFloat("Building Distance Weight", &buildingDistanceWeight);
-
-        constexpr int32_t numCrossoverItems = 3;
-        static const CrossoverType crossoverItems[numCrossoverItems] = {
-          CrossoverType::NONE,
-          CrossoverType::UNIFORM,
-          CrossoverType::BOX
-        };
-        drawComboBox("Crossover Type", crossoverType, crossoverItems);
-
         ImGui::Checkbox("Keep Infeasible Solutions", &keepInfeasibleSolutions);
         ImGui::Checkbox("Enable Local Search", &isLocalSearchEnabled);
 
@@ -1363,13 +1352,12 @@ namespace bpt
 
         this->settings.setVariable("gwoNumWolves", numWolves);
         this->settings.setVariable("gwoNumIterations", numIterations);
+        this->settings.setVariable("gwoAlphaDecayRate", alphaDecayRate);
         this->settings.setVariable("gwoFloodPenalty", floodProneAreasPenalty);
         this->settings.setVariable("gwoLandslidePenalty",
                                    landslideProneAreasPenalty);
         this->settings.setVariable("gwoBuildingDistanceWeight",
                                    buildingDistanceWeight);
-        this->settings.setVariable("gwoCrossoverType",
-                                   eastl::string(castToCString(crossoverType)));
         this->settings.setVariable("gwoKeepInfeasibleSolutions",
                                    keepInfeasibleSolutions);
         this->settings.setVariable("gwoIsLocalSearchEnabled",
@@ -1489,16 +1477,13 @@ namespace bpt
                   landslideProneAreasCopy,
                   this->settings.getIntegerVariable("gwoNumWolves").value,
                   this->settings.getIntegerVariable("gwoNumIterations").value,
+                  this->settings.getFloatVariable("gwoAlphaDecayRate").value,
                   this->settings.getFloatVariable("gwoFloodPenalty").value,
                   this->settings.getFloatVariable("gwoLandslidePenalty").value,
                   this->settings.getFloatVariable("gwoBuildingDistanceWeight")
                        .value,
                   this->settings.getBooleanVariable("gwoIsLocalSearchEnabled")
                        .value,
-                  cStringToCrossoverType(
-                    this->settings.getStringVariable("gwoCrossoverType")
-                         .value
-                         .c_str()),
                   this->settings.getDoubleVariable("gwoTimeLimit").value,
                   this->settings
                        .getBooleanVariable("gwoKeepInfeasibleSolutions")
