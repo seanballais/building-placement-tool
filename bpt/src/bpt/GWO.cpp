@@ -64,6 +64,16 @@ namespace bpt
       wolfMutationRates.push_back(0.0);
     }
 
+    for (Solution& wolf : wolves) {
+      std::cout << "A Update | Wolf Data:\t";
+      for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
+        std::cout << wolf.getBuildingXPos(i) << "\t"
+                  << wolf.getBuildingYPos(i) << "\t"
+                  << wolf.getBuildingAngle(i) << "\t";
+      }
+      std::cout << "\n";
+    }
+
     // Evaluate individual fitness and mutation rate.
     this->computeWolfValues(
       wolves,
@@ -80,6 +90,7 @@ namespace bpt
     cx::VecN alpha{static_cast<int32_t>(inputBuildings.size() * 3)};
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
+
       // Update individuals based on a custom search operator.
       this->updateWolves(
         wolves,
@@ -106,7 +117,7 @@ namespace bpt
         buildingDistanceWeight);
 
       // Reduce values of alpha vector.
-      for (int32_t j = 0; i < alpha.size(); i++) {
+      for (int32_t j = 0; j < alpha.size(); j++) {
         alpha[j] = cx::clamp(alpha[j] - alphaDecayRate, 0.f, 2.f);
       }
 
@@ -134,16 +145,21 @@ namespace bpt
       bestFitnesses.push_back(bestFitness);
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
+
+      std::sort(
+        wolves.begin(),
+        wolves.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
+        }
+      );
+
       solutions.push_back(wolves);
     }
 
     if (isLocalSearchEnabled) {
-      Solution& bestSolution = *eastl::min_element(
-        wolves.begin(),
-        wolves.end(),
-        [](const Solution& solutionA, const Solution& solutionB) -> bool {
-          return solutionA.getFitness() < solutionB.getFitness();
-        });
+      Solution& bestSolution = wolves[0];
       auto lsGeneratedSolutions = this->hillClimbing.generateSolution(
         bestSolution,
         inputBuildings,
@@ -164,6 +180,9 @@ namespace bpt
                        lsGeneratedSolutions.begin(),
                        lsGeneratedSolutions.end());
     }
+
+    // Sort solutions.
+
 
     Result runResult {
       solutions,
@@ -237,33 +256,37 @@ namespace bpt
     // First element is the alpha wolf.
     // Second element is the beta wolf.
     // Third element is the delta wolf.
-    eastl::array<Solution*, 3> bestWolves{ nullptr, nullptr, nullptr };
+    eastl::array<Solution, 3> bestWolves;
+    eastl::array<bool, 3> bestWolfHasBeenAssigned{false, false, false };
 
     for (Solution& wolf : wolves) {
-      if (bestWolves[0] == nullptr
-          || wolf.getFitness() < bestWolves[0]->getFitness()) {
+      if (!bestWolfHasBeenAssigned[0]
+          || wolf.getFitness() < bestWolves[0].getFitness()) {
         bestWolves[2] = bestWolves[1];
         bestWolves[1] = bestWolves[0];
-        bestWolves[0] = &wolf;
-      } else if (bestWolves[1] == nullptr
-                 || wolf.getFitness() < bestWolves[1]->getFitness()) {
+        bestWolves[0] = wolf;
+        bestWolfHasBeenAssigned[0] = true;
+      } else if (!bestWolfHasBeenAssigned[1]
+                 || wolf.getFitness() < bestWolves[1].getFitness()) {
         bestWolves[2] = bestWolves[1];
-        bestWolves[1] = &wolf;
-      } else if (bestWolves[2] == nullptr
-                 || wolf.getFitness() < bestWolves[2]->getFitness()) {
-        bestWolves[2] = &wolf;
+        bestWolves[1] = wolf;
+        bestWolfHasBeenAssigned[1] = true;
+      } else if (!bestWolfHasBeenAssigned[2]
+                 || wolf.getFitness() < bestWolves[2].getFitness()) {
+        bestWolves[2] = wolf;
+        bestWolfHasBeenAssigned[2] = true;
       }
     }
 
-    int32_t coefficientSize = bestWolves[0]->getNumBuildings() * 3;
+    int32_t coefficientSize = bestWolves[0].getNumBuildings() * 3;
     cx::VecN r1 = this->createRandomVector(coefficientSize);
     cx::VecN r2 = this->createRandomVector(coefficientSize);
     cx::VecN A = cx::multiplyTwoVecN((2 * alpha), r1) - alpha;
     cx::VecN C = 2 * r2;
 
-    cx::VecN alphaSolVecN = convertSolutionToVecN(*bestWolves[0]);
-    cx::VecN betaSolVecN = convertSolutionToVecN(*bestWolves[1]);
-    cx::VecN deltaSolVecN = convertSolutionToVecN(*bestWolves[2]);
+    cx::VecN alphaSolVecN = convertSolutionToVecN(bestWolves[0]);
+    cx::VecN betaSolVecN = convertSolutionToVecN(bestWolves[1]);
+    cx::VecN deltaSolVecN = convertSolutionToVecN(bestWolves[2]);
 
     // Breeding time, boys and girls!
     for (Solution& wolf : wolves) {
@@ -272,11 +295,12 @@ namespace bpt
       cx::VecN betaD = cx::multiplyTwoVecN(C, betaSolVecN) - X;
       cx::VecN deltaD = cx::multiplyTwoVecN(C, deltaSolVecN) - X;
 
-      cx::VecN X1 = alphaSolVecN - cx::multiplyTwoVecN(A, alphaD);
-      cx::VecN X2 = betaSolVecN - cx::multiplyTwoVecN(A, betaD);
-      cx::VecN X3 = deltaSolVecN - cx::multiplyTwoVecN(A, deltaD);
-
-      wolf = convertVecNToSolution((X1 + X2 + X3) / 3);
+      // Do a crossover for the building angles, since they get wrongly modified
+      // by the mixing of the alpha, beta, and delta wolves.
+      for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
+        int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
+        wolf.setBuildingAngle(i, bestWolves[partnerIndex].getBuildingAngle(i));
+      }
     }
   }
 
@@ -338,8 +362,9 @@ namespace bpt
     Solution tempSolution;
     do {
       tempSolution = solution;
-      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
-        0, static_cast<int32_t>(mutationFunctions.size() - 1));
+//      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+//        0, static_cast<int32_t>(mutationFunctions.size() - 1));
+      const int32_t mutationFuncIndex = 0;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,

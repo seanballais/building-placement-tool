@@ -22,32 +22,36 @@ namespace bpt
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
     for (int32_t i = 0; i < inputBuildings.size(); i++) {
-      corex::core::Point buildingPos { 0.f, 0.f };
-      float buildingRotation = 0.f;
-      corex::core::Rectangle buildingRect {
-        buildingPos.x,
-        buildingPos.y,
-        inputBuildings[i].width,
-        inputBuildings[i].length,
-        buildingRotation
-      };
+      do {
+        corex::core::Point buildingPos { 0.f, 0.f };
+        float buildingRotation = 0.f;
+        corex::core::Rectangle buildingRect {
+          buildingPos.x,
+          buildingPos.y,
+          inputBuildings[i].width,
+          inputBuildings[i].length,
+          buildingRotation
+        };
 
-      const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
-        boundingAreaTriangles,
-        triangleAreas);
-      cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
+        const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
+          boundingAreaTriangles,
+          triangleAreas);
+        cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
 
-      buildingPos.x = newBuildingPos.x;
-      buildingPos.y = newBuildingPos.y;
-      buildingRotation = cx::selectItemRandomly(
-        eastl::vector<float>{ 0.f, 90.f });
-      buildingRect.x = buildingPos.x;
-      buildingRect.y = buildingPos.y;
-      buildingRect.angle = buildingRotation;
+        buildingPos.x = newBuildingPos.x;
+        buildingPos.y = newBuildingPos.y;
+        buildingRotation = cx::selectItemRandomly(
+          eastl::vector<float>{ 0.f, 90.f });
+        buildingRect.x = buildingPos.x;
+        buildingRect.y = buildingPos.y;
+        buildingRect.angle = buildingRotation;
 
-      solution.setBuildingXPos(i, buildingPos.x);
-      solution.setBuildingYPos(i, buildingPos.y);
-      solution.setBuildingAngle(i, buildingRotation);
+        solution.setBuildingXPos(i, buildingPos.x);
+        solution.setBuildingYPos(i, buildingPos.y);
+        solution.setBuildingAngle(i, buildingRotation);
+      } while (!areSolutionBuildingsWithinBounds(solution,
+                                                 boundingArea,
+                                                 inputBuildings));
     }
 
     return solution;
