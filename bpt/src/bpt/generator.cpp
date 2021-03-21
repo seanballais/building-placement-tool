@@ -16,42 +16,42 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings,
     const corex::core::NPolygon& boundingArea)
   {
-    std::uniform_real_distribution<float> rotationDistribution{ 0.f, 360.f };
-    auto boundingAreaTriangles = cx::earClipTriangulate(boundingArea);
-    eastl::vector<float> triangleAreas(boundingAreaTriangles.size());
+    const float minX = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](const cx::Point& a, const cx::Point& b) {
+        return cx::floatLessThan(a.x, b.x);
+      })->x;
+    const float maxX = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](const cx::Point& a, const cx::Point& b) {
+        return cx::floatLessThan(a.x, b.x);
+      })->x;
+    const float minY = std::min_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](const cx::Point& a, const cx::Point& b) {
+        return cx::floatLessThan(a.y, b.y);
+      })->y;
+    const float maxY = std::max_element(
+      boundingArea.vertices.begin(),
+      boundingArea.vertices.end(),
+      [](const cx::Point& a, const cx::Point& b) {
+        return cx::floatLessThan(a.y, b.y);
+      })->y;
 
     Solution solution{ static_cast<int32_t>(inputBuildings.size()) };
     for (int32_t i = 0; i < inputBuildings.size(); i++) {
-      do {
-        corex::core::Point buildingPos { 0.f, 0.f };
-        float buildingRotation = 0.f;
-        corex::core::Rectangle buildingRect {
-          buildingPos.x,
-          buildingPos.y,
-          inputBuildings[i].width,
-          inputBuildings[i].length,
-          buildingRotation
-        };
+      corex::core::Point buildingPos { 0.f, 0.f };
+      buildingPos.x = cx::getRandomRealUniformly(minX, maxX);
+      buildingPos.y = cx::getRandomRealUniformly(minY, maxY);
+      float buildingRotation = cx::selectItemRandomly(
+        eastl::vector<float>{ 0.f, 90.f });
 
-        const cx::Polygon<3>& triangle = cx::selectRandomItemWithWeights(
-          boundingAreaTriangles,
-          triangleAreas);
-        cx::Point newBuildingPos = cx::getRandomPointInTriangle(triangle);
-
-        buildingPos.x = newBuildingPos.x;
-        buildingPos.y = newBuildingPos.y;
-        buildingRotation = cx::selectItemRandomly(
-          eastl::vector<float>{ 0.f, 90.f });
-        buildingRect.x = buildingPos.x;
-        buildingRect.y = buildingPos.y;
-        buildingRect.angle = buildingRotation;
-
-        solution.setBuildingXPos(i, buildingPos.x);
-        solution.setBuildingYPos(i, buildingPos.y);
-        solution.setBuildingAngle(i, buildingRotation);
-      } while (!areSolutionBuildingsWithinBounds(solution,
-                                                 boundingArea,
-                                                 inputBuildings));
+      solution.setBuildingXPos(i, buildingPos.x);
+      solution.setBuildingYPos(i, buildingPos.y);
+      solution.setBuildingAngle(i, buildingRotation);
     }
 
     return solution;

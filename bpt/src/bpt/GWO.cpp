@@ -64,16 +64,6 @@ namespace bpt
       wolfMutationRates.push_back(0.0);
     }
 
-    for (Solution& wolf : wolves) {
-      std::cout << "A Update | Wolf Data:\t";
-      for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
-        std::cout << wolf.getBuildingXPos(i) << "\t"
-                  << wolf.getBuildingYPos(i) << "\t"
-                  << wolf.getBuildingAngle(i) << "\t";
-      }
-      std::cout << "\n";
-    }
-
     // Evaluate individual fitness and mutation rate.
     this->computeWolfValues(
       wolves,
