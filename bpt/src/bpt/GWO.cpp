@@ -285,6 +285,12 @@ namespace bpt
       cx::VecN betaD = cx::multiplyTwoVecN(C, betaSolVecN) - X;
       cx::VecN deltaD = cx::multiplyTwoVecN(C, deltaSolVecN) - X;
 
+      cx::VecN X1 = alphaSolVecN - cx::multiplyTwoVecN(A, alphaD);
+      cx::VecN X2 = betaSolVecN - cx::multiplyTwoVecN(A, betaD);
+      cx::VecN X3 = deltaSolVecN - cx::multiplyTwoVecN(A, deltaD);
+
+      wolf = convertVecNToSolution((X1 + X2 + X3) / 3);
+
       // Do a crossover for the building angles, since they get wrongly modified
       // by the mixing of the alpha, beta, and delta wolves.
       for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
@@ -352,9 +358,8 @@ namespace bpt
     Solution tempSolution;
     do {
       tempSolution = solution;
-//      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
-//        0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 0;
+      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+        0, static_cast<int32_t>(mutationFunctions.size() - 1));
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,
