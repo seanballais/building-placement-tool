@@ -81,21 +81,23 @@ namespace bpt
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
 
+      eastl::vector<Solution> newWolves = wolves;
+
       // Update individuals based on a custom search operator.
       this->updateWolves(
-        wolves,
+        newWolves,
         alpha,
         boundingArea,
         inputBuildings,
         keepInfeasibleSolutions);
 
       // Perform adaptive mutation.
-      this->mutateWolves(wolves, wolfMutationRates, boundingArea,
+      this->mutateWolves(newWolves, wolfMutationRates, boundingArea,
                          inputBuildings, keepInfeasibleSolutions);
 
       // Evaluate individual fitness and mutation rate.
       this->computeWolfValues(
-        wolves,
+        newWolves,
         wolfMutationRates,
         inputBuildings,
         boundingArea,
@@ -110,6 +112,39 @@ namespace bpt
       for (int32_t j = 0; j < alpha.size(); j++) {
         alpha[j] = cx::clamp(alpha[j] - alphaDecayRate, 0.f, 2.f);
       }
+
+      std::sort(
+        newWolves.begin(),
+        newWolves.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
+        }
+      );
+
+      constexpr int32_t numPrevIterWolves = 3;
+      for (int32_t j = numPrevIterWolves; j < numWolves; j++) {
+        // Let's keep the previous 3 best wolves for now.
+        wolves[j] = newWolves[j - numPrevIterWolves];
+      }
+
+      // Check if the preserved wolves are worse than the worst wolves in the
+      // new iteration.
+      for (int32_t j = 0; j < numPrevIterWolves; j++) {
+        int32_t weakestWolfIdx = numWolves - 1 - j;
+        if (wolves[j].getFitness() > newWolves[weakestWolfIdx].getFitness()) {
+          wolves[j] = newWolves[weakestWolfIdx];
+        }
+      }
+
+      std::sort(
+        wolves.begin(),
+        wolves.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return corex::core::floatLessThan(solutionA.getFitness(),
+                                            solutionB.getFitness());
+        }
+      );
 
       // Compute statistical data.
       double worstFitness = eastl::max_element(
@@ -126,24 +161,15 @@ namespace bpt
         })->getFitness();
 
       double averageFitness = 0.0;
-      for (Solution& wolf : wolves) {
+      for (Solution& wolf : newWolves) {
         averageFitness += wolf.getFitness();
       }
 
-      averageFitness /= wolves.size();
+      averageFitness /= newWolves.size();
 
       bestFitnesses.push_back(bestFitness);
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
-
-      std::sort(
-        wolves.begin(),
-        wolves.end(),
-        [](Solution& solutionA, Solution& solutionB) {
-          return corex::core::floatLessThan(solutionA.getFitness(),
-                                            solutionB.getFitness());
-        }
-      );
 
       solutions.push_back(wolves);
     }
@@ -358,8 +384,9 @@ namespace bpt
     Solution tempSolution;
     do {
       tempSolution = solution;
-      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
-        0, static_cast<int32_t>(mutationFunctions.size() - 1));
+      //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+      //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
+      const int32_t mutationFuncIndex = 0;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,

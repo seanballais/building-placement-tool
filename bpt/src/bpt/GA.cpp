@@ -644,8 +644,9 @@ namespace bpt
     Solution tempSolution;
     do {
       tempSolution = solution;
-      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
-        0, static_cast<int32_t>(mutationFunctions.size() - 1));
+      //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+      //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
+      const int32_t mutationFuncIndex = 0;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,
