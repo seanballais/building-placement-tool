@@ -18,6 +18,16 @@ namespace bpt
 
   cx::VecN convertSolutionToVecN(const Solution& solution);
   Solution convertVecNToSolution(const cx::VecN& vecN);
+  void printVecN(const cx::VecN& vecN);
+
+  Solution translateSolutionOrigin(const Solution& solution,
+                                   float deltaX,
+                                   float deltaY);
+  cx::VecN clampSolutionVecN(const cx::VecN& vec,
+                             float minX,
+                             float minY,
+                             float maxX,
+                             float maxY);
 }
 
 #endif

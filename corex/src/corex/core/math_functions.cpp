@@ -476,6 +476,16 @@ namespace corex::core
     return r;
   }
 
+  VecN vecNAbs(const VecN& vec)
+  {
+    VecN w{static_cast<int32_t>(vec.size())};
+    for (int32_t i = 0; i < w.size(); i++) {
+      w[i] = std::fabs(vec[i]);
+    }
+
+    return w;
+  }
+
   float signedDistPointToInfLine(const Point& point, const Line& line)
   {
     return setDecPlaces(dotProduct(lineNormalVector(line), (point - line.end)),

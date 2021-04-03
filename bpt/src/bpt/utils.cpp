@@ -1,6 +1,9 @@
 #include <cassert>
 #include <cstring>
+#include <iomanip>
+#include <iostream>
 
+#include <corex/core/math_functions.hpp>
 #include <corex/core/ds/VecN.hpp>
 
 #include <bpt/utils.hpp>
@@ -87,5 +90,46 @@ namespace bpt
     }
 
     return solution;
+  }
+
+  void printVecN(const cx::VecN& vecN)
+  {
+    for (auto val : vecN) {
+      std::cout << std::setw(10) << val;
+    }
+
+    std::cout << "\n";
+  }
+
+  Solution translateSolutionOrigin(const Solution& solution,
+                                   float deltaX,
+                                   float deltaY)
+  {
+    Solution translatedSolution = solution;
+    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+      float oldX = translatedSolution.getBuildingXPos(i);
+      float oldY = translatedSolution.getBuildingYPos(i);
+
+      translatedSolution.setBuildingXPos(i, oldX + deltaX);
+      translatedSolution.setBuildingYPos(i, oldY + deltaY);
+    }
+
+    return translatedSolution;
+  }
+
+  cx::VecN clampSolutionVecN(const cx::VecN& vec,
+                             float minX,
+                             float minY,
+                             float maxX,
+                             float maxY)
+  {
+    cx::VecN newVec = vec;
+    const int32_t numBuildings = vec.size() / 3;
+    for (int32_t i = 0; i < numBuildings; i++) {
+      newVec[i * 3] = cx::clamp(vec[i * 3], minX, maxX);
+      newVec[(i * 3) + 1] = cx::clamp(vec[(i * 3) + 1], minY, maxY);
+    }
+
+    return newVec;
   }
 }

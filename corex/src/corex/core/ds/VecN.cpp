@@ -8,8 +8,8 @@
 
 namespace corex::core
 {
-  VecN::VecN(int32_t size)
-    : elements(size, 0.f)
+  VecN::VecN(int32_t size, float initialValue)
+    : elements(size, initialValue)
     , maxNumElements(size) {}
 
   VecN::VecN(eastl::vector<float> elements)
@@ -51,6 +51,26 @@ namespace corex::core
     }
 
     return p;
+  }
+
+  eastl::vector<float>::iterator VecN::begin()
+  {
+    return this->elements.begin();
+  }
+
+  eastl::vector<float>::iterator VecN::end()
+  {
+    return this->elements.end();
+  }
+
+  eastl::vector<float>::const_iterator VecN::begin() const
+  {
+    return this->elements.begin();
+  }
+
+  eastl::vector<float>::const_iterator VecN::end() const
+  {
+    return this->elements.end();
   }
 
   VecN operator+(const VecN& p, const VecN& q)

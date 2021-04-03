@@ -77,27 +77,47 @@ namespace bpt
       landslideProneAreaPenalty,
       buildingDistanceWeight);
 
-    cx::VecN alpha{static_cast<int32_t>(inputBuildings.size() * 3)};
+    double worstFitness = eastl::max_element(
+      wolves.begin(),
+      wolves.end(),
+      [](const Solution& solutionA, const Solution& solutionB) -> bool {
+        return solutionA.getFitness() < solutionB.getFitness();
+      })->getFitness();
+    double bestFitness = eastl::min_element(
+      wolves.begin(),
+      wolves.end(),
+      [](const Solution& solutionA, const Solution& solutionB) -> bool {
+        return solutionA.getFitness() < solutionB.getFitness();
+      })->getFitness();
+
+    double averageFitness = 0.0;
+    for (Solution& wolf : wolves) {
+      averageFitness += wolf.getFitness();
+    }
+
+    averageFitness /= wolves.size();
+
+    bestFitnesses.push_back(bestFitness);
+    averageFitnesses.push_back(averageFitness);
+    worstFitnesses.push_back(worstFitness);
+
+    solutions.push_back(wolves);
+
+    cx::VecN alpha{static_cast<int32_t>(inputBuildings.size() * 3), 2.f};
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
 
-      eastl::vector<Solution> newWolves = wolves;
-
       // Update individuals based on a custom search operator.
       this->updateWolves(
-        newWolves,
+        wolves,
         alpha,
         boundingArea,
         inputBuildings,
         keepInfeasibleSolutions);
 
-      // Perform adaptive mutation.
-      this->mutateWolves(newWolves, wolfMutationRates, boundingArea,
-                         inputBuildings, keepInfeasibleSolutions);
-
       // Evaluate individual fitness and mutation rate.
       this->computeWolfValues(
-        newWolves,
+        wolves,
         wolfMutationRates,
         inputBuildings,
         boundingArea,
@@ -112,39 +132,6 @@ namespace bpt
       for (int32_t j = 0; j < alpha.size(); j++) {
         alpha[j] = cx::clamp(alpha[j] - alphaDecayRate, 0.f, 2.f);
       }
-
-      std::sort(
-        newWolves.begin(),
-        newWolves.end(),
-        [](Solution& solutionA, Solution& solutionB) {
-          return corex::core::floatLessThan(solutionA.getFitness(),
-                                            solutionB.getFitness());
-        }
-      );
-
-      constexpr int32_t numPrevIterWolves = 3;
-      for (int32_t j = numPrevIterWolves; j < numWolves; j++) {
-        // Let's keep the previous 3 best wolves for now.
-        wolves[j] = newWolves[j - numPrevIterWolves];
-      }
-
-      // Check if the preserved wolves are worse than the worst wolves in the
-      // new iteration.
-      for (int32_t j = 0; j < numPrevIterWolves; j++) {
-        int32_t weakestWolfIdx = numWolves - 1 - j;
-        if (wolves[j].getFitness() > newWolves[weakestWolfIdx].getFitness()) {
-          wolves[j] = newWolves[weakestWolfIdx];
-        }
-      }
-
-      std::sort(
-        wolves.begin(),
-        wolves.end(),
-        [](Solution& solutionA, Solution& solutionB) {
-          return corex::core::floatLessThan(solutionA.getFitness(),
-                                            solutionB.getFitness());
-        }
-      );
 
       // Compute statistical data.
       double worstFitness = eastl::max_element(
@@ -161,11 +148,11 @@ namespace bpt
         })->getFitness();
 
       double averageFitness = 0.0;
-      for (Solution& wolf : newWolves) {
+      for (Solution& wolf : wolves) {
         averageFitness += wolf.getFitness();
       }
 
-      averageFitness /= newWolves.size();
+      averageFitness /= wolves.size();
 
       bestFitnesses.push_back(bestFitness);
       averageFitnesses.push_back(averageFitness);
@@ -273,7 +260,7 @@ namespace bpt
     // Second element is the beta wolf.
     // Third element is the delta wolf.
     eastl::array<Solution, 3> bestWolves;
-    eastl::array<bool, 3> bestWolfHasBeenAssigned{false, false, false };
+    eastl::array<bool, 3> bestWolfHasBeenAssigned{ false, false, false };
 
     for (Solution& wolf : wolves) {
       if (!bestWolfHasBeenAssigned[0]
@@ -304,18 +291,72 @@ namespace bpt
     cx::VecN betaSolVecN = convertSolutionToVecN(bestWolves[1]);
     cx::VecN deltaSolVecN = convertSolutionToVecN(bestWolves[2]);
 
+    std::cout << "#############\n";
+
+    std::cout << "Alpha\t|";
+    printVecN(alphaSolVecN);
+
+    std::cout << "Beta\t|";
+    printVecN(betaSolVecN);
+
+    std::cout << "Delta\t|";
+    printVecN(deltaSolVecN);
+
+    std::cout << "alpha\t|";
+    printVecN(alpha);
+
+    std::cout << "A\t|";
+    printVecN(A);
+
+    std::cout << "C\t|";
+    printVecN(C);
+
+    std::cout << "#############\n";
+
+    float minX = boundingArea.vertices[0].x;
+    float minY = boundingArea.vertices[0].y;
+    float maxX = boundingArea.vertices[2].x;
+    float maxY = boundingArea.vertices[2].y;
+
     // Breeding time, boys and girls!
     for (Solution& wolf : wolves) {
       cx::VecN X = convertSolutionToVecN(wolf);
-      cx::VecN alphaD = cx::multiplyTwoVecN(C, alphaSolVecN) - X;
-      cx::VecN betaD = cx::multiplyTwoVecN(C, betaSolVecN) - X;
-      cx::VecN deltaD = cx::multiplyTwoVecN(C, deltaSolVecN) - X;
+
+      cx::VecN alphaD = cx::vecNAbs(alphaSolVecN - X);
+      cx::VecN betaD = cx::vecNAbs(betaSolVecN - X);
+      cx::VecN deltaD = cx::vecNAbs(deltaSolVecN - X);
 
       cx::VecN X1 = alphaSolVecN - cx::multiplyTwoVecN(A, alphaD);
       cx::VecN X2 = betaSolVecN - cx::multiplyTwoVecN(A, betaD);
       cx::VecN X3 = deltaSolVecN - cx::multiplyTwoVecN(A, deltaD);
 
       wolf = convertVecNToSolution((X1 + X2 + X3) / 3);
+
+      std::cout << "X\t| ";
+      printVecN(X);
+
+      std::cout << "aD\t| ";
+      printVecN(alphaD);
+
+      std::cout << "bD\t| ";
+      printVecN(betaD);
+
+      std::cout << "dD\t| ";
+      printVecN(deltaD);
+
+      std::cout << "X1\t| ";
+      printVecN(X1);
+
+      std::cout << "X2\t| ";
+      printVecN(X2);
+
+      std::cout << "X3\t| ";
+      printVecN(X3);
+
+      std::cout << "w\t| ";
+      printVecN((X1 + X2 + X3) / 3);
+
+      std::cout << "------------------\n";
 
       // Do a crossover for the building angles, since they get wrongly modified
       // by the mixing of the alpha, beta, and delta wolves.

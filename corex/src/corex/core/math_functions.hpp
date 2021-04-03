@@ -109,6 +109,7 @@ namespace corex::core
   Vec2 lineDirectionVector(const Line& line);
   Vec2 lineNormalVector(const Line& line);
   VecN multiplyTwoVecN(const VecN& p, const VecN& q);
+  VecN vecNAbs(const VecN& vec);
 
   template <typename... Args>
   inline constexpr auto rotatePoint(Args&&... args)
