@@ -81,6 +81,7 @@ namespace corex::core
   int32_t abs(int32_t n);
   int32_t factorial(int32_t n);
   int32_t mod(int32_t x, int32_t divisor);
+  float mod(float x, float divisor);
   int32_t pow(int32_t base, int32_t exponent);
   float pow(float base, int32_t exponent);
   double pow(double base, int32_t exponent);
@@ -108,7 +109,9 @@ namespace corex::core
   Vec2 lineToVec(const Line& line);
   Vec2 lineDirectionVector(const Line& line);
   Vec2 lineNormalVector(const Line& line);
-  VecN multiplyTwoVecN(const VecN& p, const VecN& q);
+  VecN pairwiseMult(const VecN& p, const VecN& q);
+  VecN pairwiseSubt(const VecN& p, const float& a);
+  VecN pairwiseSubt(const float& a, const VecN& p);
   VecN vecNAbs(const VecN& vec);
 
   template <typename... Args>

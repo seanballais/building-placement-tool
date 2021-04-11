@@ -13,6 +13,7 @@ namespace bpt
   class HC
   {
   public:
+    HC();
     eastl::vector<eastl::vector<Solution>> generateSolution(
       const eastl::vector<InputBuilding> &inputBuildings,
       const corex::core::NPolygon &boundingArea,
@@ -22,7 +23,8 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
-      const double timeLimit);
+      const int32_t numIters,
+      int32_t* const currIterNumberPtr = nullptr);
     eastl::vector<eastl::vector<Solution>> generateSolution(
       Solution initialSolution,
       const eastl::vector<InputBuilding> &inputBuildings,
@@ -33,7 +35,9 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
-      const double timeLimit);
+      const int32_t numIters,
+      int32_t* const currIterNumberPtr = nullptr);
+    int32_t getCurrentRunIterationNumber() const;
   private:
     void perturbSolution(
       Solution& solution,
@@ -45,6 +49,7 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight);
+    int32_t currRunIterationNumber;
   };
 }
 

@@ -10,6 +10,9 @@ sdl2/2.0.12@bincrafters/stable
 sdl2_ttf/2.0.15@bincrafters/stable
 zlib/1.2.11
 
+[options]
+sdl2:jack=False
+
 [generators]
 cmake
 

@@ -40,9 +40,9 @@ namespace bpt
       const bool isLocalSearchEnabled,
       const CrossoverType crossoverType,
       const SelectionType selectionType,
-      const double timeLimit,
+      const int32_t numIters,
       const bool& keepInfeasibleSolutions);
-    int32_t getCurrentRunGenerationNumber();
+    int32_t getCurrentRunIterationNumber();
     eastl::vector<double> getRecentRunAverageFitnesses();
     eastl::vector<double> getRecentRunBestFitnesses();
     eastl::vector<double> getRecentRunWorstFitnesses();

@@ -132,4 +132,24 @@ namespace bpt
 
     return newVec;
   }
+
+  cx::VecN wrapAroundSolutionVecN(const cx::VecN& vec,
+                                  float minX,
+                                  float minY,
+                                  float maxX,
+                                  float maxY)
+  {
+    cx::VecN newVec = vec;
+    const int32_t numBuildings = vec.size() / 3;
+    for (int32_t i = 0; i < numBuildings; i++) {
+      // Translate the vector a zero origin first from having an origin at the
+      // minimum.
+      float x = vec[i * 3] - minX;
+      float y = vec[(i * 3) + 1] - minY;
+      newVec[i * 3] = cx::mod(x, maxX);
+      newVec[(i * 3) + 1] = cx::mod(y, maxY);
+    }
+
+    return newVec;
+  }
 }

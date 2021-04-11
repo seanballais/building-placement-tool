@@ -103,7 +103,7 @@ namespace bpt
 
     solutions.push_back(wolves);
 
-    cx::VecN alpha{static_cast<int32_t>(inputBuildings.size() * 3), 2.f};
+    float alpha = 2.f;
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
 
@@ -129,9 +129,7 @@ namespace bpt
         buildingDistanceWeight);
 
       // Reduce values of alpha vector.
-      for (int32_t j = 0; j < alpha.size(); j++) {
-        alpha[j] = cx::clamp(alpha[j] - alphaDecayRate, 0.f, 2.f);
-      }
+      alpha = cx::clamp(alpha - alphaDecayRate, 0.f, 1.25f);
 
       // Compute statistical data.
       double worstFitness = eastl::max_element(
@@ -173,7 +171,8 @@ namespace bpt
         floodProneAreaPenalty,
         landslideProneAreaPenalty,
         buildingDistanceWeight,
-        timeLimit);
+        timeLimit,
+        &(this->currRunIterationNumber));
 
       for (const eastl::vector<Solution>& solution : lsGeneratedSolutions) {
         bestFitnesses.push_back(solution[0].getFitness());
@@ -184,9 +183,6 @@ namespace bpt
                        lsGeneratedSolutions.end());
     }
 
-    // Sort solutions.
-
-
     Result runResult {
       solutions,
       bestFitnesses,
@@ -196,6 +192,8 @@ namespace bpt
     };
 
     this->runTimer.stop();
+
+    this->currRunIterationNumber = 0;
 
     return runResult;
   };
@@ -250,7 +248,7 @@ namespace bpt
 
   void GWO::updateWolves(
     eastl::vector<Solution>& wolves,
-    const cx::VecN& alpha,
+    const float& alpha,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
@@ -281,17 +279,33 @@ namespace bpt
       }
     }
 
-    int32_t coefficientSize = bestWolves[0].getNumBuildings() * 3;
-    cx::VecN r1 = this->createRandomVector(coefficientSize);
-    cx::VecN r2 = this->createRandomVector(coefficientSize);
-    cx::VecN A = cx::multiplyTwoVecN((2 * alpha), r1) - alpha;
-    cx::VecN C = 2 * r2;
+    constexpr int32_t numLeadingWolves = 3;
+    eastl::array<float, numLeadingWolves> A{ 0.f, 0.f, 0.f };
+    eastl::array<float, numLeadingWolves> C{ 0.f, 0.f, 0.f };
+    for (int32_t i = 0; i < numLeadingWolves; i++) {
+      A[i] = (2 * alpha * cx::getRandomRealUniformly(0.f, 1.f)) - alpha;
+      C[i] = 2 * cx::getRandomRealUniformly(0.f, 1.f);
+    }
 
-    cx::VecN alphaSolVecN = convertSolutionToVecN(bestWolves[0]);
-    cx::VecN betaSolVecN = convertSolutionToVecN(bestWolves[1]);
-    cx::VecN deltaSolVecN = convertSolutionToVecN(bestWolves[2]);
+    float minX = boundingArea.vertices[0].x;
+    float minY = boundingArea.vertices[0].y;
+    float maxX = boundingArea.vertices[2].x;
+    float maxY = boundingArea.vertices[2].y;
+    float width = maxX - minX;
+    float height = maxY - minY;
+
+    cx::VecN alphaSolVecN = convertSolutionToVecN(
+      translateSolutionOrigin(bestWolves[0], -minX, -minY));
+    cx::VecN betaSolVecN = convertSolutionToVecN(
+      translateSolutionOrigin(bestWolves[1], -minX, -minY));
+    cx::VecN deltaSolVecN = convertSolutionToVecN(
+      translateSolutionOrigin(bestWolves[2], -minX, -minY));
 
     std::cout << "#############\n";
+
+    std::cout << "Bounding Area Dimensions:\t"
+              << "W: " << (maxX - minX) << "\t"
+              << "H: " << (maxY - minY) << "\n";
 
     std::cout << "Alpha\t|";
     printVecN(alphaSolVecN);
@@ -302,35 +316,32 @@ namespace bpt
     std::cout << "Delta\t|";
     printVecN(deltaSolVecN);
 
-    std::cout << "alpha\t|";
-    printVecN(alpha);
-
-    std::cout << "A\t|";
-    printVecN(A);
-
-    std::cout << "C\t|";
-    printVecN(C);
+    std::cout << "alpha\t| " << alpha << "\n";
+    std::cout << "A\t| " << A[0] << "\t" << A[1] << "\t" << A[2] << "\n";
+    std::cout << "C\t| " << C[0] << "\t" << C[1] << "\t" << C[2] << "\n";
+    std::cout << "min\t| (" << minX << ", " << minY << ")\n";
+    std::cout << "max\t| (" << maxX << ", " << maxY << ")\n";
 
     std::cout << "#############\n";
 
-    float minX = boundingArea.vertices[0].x;
-    float minY = boundingArea.vertices[0].y;
-    float maxX = boundingArea.vertices[2].x;
-    float maxY = boundingArea.vertices[2].y;
-
-    // Breeding time, boys and girls!
     for (Solution& wolf : wolves) {
-      cx::VecN X = convertSolutionToVecN(wolf);
+      cx::VecN X = convertSolutionToVecN(
+        translateSolutionOrigin(wolf, -minX, -minY));
 
-      cx::VecN alphaD = cx::vecNAbs(alphaSolVecN - X);
-      cx::VecN betaD = cx::vecNAbs(betaSolVecN - X);
-      cx::VecN deltaD = cx::vecNAbs(deltaSolVecN - X);
+      cx::VecN alphaD = cx::vecNAbs((C[0] * alphaSolVecN) - X);
+      cx::VecN betaD = cx::vecNAbs((C[1] * betaSolVecN) - X);
+      cx::VecN deltaD = cx::vecNAbs((C[2] * deltaSolVecN) - X);
 
-      cx::VecN X1 = alphaSolVecN - cx::multiplyTwoVecN(A, alphaD);
-      cx::VecN X2 = betaSolVecN - cx::multiplyTwoVecN(A, betaD);
-      cx::VecN X3 = deltaSolVecN - cx::multiplyTwoVecN(A, deltaD);
+      cx::VecN X1 = wrapAroundSolutionVecN(
+        alphaSolVecN - A[0] * alphaD, 0.f, 0.f, width, height);
+      cx::VecN X2 = wrapAroundSolutionVecN(
+        betaSolVecN - A[1] * betaD, 0.f, 0.f, width, height);
+      cx::VecN X3 = wrapAroundSolutionVecN(
+        deltaSolVecN - A[2] * deltaD, 0.f, 0.f, width, height);
 
-      wolf = convertVecNToSolution((X1 + X2 + X3) / 3);
+      // Translate buildings back to world origin.
+      wolf = translateSolutionOrigin(
+        convertVecNToSolution((X1 + X2 + X3) / 3), minX, minY);
 
       std::cout << "X\t| ";
       printVecN(X);
@@ -344,14 +355,32 @@ namespace bpt
       std::cout << "dD\t| ";
       printVecN(deltaD);
 
+      std::cout << "cAAD| ";
+      printVecN(A[0] * alphaD);
+
+      std::cout << "cABD| ";
+      printVecN(A[1] * betaD);
+
+      std::cout << "cADD| ";
+      printVecN(A[2] * deltaD);
+
       std::cout << "X1\t| ";
       printVecN(X1);
+
+      std::cout << "Xn1\t| ";
+      printVecN(alphaSolVecN - A[0] * alphaD);
 
       std::cout << "X2\t| ";
       printVecN(X2);
 
+      std::cout << "Xn2\t| ";
+      printVecN(betaSolVecN - A[1] * betaD);
+
       std::cout << "X3\t| ";
       printVecN(X3);
+
+      std::cout << "Xn3\t| ";
+      printVecN(deltaSolVecN - A[2] * deltaD);
 
       std::cout << "w\t| ";
       printVecN((X1 + X2 + X3) / 3);

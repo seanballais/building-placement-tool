@@ -54,7 +54,7 @@ namespace bpt
     const bool isLocalSearchEnabled,
     const CrossoverType crossoverType,
     const SelectionType selectionType,
-    const double timeLimit,
+    const int32_t numIters,
     const bool& keepInfeasibleSolutions)
   {
     assert(flowRates.size() == inputBuildings.size());
@@ -219,7 +219,8 @@ namespace bpt
         floodProneAreaPenalty,
         landslideProneAreaPenalty,
         buildingDistanceWeight,
-        timeLimit);
+        numIters,
+        &(this->currRunGenerationNumber));
 
       for (const eastl::vector<Solution>& solution : lsGeneratedSolutions) {
         this->recentRunBestFitnesses.push_back(solution[0].getFitness());
@@ -238,7 +239,7 @@ namespace bpt
     return solutions;
   }
 
-  int32_t GA::getCurrentRunGenerationNumber()
+  int32_t GA::getCurrentRunIterationNumber()
   {
     return this->currRunGenerationNumber;
   }

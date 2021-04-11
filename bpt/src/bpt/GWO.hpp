@@ -20,8 +20,7 @@ namespace bpt
   {
   public:
     GWO();
-    Result
-    generateSolutions(
+    Result generateSolutions(
       const eastl::vector<InputBuilding> &inputBuildings,
       const corex::core::NPolygon &boundingArea,
       const eastl::vector<eastl::vector<float>> &flowRates,
@@ -51,7 +50,7 @@ namespace bpt
       const float buildingDistanceWeight);
     void updateWolves(
       eastl::vector<Solution>& wolves,
-      const cx::VecN& alpha,
+      const float& alpha,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);

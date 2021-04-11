@@ -16,46 +16,44 @@
 #include <corex/core/ds/Vec2.hpp>
 #include <corex/core/ds/VecN.hpp>
 
-namespace corex::core
-{
+namespace corex::core {
   // Functions and that should only be accessible here.
-  bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
-                                     const Rectangle& rect1,
-                                     const Vec2& axis);
-  Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis);
+  bool _areTwoRectsCollidingInAnAxis(const Rectangle &rect0,
+                                     const Rectangle &rect1,
+                                     const Vec2 &axis);
 
-  bool _areTwoRectsCollidingInAnAxis(const Rectangle& rect0,
-                                     const Rectangle& rect1,
-                                     const Vec2& axis)
-  {
+  Line _projectRectToAnAxis(const Rectangle &rect, const Vec2 &axis);
+
+  bool _areTwoRectsCollidingInAnAxis(const Rectangle &rect0,
+                                     const Rectangle &rect1,
+                                     const Vec2 &axis) {
     Line projLine0 = _projectRectToAnAxis(rect0, axis);
     Line projLine1 = _projectRectToAnAxis(rect1, axis);
 
     // We need to find the line that merges both segments together (whether
     // or not they are intersecting). We could have used a loop here for
     // generalization, but we don't need to do so for now. So, no loops.
-    Line possibleRectLine0 = Line{ projLine0.start, projLine0.end };
-    Line possibleRectLine1 = Line{ projLine0.start, projLine1.start };
-    Line possibleRectLine2 = Line{ projLine0.start, projLine1.end };
-    Line possibleRectLine3 = Line{ projLine0.end, projLine1.start };
-    Line possibleRectLine4 = Line{ projLine0.end, projLine1.end };
-    Line possibleRectLine5 = Line{ projLine1.start, projLine1.end };
+    Line possibleRectLine0 = Line{projLine0.start, projLine0.end};
+    Line possibleRectLine1 = Line{projLine0.start, projLine1.start};
+    Line possibleRectLine2 = Line{projLine0.start, projLine1.end};
+    Line possibleRectLine3 = Line{projLine0.end, projLine1.start};
+    Line possibleRectLine4 = Line{projLine0.end, projLine1.end};
+    Line possibleRectLine5 = Line{projLine1.start, projLine1.end};
 
     Line projRectLine = longestLine({
-      &possibleRectLine0,
-      &possibleRectLine1,
-      &possibleRectLine2,
-      &possibleRectLine3,
-      &possibleRectLine4,
-      &possibleRectLine5
-    });
+                                      &possibleRectLine0,
+                                      &possibleRectLine1,
+                                      &possibleRectLine2,
+                                      &possibleRectLine3,
+                                      &possibleRectLine4,
+                                      &possibleRectLine5
+                                    });
 
     return floatLessEqual(lineLength(projRectLine),
                           lineLength(projLine0) + lineLength(projLine1));
   }
 
-  Line _projectRectToAnAxis(const Rectangle& rect, const Vec2& axis)
-  {
+  Line _projectRectToAnAxis(const Rectangle &rect, const Vec2 &axis) {
     auto rotatedRect = rotateRectangle(rect);
     Point topLeftPt = rotatedRect.vertices[0];
     Point topRightPt = rotatedRect.vertices[1];
@@ -66,115 +64,97 @@ namespace corex::core
     Point projectedBottomLeftPt = projectVec2(bottomLeftPt, axis);
     Point projectedBottomRightPt = projectVec2(bottomRightPt, axis);
 
-    Line possibleRectLine0{ projectedTopLeftPt, projectedTopRightPt };
-    Line possibleRectLine1{ projectedTopLeftPt, projectedBottomLeftPt };
-    Line possibleRectLine2{ projectedTopLeftPt, projectedBottomRightPt };
-    Line possibleRectLine3{ projectedTopRightPt, projectedBottomLeftPt };
-    Line possibleRectLine4{ projectedTopRightPt, projectedBottomRightPt };
-    Line possibleRectLine5{ projectedBottomLeftPt, projectedBottomRightPt };
+    Line possibleRectLine0{projectedTopLeftPt, projectedTopRightPt};
+    Line possibleRectLine1{projectedTopLeftPt, projectedBottomLeftPt};
+    Line possibleRectLine2{projectedTopLeftPt, projectedBottomRightPt};
+    Line possibleRectLine3{projectedTopRightPt, projectedBottomLeftPt};
+    Line possibleRectLine4{projectedTopRightPt, projectedBottomRightPt};
+    Line possibleRectLine5{projectedBottomLeftPt, projectedBottomRightPt};
 
     return longestLine({
-      &possibleRectLine0,
-      &possibleRectLine1,
-      &possibleRectLine2,
-      &possibleRectLine3,
-      &possibleRectLine4,
-      &possibleRectLine5
-    });
+                         &possibleRectLine0,
+                         &possibleRectLine1,
+                         &possibleRectLine2,
+                         &possibleRectLine3,
+                         &possibleRectLine4,
+                         &possibleRectLine5
+                       });
   }
   /////////////////////////////////////////////////
 
-  bool floatEquals(float x, float y, float tolerance)
-  {
+  bool floatEquals(float x, float y, float tolerance) {
     return fabs(x - y)
            <= (tolerance * std::max(std::max(fabs(x), fabs(y)), 1.0f));
   }
 
-  bool floatAbsEquals(float x, float y, float tolerance)
-  {
+  bool floatAbsEquals(float x, float y, float tolerance) {
     return fabs(x - y) <= tolerance;
   }
 
-  bool floatRelEquals(float x, float y, float tolerance)
-  {
+  bool floatRelEquals(float x, float y, float tolerance) {
     return fabs(x - y) <= (tolerance * std::max(fabs(x), fabs(y)));
   }
 
-  bool floatGreEqual(float x, float y, float tolerance)
-  {
+  bool floatGreEqual(float x, float y, float tolerance) {
     return (x > y) || floatEquals(x, y, tolerance);
   }
 
-  bool floatAbsGreEqual(float x, float y, float tolerance)
-  {
+  bool floatAbsGreEqual(float x, float y, float tolerance) {
     return (x > y) || floatAbsEquals(x, y, tolerance);
   }
 
-  bool floatRelGreEqual(float x, float y, float tolerance)
-  {
+  bool floatRelGreEqual(float x, float y, float tolerance) {
     return (x > y) || floatRelEquals(x, y, tolerance);
   }
 
-  bool floatLessEqual(float x, float y, float tolerance)
-  {
+  bool floatLessEqual(float x, float y, float tolerance) {
     return (x < y) || floatEquals(x, y, tolerance);
   }
 
-  bool floatAbsLessEqual(float x, float y, float tolerance)
-  {
+  bool floatAbsLessEqual(float x, float y, float tolerance) {
     return (x < y) || floatAbsEquals(x, y, tolerance);
   }
 
-  bool floatRelLessEqual(float x, float y, float tolerance)
-  {
+  bool floatRelLessEqual(float x, float y, float tolerance) {
     return (x < y) || floatRelEquals(x, y, tolerance);
   }
 
-  bool floatGreater(float x, float y, float tolerance)
-  {
+  bool floatGreater(float x, float y, float tolerance) {
     return !floatEquals(x, y, tolerance) ? x > y : false;
   }
 
-  bool floatAbsGreater(float x, float y, float tolerance)
-  {
+  bool floatAbsGreater(float x, float y, float tolerance) {
     return !floatAbsEquals(x, y, tolerance) ? x > y : false;
   }
 
-  bool floatRelGreater(float x, float y, float tolerance)
-  {
+  bool floatRelGreater(float x, float y, float tolerance) {
     return !floatRelEquals(x, y, tolerance) ? x > y : false;
   }
 
-  bool floatLessThan(float x, float y, float tolerance)
-  {
+  bool floatLessThan(float x, float y, float tolerance) {
     return !floatEquals(x, y, tolerance) ? x < y : false;
   }
 
-  bool floatAbsLessThan(float x, float y, float tolerance)
-  {
+  bool floatAbsLessThan(float x, float y, float tolerance) {
     return !floatAbsEquals(x, y, tolerance) ? x < y : false;
   }
 
-  bool floatRelLessThan(float x, float y, float tolerance)
-  {
+  bool floatRelLessThan(float x, float y, float tolerance) {
     return !floatRelEquals(x, y, tolerance) ? x < y : false;
   }
 
-  float setDecPlaces(float n, int32_t numDecPlaces)
-  {
+  float setDecPlaces(float n, int32_t numDecPlaces) {
     // We're using a custom cx::pow() because std::pow() is slow.
     int32_t multiplier = cx::pow(10, numDecPlaces);
     return roundf(n * multiplier) / multiplier;
   }
 
-  double setDecPlaces(double n, int32_t numDecPlaces)
-  {
+  double setDecPlaces(double n, int32_t numDecPlaces) {
     int32_t multiplier = cx::pow(10, numDecPlaces);
     return roundf(n * multiplier) / multiplier;
   }
 
-  bool isFloatInclusiveBetween(float a, float val, float b)
-  {
+  bool isFloatInclusiveBetween(float a, float val, float b) {
     if (floatGreater(a, b)) {
       std::swap(a, b);
     }
@@ -182,8 +162,7 @@ namespace corex::core
     return floatLessEqual(a, val) && floatLessEqual(val, b);
   }
 
-  int32_t abs(int32_t n)
-  {
+  int32_t abs(int32_t n) {
     if (n < 0) {
       return n * -1;
     } else {
@@ -191,8 +170,7 @@ namespace corex::core
     }
   }
 
-  int32_t factorial(int32_t n)
-  {
+  int32_t factorial(int32_t n) {
     int32_t total = 1;
     for (; n > 1; n--) {
       total *= n;
@@ -201,10 +179,14 @@ namespace corex::core
     return total;
   }
 
-  int32_t mod(int32_t x, int32_t divisor)
-  {
+  int32_t mod(int32_t x, int32_t divisor) {
     // From: https://stackoverflow.com/a/44197900/1116098
     return (divisor + (x % divisor)) % divisor;
+  }
+
+  float mod(float x, float divisor)
+  {
+    return std::fmod(divisor + std::fmod(x, divisor), divisor);
   }
 
   int32_t pow(int32_t base, int32_t exponent)
@@ -465,7 +447,7 @@ namespace corex::core
     return rotateVec2(lineDirectionVector(line), -90.f);
   }
 
-  VecN multiplyTwoVecN(const VecN& p, const VecN& q)
+  VecN pairwiseMult(const VecN& p, const VecN& q)
   {
     // This is unlike dot product, which produces a scalar value.
     VecN r = p;
@@ -474,6 +456,26 @@ namespace corex::core
     }
 
     return r;
+  }
+
+  VecN pairwiseSubt(const VecN& p, const float& a)
+  {
+    VecN vec = p;
+    for (float& f : vec) {
+      f -= a;
+    }
+
+    return vec;
+  }
+
+  VecN pairwiseSubt(const float& a, const VecN& p)
+  {
+    VecN vec = p;
+    for (float& f : vec) {
+      f = a - f;
+    }
+
+    return vec;
   }
 
   VecN vecNAbs(const VecN& vec)

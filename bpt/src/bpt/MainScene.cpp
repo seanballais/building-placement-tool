@@ -293,6 +293,14 @@ namespace bpt
       this->settings.setVariable("boundingAreaHeight", 250.f);
     }
 
+    // GA Settings
+    returnState = this->settings
+                       .getIntegerVariable("gaNumLSIters")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gaNumLSIters", 300);
+    }
+
     // GWO Settings
     returnState = this->settings.getIntegerVariable("gwoNumWolves").returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
@@ -349,10 +357,10 @@ namespace bpt
     }
 
     returnState = this->settings
-                       .getDoubleVariable("gwoTimeLimit")
+                       .getIntegerVariable("gwoNumLSIters")
                        .returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
-      this->settings.setVariable("gwoTimeLimit", 300.0);
+      this->settings.setVariable("gwoNumLSIters", 300);
     }
   }
 
@@ -1239,6 +1247,9 @@ namespace bpt
 
     switch (this->currentAlgorithm) {
       case AlgorithmType::GA: {
+        static int32_t numLSIters =
+          this->settings.getIntegerVariable("gaNumLSIters").value;
+
         ImGui::InputFloat("Mutation Rate",
                           &(this->gaSettings.mutationRate));
         ImGui::InputInt("Population Size",
@@ -1286,22 +1297,10 @@ namespace bpt
                         &(this->gaSettings.isLocalSearchEnabled));
 
         if (this->gaSettings.isLocalSearchEnabled) {
-          static Time timeLimit(this->lsSettings.timeLimit);
-          static int32_t timeData[3] = {
-            timeLimit.hours,
-            timeLimit.minutes,
-            timeLimit.seconds
-          };
-          if (ImGui::InputInt3("Time Limit (hh:mm:ss)", timeData)) {
-            timeData[0] = std::min(std::max(0, timeData[0]), 59);
-            timeData[1] = std::min(std::max(0, timeData[1]), 59);
-            timeData[2] = std::min(std::max(0, timeData[2]), 59);
-
-            this->lsSettings.timeLimit = timeData[2]
-                                         + (timeData[1] * 60)
-                                         + (timeData[0] * 3600);
-          }
+          ImGui::InputInt("No. of LS Iterations", &numLSIters);
         }
+
+        this->settings.setVariable("gaNumLSIters", numLSIters);
       } break;
       case AlgorithmType::GWO: {
         static int32_t numWolves =
@@ -1320,8 +1319,8 @@ namespace bpt
           this->settings.getBooleanVariable("gwoKeepInfeasibleSolutions").value;
         static bool isLocalSearchEnabled =
           this->settings.getBooleanVariable("gwoIsLocalSearchEnabled").value;
-        static double rawTimeLimit =
-          this->settings.getDoubleVariable("gwoTimeLimit").value;
+        static int32_t numLSIters =
+          this->settings.getIntegerVariable("gwoNumLSIters").value;
 
         ImGui::InputInt("No. of Wolves", &numWolves);
         ImGui::InputInt("No. of Iterations", &numIterations);
@@ -1333,21 +1332,7 @@ namespace bpt
         ImGui::Checkbox("Enable Local Search", &isLocalSearchEnabled);
 
         if (isLocalSearchEnabled) {
-          static Time timeLimit(rawTimeLimit);
-          static int32_t timeData[3] = {
-            timeLimit.hours,
-            timeLimit.minutes,
-            timeLimit.seconds
-          };
-          if (ImGui::InputInt3("Time Limit (hh:mm:ss)", timeData)) {
-            timeData[0] = std::min(std::max(0, timeData[0]), 59);
-            timeData[1] = std::min(std::max(0, timeData[1]), 59);
-            timeData[2] = std::min(std::max(0, timeData[2]), 59);
-
-            rawTimeLimit = timeData[2]
-                           + (timeData[1] * 60)
-                           + (timeData[0] * 3600);
-          }
+          ImGui::InputInt("No. of LS Iterations", &numLSIters);
         }
 
         this->settings.setVariable("gwoNumWolves", numWolves);
@@ -1362,7 +1347,7 @@ namespace bpt
                                    keepInfeasibleSolutions);
         this->settings.setVariable("gwoIsLocalSearchEnabled",
                                    isLocalSearchEnabled);
-        this->settings.setVariable("gwoTimeLimit", rawTimeLimit);
+        this->settings.setVariable("gwoNumLSIters", numLSIters);
       } break;
       case AlgorithmType::HC: {
         ImGui::Text("WIP");
@@ -1372,15 +1357,39 @@ namespace bpt
     if (this->isAlgoThreadRunning) {
       switch (this->currentAlgorithm) {
         case AlgorithmType::GA: {
-          ImGui::Text("Progress: Generation %d out of %d",
-                      this->geneticAlgo.getCurrentRunGenerationNumber() + 1,
-                      this->gaSettings.numGenerations);
+          if (this->gaSettings.isLocalSearchEnabled) {
+            int32_t numLSIters = this->settings
+                                      .getIntegerVariable("gaNumLSIters")
+                                      .value;
+            ImGui::Text("Progress: Generation %d out of %d + %d",
+                        this->geneticAlgo.getCurrentRunIterationNumber() + 1,
+                        this->gaSettings.numGenerations,
+                        numLSIters);
+          } else {
+            ImGui::Text("Progress: Generation %d out of %d",
+                        this->geneticAlgo.getCurrentRunIterationNumber() + 1,
+                        this->gaSettings.numGenerations);
+          }
         } break;
         case AlgorithmType::GWO: {
-          ImGui::Text("Progress: Iteration %d out of %d",
-                      this->gwoAlgo.getCurrentRunIterationNumber() + 1,
-                      this->settings.getIntegerVariable("gwoNumIterations")
-                                    .value);
+          bool isLSEnabled = this->settings
+                                  .getBooleanVariable("gwoIsLocalSearchEnabled")
+                                  .value;
+          int32_t numLSIters = this->settings
+                                    .getIntegerVariable("gwoNumLSIters")
+                                    .value;
+          if (isLSEnabled) {
+            ImGui::Text("Progress: Iteration %d out of %d + %d",
+                        this->gwoAlgo.getCurrentRunIterationNumber() + 1,
+                        this->settings.getIntegerVariable("gwoNumIterations")
+                             .value,
+                        numLSIters);
+          } else {
+            ImGui::Text("Progress: Iteration %d out of %d",
+                        this->gwoAlgo.getCurrentRunIterationNumber() + 1,
+                        this->settings.getIntegerVariable("gwoNumIterations")
+                             .value);
+          }
         } break;
       }
     } else {
@@ -1417,7 +1426,7 @@ namespace bpt
                   this->gaSettings.isLocalSearchEnabled,
                   this->gaSettings.crossoverType,
                   this->gaSettings.selectionType,
-                  this->lsSettings.timeLimit,
+                  this->settings.getIntegerVariable("gaNumLSIters").value,
                   this->gaSettings.keepInfeasibleSolutions
                 );
 
@@ -1484,7 +1493,7 @@ namespace bpt
                        .value,
                   this->settings.getBooleanVariable("gwoIsLocalSearchEnabled")
                        .value,
-                  this->settings.getDoubleVariable("gwoTimeLimit").value,
+                  this->settings.getIntegerVariable("gwoNumLSIters").value,
                   this->settings
                        .getBooleanVariable("gwoKeepInfeasibleSolutions")
                        .value);

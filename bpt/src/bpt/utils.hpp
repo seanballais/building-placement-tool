@@ -28,6 +28,11 @@ namespace bpt
                              float minY,
                              float maxX,
                              float maxY);
+  cx::VecN wrapAroundSolutionVecN(const cx::VecN& vec,
+                                  float minX,
+                                  float minY,
+                                  float maxX,
+                                  float maxY);
 }
 
 #endif

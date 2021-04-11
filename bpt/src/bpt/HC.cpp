@@ -19,16 +19,20 @@
 
 namespace bpt
 {
-  eastl::vector<eastl::vector<Solution>> HC::generateSolution(
+  HC::HC()
+    : currRunIterationNumber(0) {}
+
+  eastl::vector<eastl::vector<Solution>>
+  HC::generateSolution(
     const eastl::vector<InputBuilding> &inputBuildings,
     const corex::core::NPolygon &boundingArea,
     const eastl::vector<eastl::vector<float>> &flowRates,
     const eastl::vector<corex::core::NPolygon> &floodProneAreas,
     const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
     const float floodProneAreaPenalty,
-    const float landslideProneAreaPenalty,
-    const float buildingDistanceWeight,
-    const double timeLimit)
+    const float landslideProneAreaPenalty, const float buildingDistanceWeight,
+    const int32_t numIters,
+    int32_t* const currIterNumberPtr)
   {
     Solution initialSolution = generateRandomSolution(inputBuildings,
                                                       boundingArea);
@@ -50,10 +54,12 @@ namespace bpt
                                   floodProneAreaPenalty,
                                   landslideProneAreaPenalty,
                                   buildingDistanceWeight,
-                                  timeLimit);
+                                  numIters,
+                                  currIterNumberPtr);
   }
 
-  eastl::vector<eastl::vector<Solution>> HC::generateSolution(
+  eastl::vector<eastl::vector<Solution>>
+  HC::generateSolution(
     Solution initialSolution,
     const eastl::vector<InputBuilding> &inputBuildings,
     const corex::core::NPolygon &boundingArea,
@@ -63,16 +69,16 @@ namespace bpt
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
-    const double timeLimit)
+    const int32_t numIters,
+    int32_t* const currIterNumberPtr)
   {
     eastl::vector<eastl::vector<Solution>> solutions;
     Solution bestSolution = initialSolution;
     solutions.push_back({ bestSolution });
 
-    cx::Timer timer;
-    timer.start();
-    while (timer.getElapsedTime() <= timeLimit) {
-      std::cout << timer.getElapsedTime() << "\n";
+    for (int32_t i = 0; i < numIters; i++) {
+      (*currIterNumberPtr)++;
+
       Solution candidateSolution = initialSolution;
       this->perturbSolution(candidateSolution, boundingArea, inputBuildings,
                             flowRates, floodProneAreas, landslideProneAreas,
@@ -81,13 +87,21 @@ namespace bpt
       if (candidateSolution.getFitness() <= bestSolution.getFitness()) {
         initialSolution = candidateSolution;
         bestSolution = initialSolution;
-        solutions.push_back({ bestSolution });
       }
+
+      solutions.push_back({ bestSolution });
+
+      this->currRunIterationNumber++;
     }
 
-    timer.stop();
+    this->currRunIterationNumber = 0;
 
     return solutions;
+  }
+
+  int32_t HC::getCurrentRunIterationNumber() const
+  {
+    return this->currRunIterationNumber;
   }
 
   void HC::perturbSolution(
