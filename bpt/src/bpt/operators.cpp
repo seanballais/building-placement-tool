@@ -111,8 +111,8 @@ namespace bpt
     std::uniform_real_distribution<float> normalizedDistrib{ 0, 1 };
 
     // Let's just do the Buddy-Buddy Mutation for now.
-    int32_t staticBuddy;
-    int32_t dynamicBuddy; // The buddy to be moved.
+    int32_t staticBuddy = staticBuildingIndex;
+    int32_t dynamicBuddy = dynamicBuildingIndex; // The buddy to be moved.
     if (staticBuddy == -1 || dynamicBuddy == -1) {
       do {
         if (staticBuildingIndex == -1) {
@@ -125,9 +125,6 @@ namespace bpt
       } while (staticBuddy == dynamicBuddy
                || !solution.isBuildingDataUsable(staticBuddy)
                || !solution.isBuildingDataUsable(dynamicBuddy));
-    } else {
-      staticBuddy = staticBuildingIndex;
-      dynamicBuddy = dynamicBuildingIndex;
     }
 
     auto staticBuddyRect = corex::core::Rectangle{
