@@ -113,21 +113,22 @@ namespace bpt
     // Let's just do the Buddy-Buddy Mutation for now.
     int32_t staticBuddy;
     int32_t dynamicBuddy; // The buddy to be moved.
-    do {
-      if (staticBuildingIndex == -1) {
-        staticBuddy = corex::core::generateRandomInt(buildingDistrib);
-      } else {
-        staticBuddy = staticBuildingIndex;
-      }
+    if (staticBuddy == -1 || dynamicBuddy == -1) {
+      do {
+        if (staticBuildingIndex == -1) {
+          staticBuddy = corex::core::generateRandomInt(buildingDistrib);
+        }
 
-      if (dynamicBuildingIndex == -1) {
-        dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
-      } else {
-        dynamicBuddy = dynamicBuildingIndex;
-      }
-    } while (staticBuddy == dynamicBuddy
-             || !solution.isBuildingDataUsable(staticBuddy)
-             || !solution.isBuildingDataUsable(dynamicBuddy));
+        if (dynamicBuildingIndex == -1) {
+          dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
+        }
+      } while (staticBuddy == dynamicBuddy
+               || !solution.isBuildingDataUsable(staticBuddy)
+               || !solution.isBuildingDataUsable(dynamicBuddy));
+    } else {
+      staticBuddy = staticBuildingIndex;
+      dynamicBuddy = dynamicBuildingIndex;
+    }
 
     auto staticBuddyRect = corex::core::Rectangle{
       solution.getBuildingXPos(staticBuddy),

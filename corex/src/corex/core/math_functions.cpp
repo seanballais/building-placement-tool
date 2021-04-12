@@ -531,15 +531,31 @@ namespace corex::core {
     Point rotatedBottomLeftPt = rotatePoint(transBottomLeftPt, angle);
     Point rotatedBottomRightPt = rotatePoint(transBottomRightPt, angle);
 
-    return Polygon<4>{
-      {
-        // Re-translate point to position the point in the right position.
-        translatePoint(rotatedTopLeftPt, centerX, centerY),
-        translatePoint(rotatedTopRightPt, centerX, centerY),
-        translatePoint(rotatedBottomRightPt, centerX, centerY),
-        translatePoint(rotatedBottomLeftPt, centerX, centerY)
-      }
+    // Set the vertex with the smallest x position *and then* smallest y
+    // position as the top-left most vertex.
+    eastl::array<Point, 4> tempPolygon{
+      translatePoint(rotatedTopLeftPt, centerX, centerY),
+      translatePoint(rotatedTopRightPt, centerX, centerY),
+      translatePoint(rotatedBottomRightPt, centerX, centerY),
+      translatePoint(rotatedBottomLeftPt, centerX, centerY)
     };
+
+    int32_t topLeftIdx = eastl::distance(
+      tempPolygon.begin(),
+      eastl::min_element(
+        tempPolygon.begin(),
+        tempPolygon.end(),
+        [](const Point& a, Point& b) {
+          return (a.x < b.x) || (floatEquals(a.x, b.x) && a.y < b.y);
+        }));
+    eastl::array<Point, 4> polygon = tempPolygon;
+    for (int32_t i = 0, j = topLeftIdx;
+         i < polygon.size();
+         i++, j = (j + 1) % 4) {
+      polygon[i] = tempPolygon[j];
+    }
+
+    return Polygon<4>{ polygon };
   }
 
   Polygon<4> rotateRectangle(const Rectangle& rect)
@@ -565,6 +581,27 @@ namespace corex::core {
            && _areTwoRectsCollidingInAnAxis(rect0, rect1, axisY0)
            && _areTwoRectsCollidingInAnAxis(rect0, rect1, axisX1)
            && _areTwoRectsCollidingInAnAxis(rect0, rect1, axisY1);
+  }
+
+  bool areTwoRectsAABBIntersecting(const Rectangle& rect0,
+                                   const Rectangle& rect1)
+  {
+    Polygon<4> rectangle0 = rotateRectangle(rect0);
+    Polygon<4> rectangle1 = rotateRectangle(rect1);
+
+    float rect0TopLeftX = rectangle0.vertices[0].x;
+    float rect0TopLeftY = rectangle0.vertices[0].y;
+    float rect1TopLeftX = rectangle1.vertices[0].x;
+    float rect1TopLeftY = rectangle1.vertices[0].y;
+    float rect0Width = rectangle0.vertices[1].x - rect0TopLeftX;
+    float rect0Height = rectangle0.vertices[3].y - rect0TopLeftY;
+    float rect1Width = rectangle1.vertices[1].x - rect1TopLeftX;
+    float rect1Height = rectangle1.vertices[3].y - rect1TopLeftY;
+
+    return rect0TopLeftX < rect1TopLeftX + rect1Width
+           && rect0TopLeftX + rect0Width >= rect1TopLeftX
+           && rect0TopLeftY < rect1TopLeftY + rect1Height
+           && rect0TopLeftY + rect0Height >= rect1TopLeftY;
   }
 
   ReturnValue<Point> intersectionOfTwoInfLines(const Line& line0,
@@ -842,6 +879,53 @@ namespace corex::core {
     }
 
     return isPointWithinNPolygon(rectPoly.vertices[0], polygon);
+  }
+
+  bool isRectWithinNPolygonAABB(const Rectangle& rect, const NPolygon& polygon)
+  {
+    // We are assuming the NPolygon is a quadrilateral.
+    assert(polygon.vertices.size() == 4);
+
+    float minX = polygon.vertices[0].x;
+    float minY = polygon.vertices[0].y;
+    float maxX = polygon.vertices[2].x;
+    float maxY = polygon.vertices[2].y;
+    float width = maxX - minX;
+    float height = maxY - minY;
+
+    // Rectangle have their xy coordinates in the center, so we need to move
+    // minX and minY to the center, because they are originally referring to the
+    // top-left corner.
+    Rectangle poly{
+      minX + (width / 2),
+      minY + (height / 2),
+      width,
+      height,
+      0.f
+    };
+
+    return isRectWithinRectAABB(rect, poly);
+  }
+
+  bool isRectWithinRectAABB(const Rectangle& insideRect,
+                            const Rectangle& outsideRect)
+  {
+    Polygon<4> inside = rotateRectangle(insideRect);
+    Polygon<4> outside = rotateRectangle(outsideRect);
+
+    float insideTopLeftX = inside.vertices[0].x;
+    float insideTopLeftY = inside.vertices[0].y;
+    float outsideTopLeftX = outside.vertices[0].x;
+    float outsideTopLeftY = outside.vertices[0].y;
+    float insideWidth = inside.vertices[1].x - insideTopLeftX;
+    float insideHeight = inside.vertices[3].y - insideTopLeftY;
+    float outsideWidth = outside.vertices[1].x - outsideTopLeftX;
+    float outsideHeight = outside.vertices[3].y - outsideTopLeftY;
+
+    return outsideTopLeftX <= insideTopLeftX
+           && outsideTopLeftX + outsideWidth >= insideTopLeftX + insideWidth
+           && outsideTopLeftY <= insideTopLeftY
+           && outsideTopLeftY + outsideHeight >= insideTopLeftY + insideHeight;
   }
 
   bool isRectIntersectingNPolygon(const Rectangle& rect,

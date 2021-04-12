@@ -145,6 +145,8 @@ namespace corex::core
   Polygon<4> rotateRectangle(const Rectangle& rect);
   Polygon<4> convertRectangleToPolygon(const Rectangle& rect);
   bool areTwoRectsIntersecting(const Rectangle& rect0, const Rectangle& rect1);
+  bool areTwoRectsAABBIntersecting(const Rectangle& rect0,
+                                   const Rectangle& rect1);
   ReturnValue<Point> intersectionOfTwoInfLines(const Line& line0,
                                                const Line& line1);
   ReturnValue<Point> intersectionOfLineandInfLine(const Line& line,
@@ -159,6 +161,9 @@ namespace corex::core
   int32_t getNumNPolygonSides(const NPolygon& polygon);
   bool isPointWithinNPolygon(const Point& point, const NPolygon& polygon);
   bool isRectWithinNPolygon(const Rectangle& rect, const NPolygon& polygon);
+  bool isRectWithinNPolygonAABB(const Rectangle& rect, const NPolygon& polygon);
+  bool isRectWithinRectAABB(const Rectangle& insideRect,
+                            const Rectangle& outsideRect);
   bool isRectIntersectingNPolygon(const Rectangle& rect,
                                   const NPolygon& polygon);
   eastl::vector<Polygon<3>> earClipTriangulate(NPolygon polygon);

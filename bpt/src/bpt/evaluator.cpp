@@ -160,7 +160,8 @@ namespace bpt
           inputBuildings[j].length,
           solution.getBuildingAngle(j)
         };
-        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
+        if (cx::areTwoRectsAABBIntersecting(building0, building1)
+            || cx::isRectWithinRectAABB(building0, building1)) {
           return false;
         }
       }
