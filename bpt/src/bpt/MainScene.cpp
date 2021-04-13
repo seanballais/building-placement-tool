@@ -1281,16 +1281,6 @@ namespace bpt
                           &(this->gaSettings.tournamentSize));
         }
 
-        constexpr int32_t numCrossoverItems = 3;
-        static const CrossoverType crossoverItems[numCrossoverItems] = {
-          CrossoverType::NONE,
-          CrossoverType::UNIFORM,
-          CrossoverType::BOX
-        };
-        drawComboBox("Crossover Type",
-                     this->gaSettings.crossoverType,
-                     crossoverItems);
-
         ImGui::Checkbox("Keep Infeasible Solutions",
                         &(this->gaSettings.keepInfeasibleSolutions));
         ImGui::Checkbox("Enable Local Search",

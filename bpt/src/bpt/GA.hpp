@@ -70,29 +70,24 @@ namespace bpt
       const eastl::vector<Solution>& population,
       const int32_t& tournamentSize);
     void makeTwoParentsBreed(
-      const CrossoverType& crossoverType,
-      const Solution& parentA,
-      const Solution& parentB,
-      eastl::vector<Solution>& offsprings,
-      int32_t& numOffsprings,
-      const int32_t numOffspringsToMake,
-      const float mutationRate,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const eastl::vector<eastl::vector<float>>& flowRates,
-      const eastl::vector<corex::core::NPolygon>& floodProneAreas,
-      const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
-      const float floodProneAreaPenalty,
-      const float landslideProneAreaPenalty,
-      const float buildingDistanceWeight,
-      const bool& keepInfeasibleSolutions);
-    eastl::vector<Solution> crossoverSolutions(
-      const CrossoverType& type,
-      const Solution& solutionA,
-      const Solution& solutionB,
-      const corex::core::NPolygon& boundingArea,
-      const eastl::vector<InputBuilding>& inputBuildings,
-      const bool& keepInfeasibleSolutions);
+      const Solution &parentA,
+      const Solution &parentB,
+      eastl::vector<Solution> &offsprings,
+      int32_t &numOffsprings, const int32_t numOffspringsToMake, const float mutationRate,
+                             const corex::core::NPolygon &boundingArea,
+                             const eastl::vector<InputBuilding> &inputBuildings,
+                             const eastl::vector<eastl::vector<float>> &flowRates,
+                             const eastl::vector<corex::core::NPolygon> &floodProneAreas,
+                             const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
+                             const float floodProneAreaPenalty, const float landslideProneAreaPenalty,
+                             const float buildingDistanceWeight, const bool &keepInfeasibleSolutions);
+    eastl::vector<Solution>
+    crossoverSolutions(
+      const Solution &solutionA,
+      const Solution &solutionB,
+      const corex::core::NPolygon &boundingArea,
+      const eastl::vector<InputBuilding> &inputBuildings,
+      const bool &keepInfeasibleSolutions);
     void mutateSolution(Solution& solution,
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings,

@@ -61,13 +61,6 @@ namespace bpt
         solution.setBuildingYPos(i, buildingPos.y);
         solution.setBuildingAngle(i, buildingAngle);
 
-        std::cout << !cx::isRectWithinNPolygonAABB(buildingRect, boundingArea)
-                  << " "
-                  << !doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                             inputBuildings)
-                  << "\n"
-                  << std::endl;
-
         cx::isRectWithinNPolygonAABB(buildingRect, boundingArea);
         doesSolutionHaveNoBuildingsOverlapping(solution,
                                                inputBuildings);

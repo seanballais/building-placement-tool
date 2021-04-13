@@ -7,6 +7,7 @@
 
 #include <EASTL/array.h>
 #include <EASTL/functional.h>
+#include <EASTL/memory.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
@@ -23,6 +24,7 @@
 #include <bpt/GD.hpp>
 #include <bpt/generator.hpp>
 #include <bpt/operators.hpp>
+#include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
@@ -130,22 +132,22 @@ namespace bpt
         assert(parentB.getNumBuildings() != 0);
 
         // Breeding time.
-        this->makeTwoParentsBreed(crossoverType,
-                                  parentA,
-                                  parentB,
-                                  newOffsprings,
-                                  numOffsprings,
-                                  numOffspringsToMake,
-                                  mutationRate,
-                                  boundingArea,
-                                  inputBuildings,
-                                  flowRates,
-                                  floodProneAreas,
-                                  landslideProneAreas,
-                                  floodProneAreaPenalty,
-                                  landslideProneAreaPenalty,
-                                  buildingDistanceWeight,
-                                  keepInfeasibleSolutions);
+        this->makeTwoParentsBreed(
+          parentA,
+          parentB,
+          newOffsprings,
+          numOffsprings,
+          numOffspringsToMake,
+          mutationRate,
+          boundingArea,
+          inputBuildings,
+          flowRates,
+          floodProneAreas,
+          landslideProneAreas,
+          floodProneAreaPenalty,
+          landslideProneAreaPenalty,
+          buildingDistanceWeight,
+          keepInfeasibleSolutions);
       }
 
       std::sort(
@@ -416,34 +418,26 @@ namespace bpt
     return parents;
   }
 
-  void GA::makeTwoParentsBreed(
-    const CrossoverType& crossoverType,
-    const Solution& parentA,
-    const Solution& parentB,
-    eastl::vector<Solution>& offsprings,
-    int32_t& numOffsprings,
-    const int32_t numOffspringsToMake,
-    const float mutationRate,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings,
-    const eastl::vector<eastl::vector<float>>& flowRates,
-    const eastl::vector<corex::core::NPolygon>& floodProneAreas,
-    const eastl::vector<corex::core::NPolygon>& landslideProneAreas,
-    const float floodProneAreaPenalty,
-    const float landslideProneAreaPenalty,
-    const float buildingDistanceWeight,
-    const bool& keepInfeasibleSolutions)
+  void GA::makeTwoParentsBreed(const Solution &parentA, const Solution &parentB, eastl::vector<Solution> &offsprings,
+                               int32_t &numOffsprings, const int32_t numOffspringsToMake, const float mutationRate,
+                               const corex::core::NPolygon &boundingArea,
+                               const eastl::vector<InputBuilding> &inputBuildings,
+                               const eastl::vector<eastl::vector<float>> &flowRates,
+                               const eastl::vector<corex::core::NPolygon> &floodProneAreas,
+                               const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
+                               const float floodProneAreaPenalty, const float landslideProneAreaPenalty,
+                               const float buildingDistanceWeight, const bool &keepInfeasibleSolutions)
   {
     IPROF_FUNC;
     std::uniform_real_distribution<float> mutationChanceDistribution{
       0.f, 1.f
     };
-    auto children = this->crossoverSolutions(crossoverType,
-                                             parentA,
-                                             parentB,
-                                             boundingArea,
-                                             inputBuildings,
-                                             keepInfeasibleSolutions);
+    auto children = this->crossoverSolutions(
+      parentA,
+      parentB,
+      boundingArea,
+      inputBuildings,
+      keepInfeasibleSolutions);
     children[0].setFitness(computeSolutionFitness(children[0],
                                                   inputBuildings,
                                                   boundingArea,
@@ -573,31 +567,52 @@ namespace bpt
   }
 
   eastl::vector<Solution> GA::crossoverSolutions(
-    const CrossoverType& type,
-    const Solution& solutionA,
-    const Solution& solutionB,
-    const corex::core::NPolygon& boundingArea,
-    const eastl::vector<InputBuilding>& inputBuildings,
-    const bool& keepInfeasibleSolutions)
+    const Solution &solutionA, const Solution &solutionB,
+    const corex::core::NPolygon &boundingArea,
+    const eastl::vector<InputBuilding> &inputBuildings,
+    const bool &keepInfeasibleSolutions)
   {
     IPROF_FUNC;
-    assert(type != CrossoverType::NONE);
 
-    switch (type) {
-      case CrossoverType::UNIFORM:
-        return performUniformCrossover(solutionA, solutionB,
-                                       boundingArea, inputBuildings,
-                                       keepInfeasibleSolutions);
-      case CrossoverType::BOX:
-        return performBoxCrossover(solutionA, solutionB,
-                                   boundingArea, inputBuildings,
-                                   keepInfeasibleSolutions);
-      default:
-        // TODO: Raise an error since we did not choose a crossover operator.
-        break;
+    // Let's perform arithmetic crossover.
+    int32_t numBuildings = solutionA.getNumBuildings();
+
+    // Prevent unnecessary copying of the parents.
+    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
+    eastl::vector<Solution> children{ solutionA, solutionA };
+    for (int32_t i = 0; i < children.size(); i++) {
+      do {
+        float a = cx::getRandomRealUniformly(0.f, 1.f);
+        cx::VecN parent0 = convertSolutionToVecN(*parents[0]);
+        cx::VecN parent1 = convertSolutionToVecN(*parents[1]);
+
+        eastl::unique_ptr<cx::VecN> childVecPtr;
+        if (i == 0) {
+          childVecPtr = eastl::make_unique<cx::VecN>(
+            (a * parent0) + ((1 - a) * parent1));
+        } else if (i == 1) {
+          childVecPtr = eastl::make_unique<cx::VecN>(
+            (a * parent1) + ((1 - a) * parent0));
+        }
+
+        // Fix the mutations parts.
+        for (int32_t j = 0; j < numBuildings; j++) {
+          float angleVal = (*childVecPtr)[(j * 3) + 2];
+          if (cx::floatLessEqual(angleVal, 45.f)) {
+            (*childVecPtr)[(j * 3) + 2] = 0.f;
+          } else {
+            (*childVecPtr)[(j * 3) + 2] = 90.f;
+          }
+        }
+
+        children[i] = convertVecNToSolution(*childVecPtr);
+      } while (!keepInfeasibleSolutions
+               && !isSolutionFeasible(children[i],
+                                      boundingArea,
+                                      inputBuildings));
     }
 
-    return {};
+    return children;
   }
 
   void GA::mutateSolution(Solution& solution,
@@ -612,29 +627,29 @@ namespace bpt
                                  const eastl::vector<InputBuilding>&,
                                  const bool&)>,
                  3> mutationFunctions = {
-      [this](Solution& solution,
-             const corex::core::NPolygon& boundingArea,
-             const eastl::vector<InputBuilding>& inputBuildings,
-             const bool& keepInfeasibleSolutions)
+      [](Solution& solution,
+         const corex::core::NPolygon& boundingArea,
+         const eastl::vector<InputBuilding>& inputBuildings,
+         const bool& keepInfeasibleSolutions)
       {
         std::cout << "Run Buddy-Buddy Mutation.\n";
         applyBuddyBuddyOperator(solution, boundingArea,
                                 inputBuildings, -1, -1,
                                 keepInfeasibleSolutions);
       },
-      [this](Solution& solution,
-             const corex::core::NPolygon& boundingArea,
-             const eastl::vector<InputBuilding>& inputBuildings,
-             const bool& keepInfeasibleSolutions)
+      [](Solution& solution,
+         const corex::core::NPolygon& boundingArea,
+         const eastl::vector<InputBuilding>& inputBuildings,
+         const bool& keepInfeasibleSolutions)
       {
         std::cout << "Run Shaking Mutation.\n";
         applyShakingOperator(solution, boundingArea,
                              inputBuildings, keepInfeasibleSolutions);
       },
-      [this](Solution& solution,
-             const corex::core::NPolygon& boundingArea,
-             const eastl::vector<InputBuilding>& inputBuildings,
-             const bool& keepInfeasibleSolutions)
+      [](Solution& solution,
+         const corex::core::NPolygon& boundingArea,
+         const eastl::vector<InputBuilding>& inputBuildings,
+         const bool& keepInfeasibleSolutions)
       {
         std::cout << "Run Jiggle Mutation.\n";
         applyJiggleOperator(solution, boundingArea,
@@ -645,9 +660,8 @@ namespace bpt
     Solution tempSolution;
     do {
       tempSolution = solution;
-      //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
-      //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 0;
+      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+        0, static_cast<int32_t>(mutationFunctions.size() - 1));
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,

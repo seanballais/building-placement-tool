@@ -188,7 +188,7 @@ namespace bpt
         solution.getBuildingAngle(i)
       };
 
-      if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
+      if (!corex::core::isRectWithinNPolygonAABB(buildingRect, boundingArea)) {
         return false;
       }
     }

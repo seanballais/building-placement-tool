@@ -10,6 +10,7 @@
 
 #include <bpt/evaluator.hpp>
 #include <bpt/operators.hpp>
+#include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
@@ -60,10 +61,8 @@ namespace bpt
     // Prevent unnecessary copying of the parents.
     eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
     eastl::vector<Solution> children{ solutionA, solutionA };
-    // Perform Box Crossover.
     for (Solution& child : children) {
       do {
-        // Perform Box Crossover.
         for (int32_t i = 0; i < numBuildings; i++) {
           // Compute child's new x position.
           float lowerXBound = std::min(parents[0]->getBuildingXPos(i),

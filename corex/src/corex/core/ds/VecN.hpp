@@ -12,7 +12,8 @@ namespace corex::core
   public:
     explicit VecN(int32_t size, float initialValue = 0.f);
     explicit VecN(eastl::vector<float> elements);
-    VecN(const VecN& rhs) = default;
+    VecN(const VecN& other) = default;
+    VecN(VecN&& other) = default;
 
     size_t size() const;
 
