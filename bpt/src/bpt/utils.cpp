@@ -34,6 +34,8 @@ namespace bpt
         return "Uniform";
       case CrossoverType::BOX:
         return "Box";
+      case CrossoverType::ARITHMETIC:
+        return "Arithmetic";
     }
   }
 

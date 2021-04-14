@@ -3,7 +3,7 @@
 
 namespace bpt
 {
-  enum class CrossoverType { NONE, UNIFORM, BOX };
+  enum class CrossoverType { NONE, UNIFORM, BOX, ARITHMETIC };
 }
 
 #endif

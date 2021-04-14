@@ -72,19 +72,24 @@ namespace bpt
     void makeTwoParentsBreed(
       const Solution &parentA,
       const Solution &parentB,
+      const CrossoverType& crossoverType,
       eastl::vector<Solution> &offsprings,
-      int32_t &numOffsprings, const int32_t numOffspringsToMake, const float mutationRate,
-                             const corex::core::NPolygon &boundingArea,
-                             const eastl::vector<InputBuilding> &inputBuildings,
-                             const eastl::vector<eastl::vector<float>> &flowRates,
-                             const eastl::vector<corex::core::NPolygon> &floodProneAreas,
-                             const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
-                             const float floodProneAreaPenalty, const float landslideProneAreaPenalty,
-                             const float buildingDistanceWeight, const bool &keepInfeasibleSolutions);
-    eastl::vector<Solution>
-    crossoverSolutions(
+      int32_t &numOffsprings,
+      const int32_t numOffspringsToMake,
+      const float mutationRate,
+      const corex::core::NPolygon &boundingArea,
+      const eastl::vector<InputBuilding> &inputBuildings,
+      const eastl::vector<eastl::vector<float>> &flowRates,
+      const eastl::vector<corex::core::NPolygon> &floodProneAreas,
+      const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
+      const float floodProneAreaPenalty,
+      const float landslideProneAreaPenalty,
+      const float buildingDistanceWeight,
+      const bool &keepInfeasibleSolutions);
+    eastl::vector<Solution> crossoverSolutions(
       const Solution &solutionA,
       const Solution &solutionB,
+      const CrossoverType& type,
       const corex::core::NPolygon &boundingArea,
       const eastl::vector<InputBuilding> &inputBuildings,
       const bool &keepInfeasibleSolutions);
@@ -92,21 +97,11 @@ namespace bpt
                         const corex::core::NPolygon& boundingArea,
                         const eastl::vector<InputBuilding>& inputBuildings,
                         const bool& keepInfeasibleSolutions);
-    eastl::unordered_map<int32_t, eastl::vector<int32_t>>
-    findFaultyGenes(Solution& solution,
-                    const corex::core::NPolygon& boundingArea,
-                    const eastl::vector<InputBuilding>& inputBuildings);
-
-    template <
-      typename RealType,
-      typename
-      std::enable_if<std::is_floating_point<RealType>::value, bool>::type = true
-    > RealType blendTwoValues(RealType a, RealType b)
-    {
-      RealType contribAmount = cx::getRandomRealUniformly(
-        static_cast<RealType>(0), static_cast<RealType>(1));
-      return (contribAmount * a) + ((1 - contribAmount) * b);
-    }
+    void applyLocalSearch1(
+      Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const eastl::vector<eastl::vector<float>>& flowRates);
 
     int32_t currRunGenerationNumber;
     eastl::vector<double> recentRunAvgFitnesses;

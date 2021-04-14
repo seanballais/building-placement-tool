@@ -135,6 +135,7 @@ namespace bpt
         this->makeTwoParentsBreed(
           parentA,
           parentB,
+          crossoverType,
           newOffsprings,
           numOffsprings,
           numOffspringsToMake,
@@ -175,7 +176,10 @@ namespace bpt
 
       bestSolution = population[0];
 
-      // Might add the local search feature in the future.
+      this->applyLocalSearch1(bestSolution,
+                              boundingArea,
+                              inputBuildings,
+                              flowRates);
 
       bestSolution.setFitness(computeSolutionFitness(bestSolution,
                                                      inputBuildings,
@@ -418,26 +422,34 @@ namespace bpt
     return parents;
   }
 
-  void GA::makeTwoParentsBreed(const Solution &parentA, const Solution &parentB, eastl::vector<Solution> &offsprings,
-                               int32_t &numOffsprings, const int32_t numOffspringsToMake, const float mutationRate,
-                               const corex::core::NPolygon &boundingArea,
-                               const eastl::vector<InputBuilding> &inputBuildings,
-                               const eastl::vector<eastl::vector<float>> &flowRates,
-                               const eastl::vector<corex::core::NPolygon> &floodProneAreas,
-                               const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
-                               const float floodProneAreaPenalty, const float landslideProneAreaPenalty,
-                               const float buildingDistanceWeight, const bool &keepInfeasibleSolutions)
+  void GA::makeTwoParentsBreed(
+    const Solution &parentA,
+    const Solution &parentB,
+    const CrossoverType& crossoverType,
+    eastl::vector<Solution> &offsprings,
+    int32_t &numOffsprings,
+    const int32_t numOffspringsToMake,
+    const float mutationRate,
+    const corex::core::NPolygon &boundingArea,
+    const eastl::vector<InputBuilding> &inputBuildings,
+    const eastl::vector<eastl::vector<float>> &flowRates,
+    const eastl::vector<corex::core::NPolygon> &floodProneAreas,
+    const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
+    const float floodProneAreaPenalty,
+    const float landslideProneAreaPenalty,
+    const float buildingDistanceWeight,
+    const bool &keepInfeasibleSolutions)
   {
     IPROF_FUNC;
     std::uniform_real_distribution<float> mutationChanceDistribution{
       0.f, 1.f
     };
-    auto children = this->crossoverSolutions(
-      parentA,
-      parentB,
-      boundingArea,
-      inputBuildings,
-      keepInfeasibleSolutions);
+    auto children = this->crossoverSolutions(parentA,
+                                             parentB,
+                                             crossoverType,
+                                             boundingArea,
+                                             inputBuildings,
+                                             keepInfeasibleSolutions);
     children[0].setFitness(computeSolutionFitness(children[0],
                                                   inputBuildings,
                                                   boundingArea,
@@ -567,52 +579,38 @@ namespace bpt
   }
 
   eastl::vector<Solution> GA::crossoverSolutions(
-    const Solution &solutionA, const Solution &solutionB,
+    const Solution &solutionA,
+    const Solution &solutionB,
+    const CrossoverType& type,
     const corex::core::NPolygon &boundingArea,
     const eastl::vector<InputBuilding> &inputBuildings,
     const bool &keepInfeasibleSolutions)
   {
     IPROF_FUNC;
 
-    // Let's perform arithmetic crossover.
-    int32_t numBuildings = solutionA.getNumBuildings();
+    assert(type != CrossoverType::NONE);
 
-    // Prevent unnecessary copying of the parents.
-    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
-    eastl::vector<Solution> children{ solutionA, solutionA };
-    for (int32_t i = 0; i < children.size(); i++) {
-      do {
-        float a = cx::getRandomRealUniformly(0.f, 1.f);
-        cx::VecN parent0 = convertSolutionToVecN(*parents[0]);
-        cx::VecN parent1 = convertSolutionToVecN(*parents[1]);
-
-        eastl::unique_ptr<cx::VecN> childVecPtr;
-        if (i == 0) {
-          childVecPtr = eastl::make_unique<cx::VecN>(
-            (a * parent0) + ((1 - a) * parent1));
-        } else if (i == 1) {
-          childVecPtr = eastl::make_unique<cx::VecN>(
-            (a * parent1) + ((1 - a) * parent0));
-        }
-
-        // Fix the mutations parts.
-        for (int32_t j = 0; j < numBuildings; j++) {
-          float angleVal = (*childVecPtr)[(j * 3) + 2];
-          if (cx::floatLessEqual(angleVal, 45.f)) {
-            (*childVecPtr)[(j * 3) + 2] = 0.f;
-          } else {
-            (*childVecPtr)[(j * 3) + 2] = 90.f;
-          }
-        }
-
-        children[i] = convertVecNToSolution(*childVecPtr);
-      } while (!keepInfeasibleSolutions
-               && !isSolutionFeasible(children[i],
-                                      boundingArea,
-                                      inputBuildings));
+    switch (type) {
+      case CrossoverType::UNIFORM:
+        return performUniformCrossover(solutionA, solutionB,
+                                       boundingArea, inputBuildings,
+                                       keepInfeasibleSolutions);
+      case CrossoverType::BOX:
+        return performBoxCrossover(solutionA, solutionB,
+                                   boundingArea, inputBuildings,
+                                   keepInfeasibleSolutions);
+      case CrossoverType::ARITHMETIC:
+        return performArithmeticCrossover(solutionA,
+                                          solutionB,
+                                          boundingArea,
+                                          inputBuildings,
+                                          keepInfeasibleSolutions);
+      default:
+        // TODO: Raise an error since we did not choose a crossover operator.
+        break;
     }
 
-    return children;
+    return {};
   }
 
   void GA::mutateSolution(Solution& solution,
@@ -674,56 +672,139 @@ namespace bpt
     solution = tempSolution;
   }
 
-  eastl::unordered_map<int32_t, eastl::vector<int32_t>>
-  GA::findFaultyGenes(Solution& solution,
-                      const corex::core::NPolygon& boundingArea,
-                      const eastl::vector<InputBuilding>& inputBuildings)
+  void GA::applyLocalSearch1(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const eastl::vector<eastl::vector<float>>& flowRates)
   {
-    eastl::unordered_map<int32_t, eastl::vector<int32_t>> faultyGenes;
+    constexpr int32_t numMovements = 8;
+    constexpr float maxShiftAmount = 5.f;
+    std::uniform_real_distribution<float> shiftDistrib{ 0, maxShiftAmount };
+    static const
+    eastl::array<eastl::function<Solution(Solution, int32_t)>,
+      numMovements> searchFunctions = {
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
 
-    // Find overlapping buildings.
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmount);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 - shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 + shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 - shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 - shiftAmountB);
+        return solution;
+      },
+      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      {
+        float shiftAmountA = corex::core::generateRandomReal(shiftDistrib);
+        float shiftAmountB = corex::core::generateRandomReal(shiftDistrib);
+        solution.setBuildingXPos(buildingIndex,
+                                 solution.getBuildingXPos(buildingIndex)
+                                 + shiftAmountA);
+
+        // NOTE: The origin is on the top left corner.
+        solution.setBuildingYPos(buildingIndex,
+                                 solution.getBuildingYPos(buildingIndex)
+                                 + shiftAmountB);
+        return solution;
+      }
+    };
+
+    eastl::vector<Solution> generatedSolutions;
+    generatedSolutions.push_back(solution);
+
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      std::cout << "Find overlapping 1: ";
-      auto building0 = corex::core::Rectangle{
-        solution.getBuildingXPos(i),
-        solution.getBuildingYPos(i),
-        inputBuildings[i].width,
-        inputBuildings[i].length,
-        solution.getBuildingAngle(i)
-      };
+      for (int32_t movementID = 0; movementID < numMovements; movementID++) {
+        auto altSolution0 = searchFunctions[movementID](solution, i);
+        if (isSolutionFeasible(altSolution0, boundingArea, inputBuildings)) {
+          generatedSolutions.push_back(altSolution0);
+        }
 
-      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
-        std::cout << "Find overlapping 2: ";
-        auto building1 = corex::core::Rectangle{
-          solution.getBuildingXPos(j),
-          solution.getBuildingYPos(j),
-          inputBuildings[j].width,
-          inputBuildings[j].length,
-          solution.getBuildingAngle(j)
-        };
-        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
-          auto iter = faultyGenes.insert(i);
-          iter.first->second.push_back(j);
+        auto altSolution1 = altSolution0;
+        solution.setBuildingAngle(
+          i,
+          cx::selectItemRandomly(eastl::vector<float>{ 0.f, 90.f }));
+        if (isSolutionFeasible(altSolution1, boundingArea, inputBuildings)) {
+          generatedSolutions.push_back(altSolution1);
         }
       }
     }
 
-    // Find buildings overlapping the bounding area.
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      std::cout << "Find overlapping bounding 1: ";
-      auto buildingRect = corex::core::Rectangle{
-        solution.getBuildingXPos(i),
-        solution.getBuildingYPos(i),
-        inputBuildings[i].width,
-        inputBuildings[i].length,
-        solution.getBuildingAngle(i)
-      };
-
-      if (!corex::core::isRectWithinNPolygon(buildingRect, boundingArea)) {
-        faultyGenes.insert(i);
+    solution = *std::min_element(
+      generatedSolutions.begin(),
+      generatedSolutions.end(),
+      [](Solution solutionA, Solution solutionB) {
+        return corex::core::floatLessThan(solutionA.getFitness(),
+                                          solutionB.getFitness());
       }
-    }
-
-    return faultyGenes;
+    );
   }
 }

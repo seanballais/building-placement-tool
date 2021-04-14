@@ -1276,6 +1276,17 @@ namespace bpt
                      this->gaSettings.selectionType,
                      selectionItems);
 
+        constexpr int32_t numCrossoverItems = 4;
+        static const CrossoverType crossoverItems[numCrossoverItems] = {
+          CrossoverType::NONE,
+          CrossoverType::UNIFORM,
+          CrossoverType::BOX,
+          CrossoverType::ARITHMETIC
+        };
+        drawComboBox("Crossover Type",
+                     this->gaSettings.crossoverType,
+                     crossoverItems);
+
         if (this->gaSettings.selectionType == SelectionType::TS) {
           ImGui::InputInt("Tournament Size",
                           &(this->gaSettings.tournamentSize));

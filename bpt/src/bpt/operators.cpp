@@ -94,6 +94,53 @@ namespace bpt
     return children;
   }
 
+  eastl::vector<Solution> performArithmeticCrossover(
+    const Solution& solutionA,
+    const Solution& solutionB,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
+  {
+    int32_t numBuildings = solutionA.getNumBuildings();
+
+    // Prevent unnecessary copying of the parents.
+    eastl::array<const Solution* const, 2> parents{ &solutionA, &solutionB };
+    eastl::vector<Solution> children{ solutionA, solutionA };
+    for (int32_t i = 0; i < children.size(); i++) {
+      do {
+        float a = cx::getRandomRealUniformly(0.f, 1.f);
+        cx::VecN parent0 = convertSolutionToVecN(*parents[0]);
+        cx::VecN parent1 = convertSolutionToVecN(*parents[1]);
+
+        eastl::unique_ptr<cx::VecN> childVecPtr;
+        if (i == 0) {
+          childVecPtr = eastl::make_unique<cx::VecN>(
+            (a * parent0) + ((1 - a) * parent1));
+        } else if (i == 1) {
+          childVecPtr = eastl::make_unique<cx::VecN>(
+            (a * parent1) + ((1 - a) * parent0));
+        }
+
+        // Fix the mutations parts.
+        for (int32_t j = 0; j < numBuildings; j++) {
+          float angleVal = (*childVecPtr)[(j * 3) + 2];
+          if (cx::floatLessEqual(angleVal, 45.f)) {
+            (*childVecPtr)[(j * 3) + 2] = 0.f;
+          } else {
+            (*childVecPtr)[(j * 3) + 2] = 90.f;
+          }
+        }
+
+        children[i] = convertVecNToSolution(*childVecPtr);
+      } while (!keepInfeasibleSolutions
+               && !isSolutionFeasible(children[i],
+                                      boundingArea,
+                                      inputBuildings));
+    }
+
+    return children;
+  }
+
   void applyBuddyBuddyOperator(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
@@ -102,124 +149,131 @@ namespace bpt
     const int32_t dynamicBuildingIndex,
     const bool& keepInfeasibleSolutions)
   {
-    std::uniform_int_distribution<int32_t> buildingDistrib{
-      0, static_cast<int32_t>(inputBuildings.size() - 1)
-    };
-    std::uniform_int_distribution<int32_t> buddySideDistrib{ 0, 3 };
-    std::uniform_int_distribution<int32_t> relOrientationDistrib{ 0, 1 };
-    std::uniform_real_distribution<float> normalizedDistrib{ 0, 1 };
+    Solution tempSolution;
+    do {
+      tempSolution = solution;
+      std::uniform_int_distribution<int32_t> buildingDistrib{
+        0, static_cast<int32_t>(inputBuildings.size() - 1)
+      };
+      std::uniform_int_distribution<int32_t> buddySideDistrib{ 0, 3 };
+      std::uniform_int_distribution<int32_t> relOrientationDistrib{ 0, 1 };
+      std::uniform_real_distribution<float> normalizedDistrib{ 0, 1 };
 
-    // Let's just do the Buddy-Buddy Mutation for now.
-    int32_t staticBuddy = staticBuildingIndex;
-    int32_t dynamicBuddy = dynamicBuildingIndex; // The buddy to be moved.
-    if (staticBuddy == -1 || dynamicBuddy == -1) {
-      do {
-        if (staticBuildingIndex == -1) {
-          staticBuddy = corex::core::generateRandomInt(buildingDistrib);
-        }
+      // Let's just do the Buddy-Buddy Mutation for now.
+      int32_t staticBuddy = staticBuildingIndex;
+      int32_t dynamicBuddy = dynamicBuildingIndex; // The buddy to be moved.
+      if (staticBuddy == -1 || dynamicBuddy == -1) {
+        do {
+          if (staticBuildingIndex == -1) {
+            staticBuddy = cx::generateRandomInt(buildingDistrib);
+          }
 
-        if (dynamicBuildingIndex == -1) {
-          dynamicBuddy = corex::core::generateRandomInt(buildingDistrib);
-        }
-      } while (staticBuddy == dynamicBuddy
-               || !solution.isBuildingDataUsable(staticBuddy)
-               || !solution.isBuildingDataUsable(dynamicBuddy));
-    }
+          if (dynamicBuildingIndex == -1) {
+            dynamicBuddy = cx::generateRandomInt(buildingDistrib);
+          }
+        } while (staticBuddy == dynamicBuddy
+                 || !tempSolution.isBuildingDataUsable(staticBuddy)
+                 || !tempSolution.isBuildingDataUsable(dynamicBuddy));
+      }
 
-    auto staticBuddyRect = corex::core::Rectangle{
-      solution.getBuildingXPos(staticBuddy),
-      solution.getBuildingYPos(staticBuddy),
-      inputBuildings[staticBuddy].width,
-      inputBuildings[staticBuddy].length,
-      solution.getBuildingAngle(staticBuddy)
-    };
-    auto buddyPoly = corex::core::convertRectangleToPolygon(staticBuddyRect);
+      auto staticBuddyRect = cx::Rectangle{
+        tempSolution.getBuildingXPos(staticBuddy),
+        tempSolution.getBuildingYPos(staticBuddy),
+        inputBuildings[staticBuddy].width,
+        inputBuildings[staticBuddy].length,
+        tempSolution.getBuildingAngle(staticBuddy)
+      };
+      auto buddyPoly = cx::convertRectangleToPolygon(staticBuddyRect);
 
-    const int32_t buddySide = corex::core::generateRandomInt(
-      buddySideDistrib);
+      const int32_t buddySide = cx::generateRandomInt(buddySideDistrib);
 
-    corex::core::Line contactLine;
-    switch (buddySide) {
-      case 0:
-        contactLine = corex::core::Line{
-          { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y },
-          { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y }
-        };
-        break;
-      case 1:
-        contactLine = corex::core::Line{
-          { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y },
-          { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y }
-        };
-        break;
-      case 2:
-        contactLine = corex::core::Line{
-          { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y },
-          { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y }
-        };
-        break;
-      case 3:
-        contactLine = corex::core::Line{
-          { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y },
-          { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y }
-        };
-        break;
-      default:
-        break;
-    }
+      corex::core::Line contactLine;
+      switch (buddySide) {
+        case 0:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y },
+            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y }
+          };
+          break;
+        case 1:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y },
+            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y }
+          };
+          break;
+        case 2:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y },
+            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y }
+          };
+          break;
+        case 3:
+          contactLine = corex::core::Line{
+            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y },
+            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y }
+          };
+          break;
+        default:
+          break;
+      }
 
-    auto contactLineVec = corex::core::lineToVec(contactLine);
-    const int32_t orientation = corex::core::generateRandomInt(
-      relOrientationDistrib);
-    float distContactToBuddyCenter = 0.f;
+      auto contactLineVec = cx::lineToVec(contactLine);
+      const int32_t orientation = cx::generateRandomInt(relOrientationDistrib);
+      float distContactToBuddyCenter = 0.f;
 
-    // Length to add to both ends of the contact line vector to allow the
-    // edges in the dynamic buddy perpendicular to contact line to be in line
-    // with those edges parallel to it in the static buddy.
-    float extLength = 0.f;
+      // Length to add to both ends of the contact line vector to allow the
+      // edges in the dynamic buddy perpendicular to contact line to be in line
+      // with those edges parallel to it in the static buddy.
+      float extLength = 0.f;
 
-    float contactLineAngle = corex::core::vec2Angle(contactLineVec);
-    float dynamicBuddyAngle;
-    if (orientation == 0) {
-      // The dynamic buddy will be oriented parallel to the contact line, if
-      // width > length. Perpendicular, otherwise.
-      distContactToBuddyCenter = inputBuildings[dynamicBuddy].width / 2.f;
-      extLength = inputBuildings[dynamicBuddy].length / 2.f;
-      dynamicBuddyAngle = contactLineAngle;
-    } else {
-      // The dynamic buddy will be oriented perpendicular to the contact line,
-      // if length > width. Parallel, otherwise.
-      distContactToBuddyCenter = inputBuildings[dynamicBuddy].length / 2.f;
-      extLength = inputBuildings[dynamicBuddy].width / 2.f;
-      dynamicBuddyAngle = contactLineAngle + 90.f;
-    }
+      float contactLineAngle = corex::core::vec2Angle(contactLineVec);
+      float dynamicBuddyAngle;
+      if (orientation == 0) {
+        // The dynamic buddy will be oriented parallel to the contact line, if
+        // width > length. Perpendicular, otherwise.
+        distContactToBuddyCenter = inputBuildings[dynamicBuddy].width / 2.f;
+        extLength = inputBuildings[dynamicBuddy].length / 2.f;
+        dynamicBuddyAngle = contactLineAngle;
+      } else {
+        // The dynamic buddy will be oriented perpendicular to the contact line,
+        // if length > width. Parallel, otherwise.
+        distContactToBuddyCenter = inputBuildings[dynamicBuddy].length / 2.f;
+        extLength = inputBuildings[dynamicBuddy].width / 2.f;
+        dynamicBuddyAngle = contactLineAngle + 90.f;
+      }
 
-    // Adjust the distance of the dynamic buddy centroid to the contact line
-    // by a small amount to prevent intersection of buildings.
-    distContactToBuddyCenter += 0.0001f;
+      // Adjust the distance of the dynamic buddy centroid to the contact line
+      // by a small amount to prevent intersection of buildings.
+      distContactToBuddyCenter += 0.0001f;
 
-    auto buddyMidptRelContactLine = cx::rotateVec2(
-      cx::Vec2{0.f, extLength * 2 },
-      contactLineAngle) + contactLineVec;
-    auto buddyMidptRelContactLineStart = cx::rotateVec2(
-      corex::core::Vec2{ 0.f, -extLength },
-      contactLineAngle) + contactLine.start;
+      auto buddyMidptRelContactLine = cx::rotateVec2(
+        cx::Vec2{0.f, extLength * 2 },
+        contactLineAngle) + contactLineVec;
+      auto buddyMidptRelContactLineStart = cx::rotateVec2(
+        corex::core::Vec2{ 0.f, -extLength },
+        contactLineAngle) + contactLine.start;
 
-    const float lineWidthModifier = corex::core::generateRandomReal(
-      normalizedDistrib);
+      const float lineWidthModifier = corex::core::generateRandomReal(
+        normalizedDistrib);
 
-    corex::core::Point dynamicBuddyPos{
-      ((buddyMidptRelContactLine * lineWidthModifier)
-       + corex::core::vec2Perp(
-        corex::core::rotateVec2(
-          corex::core::Vec2{ 0.f, distContactToBuddyCenter },
-          contactLineAngle)))
-      + buddyMidptRelContactLineStart
-    };
+      cx::Point dynamicBuddyPos{
+        ((buddyMidptRelContactLine * lineWidthModifier)
+         + corex::core::vec2Perp(
+          corex::core::rotateVec2(
+            corex::core::Vec2{ 0.f, distContactToBuddyCenter },
+            contactLineAngle)))
+        + buddyMidptRelContactLineStart
+      };
 
-    solution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
-    solution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
-    solution.setBuildingAngle(dynamicBuddy, dynamicBuddyAngle);
+      tempSolution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
+      tempSolution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
+      tempSolution.setBuildingAngle(dynamicBuddy, dynamicBuddyAngle);
+    } while (!keepInfeasibleSolutions
+             && !isSolutionFeasible(tempSolution,
+                                    boundingArea,
+                                    inputBuildings));
+
+    solution = tempSolution;
   }
 
   void applyShakingOperator(
