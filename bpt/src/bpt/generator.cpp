@@ -64,9 +64,7 @@ namespace bpt
         cx::isRectWithinNPolygonAABB(buildingRect, boundingArea);
         doesSolutionHaveNoBuildingsOverlapping(solution,
                                                inputBuildings);
-      } while (!cx::isRectWithinNPolygonAABB(buildingRect, boundingArea)
-               || !doesSolutionHaveNoBuildingsOverlapping(solution,
-                                                          inputBuildings));
+      } while (!cx::isRectWithinNPolygonAABB(buildingRect, boundingArea));
     }
 
     return solution;

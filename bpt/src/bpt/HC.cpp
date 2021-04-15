@@ -115,13 +115,44 @@ namespace bpt
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight)
   {
-    Solution tempSolution;
-    tempSolution = solution;
-    const int32_t mutationFuncIndex = 0;
-    applyBuddyBuddyOperator(tempSolution, boundingArea,
-                            inputBuildings, -1, -1,
-                            false);
-    solution = tempSolution;
+    eastl::array<eastl::function<void(Solution&,
+                                      const corex::core::NPolygon&,
+                                      const eastl::vector<InputBuilding>&,
+                                      const bool&)>,
+      3> mutationFunctions = {
+      [this](Solution& solution,
+             const corex::core::NPolygon& boundingArea,
+             const eastl::vector<InputBuilding>& inputBuildings,
+             const bool& keepInfeasibleSolutions)
+      {
+        applyBuddyBuddyOperator(solution, boundingArea,
+                                inputBuildings, -1, -1,
+                                keepInfeasibleSolutions);
+      },
+      [this](Solution& solution,
+             const corex::core::NPolygon& boundingArea,
+             const eastl::vector<InputBuilding>& inputBuildings,
+             const bool& keepInfeasibleSolutions)
+      {
+        applyShakingOperator(solution, boundingArea,
+                             inputBuildings, keepInfeasibleSolutions);
+      },
+      [this](Solution& solution,
+             const corex::core::NPolygon& boundingArea,
+             const eastl::vector<InputBuilding>& inputBuildings,
+             const bool& keepInfeasibleSolutions)
+      {
+        applyJiggleOperator(solution, boundingArea,
+                            inputBuildings, keepInfeasibleSolutions);
+      }
+    };
+
+    const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
+      0, static_cast<int32_t>(mutationFunctions.size() - 1));
+    mutationFunctions[mutationFuncIndex](solution,
+                                         boundingArea,
+                                         inputBuildings,
+                                         true);
     solution.setFitness(computeSolutionFitness(solution,
                                                inputBuildings,
                                                boundingArea,

@@ -166,6 +166,8 @@ namespace corex::core
                             const Rectangle& outsideRect);
   bool isRectIntersectingNPolygon(const Rectangle& rect,
                                   const NPolygon& polygon);
+  Polygon<4> getIntersectingRectAABB(const Rectangle& rect0,
+                                     const Rectangle& rect1);
   eastl::vector<Polygon<3>> earClipTriangulate(NPolygon polygon);
   eastl::vector<int32_t> findEarVertexIndexes(const NPolygon& polygon);
   eastl::vector<int32_t> findConvexVertexIndexes(const NPolygon& polygon);

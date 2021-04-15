@@ -598,10 +598,12 @@ namespace corex::core {
     float rect1Width = rectangle1.vertices[1].x - rect1TopLeftX;
     float rect1Height = rectangle1.vertices[3].y - rect1TopLeftY;
 
-    return rect0TopLeftX < rect1TopLeftX + rect1Width
-           && rect0TopLeftX + rect0Width >= rect1TopLeftX
-           && rect0TopLeftY < rect1TopLeftY + rect1Height
-           && rect0TopLeftY + rect0Height >= rect1TopLeftY;
+    return (rect0TopLeftX < rect1TopLeftX + rect1Width
+            && rect0TopLeftX + rect0Width >= rect1TopLeftX
+            && rect0TopLeftY < rect1TopLeftY + rect1Height
+            && rect0TopLeftY + rect0Height >= rect1TopLeftY)
+           || isRectWithinRectAABB(rect0, rect1)
+           || isRectWithinRectAABB(rect1, rect0);
   }
 
   ReturnValue<Point> intersectionOfTwoInfLines(const Line& line0,
@@ -956,6 +958,48 @@ namespace corex::core {
     }
 
     return isPointWithinNPolygon(rectPoly.vertices[0], polygon);
+  }
+
+  Polygon<4> getIntersectingRectAABB(const Rectangle& rect0,
+                                     const Rectangle& rect1)
+  {
+    if (areTwoRectsAABBIntersecting(rect0, rect1)) {
+      cx::Polygon<4> poly0 = convertRectangleToPolygon(rect0);
+      cx::Polygon<4> poly1 = convertRectangleToPolygon(rect1);
+
+      if (isRectWithinRectAABB(rect0, rect1)) {
+        return poly0;
+      } else if (isRectWithinRectAABB(rect1, rect0)) {
+        return poly1;
+      }
+
+      const auto& topLeftPt0 = poly0.vertices[0];
+      const auto& bottomRightPt0 = poly0.vertices[2];
+      const auto& topLeftPt1 = poly1.vertices[0];
+      const auto& bottomRightPt1 = poly1.vertices[2];
+
+      // Get the intersected rectangle top-left and bottom-right coordinates.
+      const auto interTopLeftPt0 = cx::Point{
+        std::max(topLeftPt0.x, topLeftPt1.x),
+        std::max(topLeftPt0.y, topLeftPt1.y)
+      };
+      const auto interBottomRightPt1 = cx::Point{
+        std::min(bottomRightPt0.x, bottomRightPt1.x),
+        std::min(bottomRightPt0.y, bottomRightPt1.y)
+      };
+      const float interWidth = interBottomRightPt1.x - interTopLeftPt0.x;
+
+      return Polygon<4>{
+        {
+          interTopLeftPt0,
+          interTopLeftPt0 + cx::Vec2{ interWidth, 0.f },
+          interBottomRightPt1,
+          interBottomRightPt1 - cx::Vec2{ interWidth, 0.f }
+        }
+      };
+    }
+
+    return Polygon<4>{};
   }
 
   eastl::vector<Polygon<3>> earClipTriangulate(NPolygon polygon)
