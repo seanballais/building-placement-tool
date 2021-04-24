@@ -437,10 +437,6 @@ namespace bpt
         this->inputBuildings,
         this->boundingArea,
         this->flowRates,
-        this->floodProneAreas,
-        this->landslideProneAreas,
-        this->gaSettings.floodProneAreaPenalty,
-        this->gaSettings.landslideProneAreaPenalty,
         this->gaSettings.buildingDistanceWeight));
 
       this->hasSolutionBeenSetup = true;

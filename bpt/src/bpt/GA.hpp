@@ -101,7 +101,14 @@ namespace bpt
       Solution& solution,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
-      const eastl::vector<eastl::vector<float>>& flowRates);
+      const eastl::vector<eastl::vector<float>>& flowRates,
+      const float buildingDistanceWeight);
+    void applyLocalSearch2(
+      Solution& solution,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings,
+      const eastl::vector<eastl::vector<float>>& flowRates,
+      const float buildingDistanceWeight);
 
     int32_t currRunGenerationNumber;
     eastl::vector<double> recentRunAvgFitnesses;

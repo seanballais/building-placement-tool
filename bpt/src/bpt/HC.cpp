@@ -40,10 +40,6 @@ namespace bpt
                                                       inputBuildings,
                                                       boundingArea,
                                                       flowRates,
-                                                      floodProneAreas,
-                                                      landslideProneAreas,
-                                                      floodProneAreaPenalty,
-                                                      landslideProneAreaPenalty,
                                                       buildingDistanceWeight));
     return this->generateSolution(initialSolution,
                                   inputBuildings,
@@ -80,9 +76,14 @@ namespace bpt
       (*currIterNumberPtr)++;
 
       Solution candidateSolution = initialSolution;
-      this->perturbSolution(candidateSolution, boundingArea, inputBuildings,
-                            flowRates, floodProneAreas, landslideProneAreas,
-                            floodProneAreaPenalty, landslideProneAreaPenalty,
+      this->perturbSolution(candidateSolution,
+                            boundingArea,
+                            inputBuildings,
+                            flowRates,
+                            floodProneAreas,
+                            landslideProneAreas,
+                            floodProneAreaPenalty,
+                            landslideProneAreaPenalty,
                             buildingDistanceWeight);
       if (candidateSolution.getFitness() <= bestSolution.getFitness()) {
         initialSolution = candidateSolution;
@@ -157,10 +158,6 @@ namespace bpt
                                                inputBuildings,
                                                boundingArea,
                                                flowRates,
-                                               floodProneAreas,
-                                               landslideProneAreas,
-                                               floodProneAreaPenalty,
-                                               landslideProneAreaPenalty,
                                                buildingDistanceWeight));
   }
 }

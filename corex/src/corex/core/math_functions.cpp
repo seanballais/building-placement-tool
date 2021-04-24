@@ -540,6 +540,8 @@ namespace corex::core {
       translatePoint(rotatedBottomLeftPt, centerX, centerY)
     };
 
+    // Make sure that the first element in the vertices list is the top-left
+    // corner, and the rest are arranged in a clockwise manner.
     int32_t topLeftIdx = eastl::distance(
       tempPolygon.begin(),
       eastl::min_element(

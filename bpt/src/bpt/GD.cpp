@@ -139,10 +139,6 @@ namespace bpt
                                                inputBuildings,
                                                boundingArea,
                                                flowRates,
-                                               floodProneAreas,
-                                               landslideProneAreas,
-                                               floodProneAreaPenalty,
-                                               landslideProneAreaPenalty,
                                                buildingDistanceWeight));
   }
 

@@ -47,6 +47,18 @@ namespace bpt
     this->genesAssignmentStatus[buildingIndex] = true;
   }
 
+  void Solution::moveBuildingXPos(int32_t buildingIndex, float xDelta)
+  {
+    this->setBuildingXPos(buildingIndex,
+                          this->getBuildingXPos(buildingIndex) + xDelta);
+  }
+
+  void Solution::moveBuildingYPos(int32_t buildingIndex, float yDelta)
+  {
+    this->setBuildingYPos(buildingIndex,
+                          this->getBuildingYPos(buildingIndex) + yDelta);
+  }
+
   void Solution::setFitness(double fitness)
   {
     this->fitness = fitness;

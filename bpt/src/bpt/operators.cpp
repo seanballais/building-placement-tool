@@ -155,7 +155,6 @@ namespace bpt
       std::uniform_int_distribution<int32_t> buildingDistrib{
         0, static_cast<int32_t>(inputBuildings.size() - 1)
       };
-      std::uniform_int_distribution<int32_t> buddySideDistrib{ 0, 3 };
       std::uniform_int_distribution<int32_t> relOrientationDistrib{ 0, 1 };
       std::uniform_real_distribution<float> normalizedDistrib{ 0, 1 };
 
@@ -169,7 +168,54 @@ namespace bpt
           }
 
           if (dynamicBuildingIndex == -1) {
-            dynamicBuddy = cx::generateRandomInt(buildingDistrib);
+            // Give higher priority to buildings that intersect with other
+            // buildings.
+            eastl::vector<int32_t> buildingIDs;
+            eastl::vector<float> buildingSelectionWeights;
+            for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
+              buildingIDs.push_back(i);
+
+              if (!solution.isBuildingDataUsable(i)) {
+                buildingSelectionWeights.push_back(0.f);
+                continue;
+              }
+
+              cx::Rectangle building0{
+                solution.getBuildingXPos(i),
+                solution.getBuildingYPos(i),
+                inputBuildings[i].width,
+                inputBuildings[i].length,
+                solution.getBuildingAngle(i)
+              };
+
+              bool hasIntersectingBuilding = false;
+              for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+                if (!solution.isBuildingDataUsable(j)) {
+                  continue;
+                }
+
+                corex::core::Rectangle building1{
+                  solution.getBuildingXPos(j),
+                  solution.getBuildingYPos(j),
+                  inputBuildings[j].width,
+                  inputBuildings[j].length,
+                  solution.getBuildingAngle(j)
+                };
+                if (cx::areTwoRectsAABBIntersecting(building0, building1)) {
+                  hasIntersectingBuilding = true;
+                  break;
+                }
+              }
+
+              if (hasIntersectingBuilding) {
+                buildingSelectionWeights.push_back(50.f);
+              } else {
+                buildingSelectionWeights.push_back(5.f);
+              }
+            }
+
+            dynamicBuddy = cx::selectRandomItemWithWeights(
+              buildingIDs, buildingSelectionWeights);
           }
         } while (staticBuddy == dynamicBuddy
                  || !tempSolution.isBuildingDataUsable(staticBuddy)
@@ -183,34 +229,42 @@ namespace bpt
         inputBuildings[staticBuddy].length,
         tempSolution.getBuildingAngle(staticBuddy)
       };
-      auto buddyPoly = cx::convertRectangleToPolygon(staticBuddyRect);
+      auto staticBuddyPoly = cx::convertRectangleToPolygon(staticBuddyRect);
 
-      const int32_t buddySide = cx::generateRandomInt(buddySideDistrib);
+      // Determine which sides of the polygon we can put the dynamic buddy.
+      const float orientation = cx::selectItemRandomly(
+        eastl::vector<float>{ 0.f, 90.f });
+
+      const int32_t buddySide = cx::getRandomIntUniformly(0, 3);
 
       corex::core::Line contactLine;
       switch (buddySide) {
         case 0:
+          // Top line.
           contactLine = corex::core::Line{
-            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y },
-            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y }
+            {staticBuddyPoly.vertices[0].x, staticBuddyPoly.vertices[0].y },
+            {staticBuddyPoly.vertices[1].x, staticBuddyPoly.vertices[1].y }
           };
           break;
         case 1:
+          // Right-side line.
           contactLine = corex::core::Line{
-            { buddyPoly.vertices[1].x, buddyPoly.vertices[1].y },
-            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y }
+            {staticBuddyPoly.vertices[1].x, staticBuddyPoly.vertices[1].y },
+            {staticBuddyPoly.vertices[2].x, staticBuddyPoly.vertices[2].y }
           };
           break;
         case 2:
+          // Bottom line.
           contactLine = corex::core::Line{
-            { buddyPoly.vertices[2].x, buddyPoly.vertices[2].y },
-            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y }
+            {staticBuddyPoly.vertices[2].x, staticBuddyPoly.vertices[2].y },
+            {staticBuddyPoly.vertices[3].x, staticBuddyPoly.vertices[3].y }
           };
           break;
         case 3:
+          // Left-side line.
           contactLine = corex::core::Line{
-            { buddyPoly.vertices[3].x, buddyPoly.vertices[3].y },
-            { buddyPoly.vertices[0].x, buddyPoly.vertices[0].y }
+            {staticBuddyPoly.vertices[3].x, staticBuddyPoly.vertices[3].y },
+            {staticBuddyPoly.vertices[0].x, staticBuddyPoly.vertices[0].y }
           };
           break;
         default:
@@ -218,17 +272,16 @@ namespace bpt
       }
 
       auto contactLineVec = cx::lineToVec(contactLine);
-      const int32_t orientation = cx::generateRandomInt(relOrientationDistrib);
       float distContactToBuddyCenter = 0.f;
 
       // Length to add to both ends of the contact line vector to allow the
       // edges in the dynamic buddy perpendicular to contact line to be in line
       // with those edges parallel to it in the static buddy.
-      float extLength = 0.f;
+      float extLength;
 
       float contactLineAngle = corex::core::vec2Angle(contactLineVec);
       float dynamicBuddyAngle;
-      if (orientation == 0) {
+      if (cx::floatEquals(orientation, 0.f)) {
         // The dynamic buddy will be oriented parallel to the contact line, if
         // width > length. Perpendicular, otherwise.
         distContactToBuddyCenter = inputBuildings[dynamicBuddy].width / 2.f;
@@ -265,13 +318,25 @@ namespace bpt
         + buddyMidptRelContactLineStart
       };
 
+      auto dynamicBuddyRect = cx::Rectangle{
+        dynamicBuddyPos.x,
+        dynamicBuddyPos.y,
+        inputBuildings[dynamicBuddy].width,
+        inputBuildings[dynamicBuddy].length,
+        dynamicBuddyAngle
+      };
+
+      if (!cx::isRectWithinNPolygonAABB(dynamicBuddyRect, boundingArea)) {
+        continue;
+      }
+
       tempSolution.setBuildingXPos(dynamicBuddy, dynamicBuddyPos.x);
       tempSolution.setBuildingYPos(dynamicBuddy, dynamicBuddyPos.y);
       tempSolution.setBuildingAngle(dynamicBuddy, dynamicBuddyAngle);
-    } while (!keepInfeasibleSolutions
-             && !isSolutionFeasible(tempSolution,
-                                    boundingArea,
-                                    inputBuildings));
+    } while ((!keepInfeasibleSolutions
+              && !isSolutionFeasible(tempSolution,
+                                     boundingArea,
+                                     inputBuildings)));
 
     solution = tempSolution;
   }

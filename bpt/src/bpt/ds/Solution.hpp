@@ -19,6 +19,8 @@ namespace bpt
     void setBuildingXPos(int32_t buildingIndex, float xPos);
     void setBuildingYPos(int32_t buildingIndex, float yPos);
     void setBuildingAngle(int32_t buildingIndex, float rotation);
+    void moveBuildingXPos(int32_t buildingIndex, float xDelta);
+    void moveBuildingYPos(int32_t buildingIndex, float yDelta);
     void setFitness(double fitness);
     void validateBuildingData(int32_t buildingIndex);
     void invalidateBuildingData(int32_t buildingIndex);
