@@ -518,4 +518,204 @@ namespace bpt
       targetBuildingIndex,
       cx::selectItemRandomly(eastl::vector<float>{ 0.f, 90.f }));
   }
+
+  void applySwappingMethod(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    constexpr int32_t numFuncs = 7;
+    static const
+    eastl::array<eastl::function<Solution(Solution, int32_t, int32_t)>,
+      numFuncs> swappingFunctions = {
+      [](Solution solution,
+         int32_t building0Index,
+         int32_t building1Index) -> Solution
+      {
+        // Change the orientation of building 0.
+        if (cx::floatEquals(solution.getBuildingAngle(building0Index), 0.f)) {
+          solution.setBuildingAngle(building0Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building0Index, 0.f);
+        }
+
+        return solution;
+      },
+      [](Solution solution,
+         int32_t building0Index,
+         int32_t building1Index) -> Solution
+      {
+        // Change the orientation of building 1.
+        if (cx::floatEquals(solution.getBuildingAngle(building1Index), 0.f)) {
+          solution.setBuildingAngle(building1Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building1Index, 0.f);
+        }
+
+        return solution;
+      },
+      [](Solution solution,
+         int32_t building0Index,
+         int32_t building1Index) -> Solution
+      {
+        // Change the orientation of building 0 and 1.
+        if (cx::floatEquals(solution.getBuildingAngle(building0Index), 0.f)) {
+          solution.setBuildingAngle(building0Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building0Index, 0.f);
+        }
+
+        if (cx::floatEquals(solution.getBuildingAngle(building1Index), 0.f)) {
+          solution.setBuildingAngle(building1Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building1Index, 0.f);
+        }
+
+        return solution;
+      },
+      [](Solution solution,
+         int32_t building0Index,
+         int32_t building1Index) -> Solution
+      {
+        // Swap the locations of the buildings.
+        cx::Point building0Pos{
+          solution.getBuildingXPos(building0Index),
+          solution.getBuildingYPos(building0Index)
+        };
+        cx::Point building1Pos{
+          solution.getBuildingXPos(building1Index),
+          solution.getBuildingYPos(building1Index)
+        };
+
+        eastl::swap(building0Pos, building1Pos);
+
+        solution.setBuildingXPos(building0Index, building0Pos.x);
+        solution.setBuildingYPos(building0Index, building0Pos.y);
+
+        solution.setBuildingXPos(building1Index, building1Pos.x);
+        solution.setBuildingYPos(building1Index, building1Pos.y);
+
+        return solution;
+      },
+      [](Solution solution,
+         int32_t building0Index,
+         int32_t building1Index) -> Solution
+      {
+        // Swap the locations of the buildings and change the orientation of
+        // building 0.
+        cx::Point building0Pos{
+          solution.getBuildingXPos(building0Index),
+          solution.getBuildingYPos(building0Index)
+        };
+        cx::Point building1Pos{
+          solution.getBuildingXPos(building1Index),
+          solution.getBuildingYPos(building1Index)
+        };
+
+        eastl::swap(building0Pos, building1Pos);
+
+        solution.setBuildingXPos(building0Index, building0Pos.x);
+        solution.setBuildingYPos(building0Index, building0Pos.y);
+
+        solution.setBuildingXPos(building1Index, building1Pos.x);
+        solution.setBuildingYPos(building1Index, building1Pos.y);
+
+        if (cx::floatEquals(solution.getBuildingAngle(building0Index), 0.f)) {
+          solution.setBuildingAngle(building0Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building0Index, 0.f);
+        }
+
+        return solution;
+      },
+      [](Solution solution,
+         int32_t building0Index,
+         int32_t building1Index) -> Solution
+      {
+        // Swap the locations of the buildings and change the orientation of
+        // building 1.
+        cx::Point building0Pos{
+          solution.getBuildingXPos(building0Index),
+          solution.getBuildingYPos(building0Index)
+        };
+        cx::Point building1Pos{
+          solution.getBuildingXPos(building1Index),
+          solution.getBuildingYPos(building1Index)
+        };
+
+        eastl::swap(building0Pos, building1Pos);
+
+        solution.setBuildingXPos(building0Index, building0Pos.x);
+        solution.setBuildingYPos(building0Index, building0Pos.y);
+
+        solution.setBuildingXPos(building1Index, building1Pos.x);
+        solution.setBuildingYPos(building1Index, building1Pos.y);
+
+        if (cx::floatEquals(solution.getBuildingAngle(building1Index), 0.f)) {
+          solution.setBuildingAngle(building1Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building1Index, 0.f);
+        }
+
+        return solution;
+      },
+      [](Solution solution,
+         int32_t building0Index,
+         int32_t building1Index) -> Solution
+      {
+        // Swap the locations of the buildings and change the orientation of
+        // building 0 and 1.
+        cx::Point building0Pos{
+          solution.getBuildingXPos(building0Index),
+          solution.getBuildingYPos(building0Index)
+        };
+        cx::Point building1Pos{
+          solution.getBuildingXPos(building1Index),
+          solution.getBuildingYPos(building1Index)
+        };
+
+        eastl::swap(building0Pos, building1Pos);
+
+        solution.setBuildingXPos(building0Index, building0Pos.x);
+        solution.setBuildingYPos(building0Index, building0Pos.y);
+
+        solution.setBuildingXPos(building1Index, building1Pos.x);
+        solution.setBuildingYPos(building1Index, building1Pos.y);
+
+        if (cx::floatEquals(solution.getBuildingAngle(building0Index), 0.f)) {
+          solution.setBuildingAngle(building0Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building0Index, 0.f);
+        }
+
+        if (cx::floatEquals(solution.getBuildingAngle(building1Index), 0.f)) {
+          solution.setBuildingAngle(building1Index, 90.f);
+        } else {
+          solution.setBuildingAngle(building1Index, 0.f);
+        }
+
+        return solution;
+      }
+    };
+
+    eastl::vector<Solution> generatedSolutions;
+    generatedSolutions.push_back(solution);
+
+    for (int32_t i = 0; i < solution.getNumBuildings() - 1; i++) {
+      for (int32_t j = i + 1; j < solution.getNumBuildings(); j++) {
+        for (int32_t funcID = 0; funcID < numFuncs; funcID++) {
+          generatedSolutions.push_back(
+            swappingFunctions[funcID](solution, i, j));
+        }
+      }
+    }
+
+    solution = *std::min_element(
+      generatedSolutions.begin(),
+      generatedSolutions.end(),
+      [](const Solution& solutionA, const Solution& solutionB) {
+        return solutionA.getFitness() < solutionB.getFitness();
+      }
+    );
+  }
 }

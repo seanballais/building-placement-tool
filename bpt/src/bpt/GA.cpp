@@ -117,6 +117,15 @@ namespace bpt
 
       std::cout << "Generation #" << this->currRunGenerationNumber << "\n";
 
+      if (i < 100) {
+        // We apply the swapping method to the first 100 generations.
+        std::cout << "Applying the swapping method.\n";
+
+        for (Solution& offspring : population) {
+          applySwappingMethod(offspring, boundingArea, inputBuildings);
+        }
+      }
+
       int32_t numOffsprings = 0;
       eastl::vector<Solution> newOffsprings(numOffspringsToMake);
       while (numOffsprings < numOffspringsToMake) {
