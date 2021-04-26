@@ -669,7 +669,7 @@ namespace bpt
     const float buildingDistanceWeight)
   {
     constexpr int32_t numMovements = 8;
-    constexpr float maxShiftAmount = 10.f;
+    constexpr float maxShiftAmount = 5.f;
     std::uniform_real_distribution<float> shiftDistrib{ 1.f, maxShiftAmount };
     static const
     eastl::array<eastl::function<Solution(Solution, int32_t)>,
@@ -800,8 +800,8 @@ namespace bpt
     const float buildingDistanceWeight)
   {
     constexpr int32_t numMovements = 20;
-    constexpr float maxShiftAmount = 10.f;
-    std::uniform_real_distribution<float> shiftDistrib{ 1.f, maxShiftAmount };
+    constexpr float maxShiftAmount = 5.f;
+    std::uniform_real_distribution<float> shiftDistrib{ 0.f, maxShiftAmount };
     static const
     eastl::array<eastl::function<Solution(Solution, int32_t, int32_t)>,
       numMovements> searchFunctions = {
