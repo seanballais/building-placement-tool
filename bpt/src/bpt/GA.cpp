@@ -80,6 +80,15 @@ namespace bpt
                                                  landslideProneAreaPenalty,
                                                  buildingDistanceWeight);
 
+    std::sort(
+      population.begin(),
+      population.end(),
+      [](Solution& solutionA, Solution& solutionB) {
+        return corex::core::floatLessThan(solutionA.getFitness(),
+                                          solutionB.getFitness());
+      }
+    );
+
     // Add the initial population.
     solutions.push_back(population);
 

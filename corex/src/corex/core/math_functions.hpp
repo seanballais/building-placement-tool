@@ -140,6 +140,7 @@ namespace corex::core
   Polygon<4> createRectangle(const Point& startingPoint,
                              float width,
                              float height);
+  Polygon<4> createRectangle(const NPolygon& nPolygon);
   Polygon<4> rotateRectangle(float centerX, float centerY, float width,
                              float height, float angle);
   Polygon<4> rotateRectangle(const Rectangle& rect);

@@ -14,6 +14,8 @@ add_library(corex-core SHARED
     asset_functions.cpp
     math_functions.cpp
     components/Text.cpp
+    ds/Tree.hpp
+    ds/TreeNode.hpp
     ds/Vec2.cpp
     ds/VecN.cpp
     systems/BaseSystem.cpp

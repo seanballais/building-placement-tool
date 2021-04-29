@@ -779,7 +779,6 @@ namespace bpt
     this->buildConstructBoundingAreaWindow();
     this->buildWarningWindow();
     this->buildInputBuildingsWindow();
-    this->buildHazardsWindow();
     this->buildFlowRateWindow();
     this->buildAlgorithmControlsWindow();
     this->buildAlgorithmResultsWindow();

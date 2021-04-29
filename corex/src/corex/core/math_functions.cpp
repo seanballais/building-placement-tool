@@ -508,6 +508,24 @@ namespace corex::core {
     };
   }
 
+  Polygon<4> createRectangle(const NPolygon& nPolygon)
+  {
+    assert(nPolygon.vertices.size() == 4);
+
+    const Point& minPt = nPolygon.vertices[0];
+    const Point& maxPt = nPolygon.vertices[2];
+
+    float width = maxPt.x - minPt.y;
+    float height = maxPt.y - minPt.y;
+
+    return Polygon<4>{
+      minPt,
+      Point{ maxPt.x, minPt.y },
+      maxPt,
+      Point{ minPt.x, maxPt.y }
+    };
+  }
+
   Polygon<4> rotateRectangle(float centerX, float centerY, float width,
                              float height, float angle)
   {
