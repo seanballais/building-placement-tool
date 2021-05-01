@@ -309,6 +309,27 @@ namespace corex::core
     return selectRandomItemWithWeights(items, weights);
   }
 
+  template <template<class, class> class W, class WAllocator>
+  int32_t selectRandomWeightedIndex(const W<float, WAllocator>& weights)
+  {
+    // Algorithm based on:
+    //   https://softwareengineering.stackexchange.com/a/150618/208923
+    float weightSum = std::accumulate(weights.begin(), weights.end(), 0);
+    std::uniform_real_distribution nDistrib{ 0.f, weightSum };
+    float n = generateRandomReal(nDistrib);
+    int32_t currIntervalVal = 0;
+    int32_t selectedItemIndex = 0;
+    for (int32_t i = 0; i < weights.size(); i++) {
+      currIntervalVal += weights[i];
+      if (floatGreEqual(currIntervalVal, n)) {
+        selectedItemIndex = i;
+        break;
+      }
+    }
+
+    return selectedItemIndex;
+  }
+
   template <class RealType>
   std::normal_distribution<RealType> multiplyDistributions(
       const std::normal_distribution<RealType>& distribA,

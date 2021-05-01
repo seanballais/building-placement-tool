@@ -14,6 +14,8 @@ add_executable(bpt
     operators.cpp
     SA.cpp
     ds/AlgorithmType.hpp
-    ds/Result.hpp
+    ds/GAResult.cpp
+    ds/GWOResult.cpp
+    ds/Result.cpp
     ds/Solution.cpp
     ds/Time.cpp)

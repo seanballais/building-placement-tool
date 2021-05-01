@@ -33,7 +33,27 @@ namespace bpt
       constexpr int32_t numTreeNodeChildren = 4;
       cx::Tree<cx::Polygon<4>, numTreeNodeChildren> boundingRegions;
       auto* currRegionNode = boundingRegions.getRoot();
-      currRegionNode->data = cx::createRectangle(boundingArea);
+
+      const cx::Point& boundingMinPt = boundingArea.vertices[0];
+      const cx::Point& boundingMaxPt = boundingArea.vertices[2];
+
+      constexpr float additionalWidth = 20.f;
+      constexpr float additionalHeight = 20.f;
+
+      const cx::Point deltaPt{ additionalWidth, additionalHeight };
+      const cx::Point newBoundingMinPt = boundingMinPt - deltaPt;
+
+      const float boundingWidth = boundingArea.vertices[1].x
+                                  - boundingArea.vertices[0].x;
+      const float boundingHeight = boundingArea.vertices[3].y
+                                   - boundingArea.vertices[0].y;
+
+      const float newWidth = boundingWidth + (additionalWidth * 2);
+      const float newHeight = boundingHeight + (additionalHeight * 2);
+
+      currRegionNode->data = cx::createRectangle(newBoundingMinPt,
+                                                 newWidth,
+                                                 newHeight);
 
       // Shuffle order of building placement.
       int32_t numBuildings = inputBuildings.size();
@@ -226,15 +246,29 @@ namespace bpt
       }
     }
 
-    eastl::unordered_set<int32_t> childIndexes{ 0, 1, 2, 3 };
+    eastl::vector<int32_t> childIndexes{ 0, 1, 2, 3 };
+    eastl::vector<float> regionArea;
+    for (int32_t i : eastl::vector{ 0, 1, 2, 3 }) {
+      cx::Polygon<4>& poly = node->getChild(i)->data;
+
+      const float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
+      const float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
+
+      regionArea.push_back(polyWidth * polyHeight);
+    }
+
     cx::TreeNode<cx::Polygon<4>, 4>* suitableRegionPtr = nullptr;
     do {
-      auto iter = childIndexes.begin();
-      int32_t randIdx = cx::getRandomIntUniformly(0, childIndexes.size() - 1);
-      eastl::advance(iter, randIdx);
+      int32_t randIdx = cx::selectRandomWeightedIndex(regionArea);
 
-      int32_t childIdx = *iter;
-      childIndexes.erase(iter);
+      auto childIter = childIndexes.begin();
+      auto areaIter = regionArea.begin();
+      eastl::advance(childIter, randIdx);
+      eastl::advance(areaIter, randIdx);
+
+      int32_t childIdx = *childIter;
+      childIndexes.erase(childIter);
+      regionArea.erase(areaIter);
 
       suitableRegionPtr = findUsableRegion(node->getChild(childIdx),
                                            minWidth,

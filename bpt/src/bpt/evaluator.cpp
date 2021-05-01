@@ -101,7 +101,7 @@ namespace bpt
       };
 
       if (!cx::isRectWithinNPolygonAABB(buildingRect, boundingArea)) {
-        constexpr double penaltyVal = 2000000.0;
+        constexpr double penaltyVal = 1000000.0;
         if (cx::isRectIntersectingNPolygon(buildingRect, boundingArea)) {
           // We just get a percentage of the penalty value based on how much
           // of the area of the building is outside of the bounding area.
