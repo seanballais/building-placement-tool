@@ -30,6 +30,7 @@ namespace bpt
 
     std::filesystem::path resultsFilePath = corex::core::getBinFolder()
                                             / resultsFileRelPath.str();
+    std::cout << "Filepath: " << resultsFilePath.string() << "\n";
     std::ofstream resultsFile;
     resultsFile.open(resultsFilePath.string());
 
@@ -79,7 +80,7 @@ namespace bpt
     Time elapsedTimeObj{ this->elapsedTime };
 
     resultsFile << "\n";
-    resultsFile << "Run Elapsed Time: "
+    resultsFile << "Run Elapsed Time:,"
                 << std::setfill('0') << std::setw(2) << elapsedTimeObj.hours
                 << ":"
                 << std::setfill('0') << std::setw(2) << elapsedTimeObj.minutes

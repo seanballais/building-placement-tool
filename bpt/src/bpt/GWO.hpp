@@ -12,7 +12,7 @@
 #include <bpt/HC.hpp>
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
-#include <bpt/ds/Result.hpp>
+#include <bpt/ds/GWOResult.hpp>
 
 namespace bpt
 {
@@ -20,7 +20,7 @@ namespace bpt
   {
   public:
     GWO();
-    Result generateSolutions(
+    GWOResult generateSolutions(
       const eastl::vector<InputBuilding> &inputBuildings,
       const corex::core::NPolygon &boundingArea,
       const eastl::vector<eastl::vector<float>> &flowRates,

@@ -2,6 +2,7 @@
 
 #include <EASTL/vector.h>
 
+#include <bpt/utils.hpp>
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/SelectionType.hpp>

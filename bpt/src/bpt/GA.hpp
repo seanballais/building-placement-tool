@@ -13,6 +13,7 @@
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/SelectionType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
+#include <bpt/ds/GAResult.hpp>
 #include <bpt/ds/Solution.hpp>
 
 #include <bpt/HC.hpp>
@@ -23,7 +24,7 @@ namespace bpt
   {
   public:
     GA();
-    eastl::vector<eastl::vector<Solution>> generateSolutions(
+    GAResult generateSolutions(
       const eastl::vector<InputBuilding>& inputBuildings,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<eastl::vector<float>>& flowRates,

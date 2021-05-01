@@ -25,6 +25,7 @@
 #include <bpt/generator.hpp>
 #include <bpt/operators.hpp>
 #include <bpt/utils.hpp>
+#include <bpt/ds/GAResult.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
 
@@ -39,7 +40,7 @@ namespace bpt
     , recentRunElapsedTime(0.0)
     , hillClimbing() {}
 
-  eastl::vector<eastl::vector<Solution>> GA::generateSolutions(
+  GAResult GA::generateSolutions(
     const eastl::vector<InputBuilding>& inputBuildings,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<eastl::vector<float>>& flowRates,
@@ -274,7 +275,20 @@ namespace bpt
     this->recentRunElapsedTime = this->runTimer.getElapsedTime();
     this->runTimer.stop();
 
-    return solutions;
+    return GAResult{
+      solutions,
+      inputBuildings,
+      this->recentRunBestFitnesses,
+      this->recentRunAvgFitnesses,
+      this->recentRunWorstFitnesses,
+      this->recentRunElapsedTime,
+      mutationRate,
+      populationSize,
+      numGenerations,
+      selectionType,
+      tournamentSize,
+      crossoverType
+    };
   }
 
   int32_t GA::getCurrentRunIterationNumber()

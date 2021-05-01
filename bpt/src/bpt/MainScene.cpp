@@ -1405,7 +1405,7 @@ namespace bpt
                 auto floodProneAreasCopy = this->floodProneAreas;
                 auto landslideProneAreasCopy = this->landslideProneAreas;
 
-                this->solutionBuffer = this->geneticAlgo.generateSolutions(
+                GAResult result = this->geneticAlgo.generateSolutions(
                   inputBuildingsCopy,
                   boundingAreaCopy,
                   flowRatesCopy,
@@ -1428,16 +1428,17 @@ namespace bpt
 
                 std::cout << "Finished optimizing!\n";
 
-                this->recentRunAvgFitnesses =
-                  this->geneticAlgo.getRecentRunAverageFitnesses();
-                this->recentRunBestFitnesses =
-                  this->geneticAlgo.getRecentRunBestFitnesses();
-                this->recentRunWorstFitnesses =
-                  this->geneticAlgo.getRecentRunWorstFitnesses();
-                this->recentRunElapsedTime = this->geneticAlgo
-                                                  .getRecentRunElapsedTime();
+                this->recentRunAvgFitnesses = result.averageFitnesses;
+                this->recentRunBestFitnesses = result.bestFitnesses;
+                this->recentRunWorstFitnesses = result.worstFitnesses;
+                this->recentRunElapsedTime = result.elapsedTime;
+                this->solutionBuffer = result.solutions;
 
-                this->saveResultsToCSVFile();
+                auto time = std::chrono::system_clock::to_time_t(
+                  std::chrono::system_clock::now());
+                std::stringstream resultsFileRelPath;
+                resultsFileRelPath << "ga-results-" << std::to_string(time);
+                result.saveToCSV(cx::stdStrToEAStr(resultsFileRelPath.str()));
 
                 // NOTE: There's a weird bug that occurs when we don't subtract
                 //       the solution size by one when assigning the value o
@@ -1474,7 +1475,7 @@ namespace bpt
                 auto floodProneAreasCopy = this->floodProneAreas;
                 auto landslideProneAreasCopy = this->landslideProneAreas;
 
-                Result result = this->gwoAlgo.generateSolutions(
+                GWOResult result = this->gwoAlgo.generateSolutions(
                   inputBuildingsCopy,
                   boundingAreaCopy,
                   flowRatesCopy,
@@ -1505,7 +1506,11 @@ namespace bpt
                   result.worstFitnesses);
                 this->recentRunElapsedTime = result.elapsedTime;
 
-                // TODO: Save the results to a CSV file.
+                auto time = std::chrono::system_clock::to_time_t(
+                  std::chrono::system_clock::now());
+                std::stringstream resultsFileRelPath;
+                resultsFileRelPath << "gwo-results-" << std::to_string(time);
+                result.saveToCSV(cx::stdStrToEAStr(resultsFileRelPath.str()));
 
                 // NOTE: There's a weird bug that occurs when we don't subtract
                 //       the solution size by one when assigning the value o
@@ -2014,112 +2019,6 @@ namespace bpt
       // Scroll down.
       this->camera.zoom(corex::core::CameraZoomState::OUT);
     }
-  }
-
-  void MainScene::saveResultsToCSVFile()
-  {
-    auto time = std::chrono::system_clock::to_time_t(
-      std::chrono::system_clock::now());
-    std::stringstream resultsFileRelPath;
-    resultsFileRelPath << "data/results-"
-                       << std::to_string(time)
-                       << ".csv";
-
-    std::filesystem::path resultsFilePath = corex::core::getBinFolder()
-                                            / resultsFileRelPath.str();
-    std::ofstream resultsFile;
-    resultsFile.open(resultsFilePath.string());
-
-    // Put the header of the CSV
-    for (int32_t i = 0; i < this->gaSettings.numGenerations; i++) {
-      resultsFile << ", Gen. #" << i;
-    }
-    resultsFile << "\n";
-
-    resultsFile << "Average Fitness";
-    for (double& fitness : this->recentRunAvgFitnesses) {
-      resultsFile << "," << fitness;
-    }
-    resultsFile << "\n";
-
-    resultsFile << "Best Fitness";
-    for (double& fitness : this->recentRunBestFitnesses) {
-      resultsFile << "," << fitness;
-    }
-    resultsFile << "\n";
-
-    resultsFile << "Worst Fitness";
-    for (double& fitness : this->recentRunWorstFitnesses) {
-      resultsFile << "," << fitness;
-    }
-    resultsFile << "\n";
-
-    resultsFile << "\n";
-    resultsFile << "GA Parameters\n"
-                << "Mutation Rate:," << this->gaSettings.mutationRate
-                << "\n"
-                << "Population Size:," << this->gaSettings.populationSize
-                << "\n"
-                << "No. of Generations:," << this->gaSettings.numGenerations
-                << "\n"
-                << "Selection Type:,"
-                << castToCString(this->gaSettings.selectionType)
-                << "\n";
-
-    if (this->gaSettings.selectionType == SelectionType::TS) {
-      resultsFile << "Tournament Size:," << this->gaSettings.tournamentSize
-                  << "\n";
-    }
-
-    resultsFile << "Crossover Type:,"
-                << castToCString(this->gaSettings.crossoverType)
-                << "\n"
-                << "Flood Penalty:," << this->gaSettings.floodProneAreaPenalty
-                << "\n"
-                << "Landslide Penalty:,"
-                << this->gaSettings.landslideProneAreaPenalty
-                << "\n"
-                << "Building Distance Weight:,"
-                << this->gaSettings.buildingDistanceWeight
-                << "\n"
-                << "Local Search:,"
-                << ((this->gaSettings.isLocalSearchEnabled) ? "Enabled"
-                                                            : "Disabled")
-                << "\n"
-                << "Keep Infeasible Solutions:,"
-                << ((this->gaSettings.keepInfeasibleSolutions) ? "Yes" : "No")
-                << "\n";
-
-    resultsFile << "\n";
-    resultsFile << "Input Buildings" << "\n"
-                << "Width,Length" << "\n";
-    for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
-      resultsFile << this->inputBuildings[i].width << ","
-                  << this->inputBuildings[i].length << "\n";
-    }
-
-    resultsFile << "\n";
-    resultsFile << "Best Solution:" << "\n"
-                << "x,y,Rotation" << "\n";
-    for (int32_t i = 0;
-         i < this->solutionBuffer.back()[0].getNumBuildings();
-         i++) {
-      resultsFile << this->solutionBuffer.back()[0].getBuildingXPos(i) << ","
-                  << this->solutionBuffer.back()[0].getBuildingYPos(i) << ","
-                  << this->solutionBuffer.back()[0].getBuildingAngle(i) << "\n";
-    }
-
-    Time elapsedTime{ this->geneticAlgo.getRecentRunElapsedTime() };
-
-    resultsFile << "\n";
-    resultsFile << "Run Elapsed Time: "
-                << std::setfill('0') << std::setw(2) << elapsedTime.hours << ":"
-                << std::setfill('0') << std::setw(2) << elapsedTime.minutes
-                << ":" << std::setfill('0') << std::setw(2)
-                << elapsedTime.seconds
-                << "\n";
-
-    resultsFile.close();
   }
 
   void MainScene::clearCurrentlyRenderedSolution()

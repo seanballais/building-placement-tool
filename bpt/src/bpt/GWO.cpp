@@ -17,9 +17,9 @@
 #include <bpt/HC.hpp>
 #include <bpt/operators.hpp>
 #include <bpt/utils.hpp>
+#include <bpt/ds/GWOResult.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
-#include <bpt/ds/Result.hpp>
 
 namespace bpt
 {
@@ -28,8 +28,7 @@ namespace bpt
     , currRunIterationNumber(0)
     , hillClimbing() {}
 
-  Result
-  GWO::generateSolutions(
+  GWOResult GWO::generateSolutions(
     const eastl::vector<InputBuilding> &inputBuildings,
     const corex::core::NPolygon &boundingArea,
     const eastl::vector<eastl::vector<float>> &flowRates,
@@ -183,19 +182,22 @@ namespace bpt
                        lsGeneratedSolutions.end());
     }
 
-    Result runResult {
-      solutions,
-      bestFitnesses,
-      averageFitnesses,
-      worstFitnesses,
-      this->runTimer.getElapsedTime()
-    };
-
+    double elapsedTime = this->runTimer.getElapsedTime();
     this->runTimer.stop();
 
     this->currRunIterationNumber = 0;
 
-    return runResult;
+    return GWOResult{
+      solutions,
+      inputBuildings,
+      bestFitnesses,
+      averageFitnesses,
+      worstFitnesses,
+      elapsedTime,
+      numWolves,
+      numIterations,
+      alphaDecayRate
+    };
   };
 
   int32_t GWO::getCurrentRunIterationNumber()
