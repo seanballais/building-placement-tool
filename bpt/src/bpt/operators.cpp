@@ -1,5 +1,6 @@
 #include <random>
 
+#include <EASTL/utility.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/ds/NPolygon.hpp>
@@ -719,6 +720,45 @@ namespace bpt
     );
   }
 
+  eastl::pair<cx::Point, cx::Point>
+  getBuildingMinMaxPoints(Solution& solution,
+                          const corex::core::NPolygon& boundingArea,
+                          const eastl::vector<InputBuilding>& inputBuildings,
+                          const float& buildingIndex)
+  {
+    const cx::Point& boundingMinPt = boundingArea.vertices[0];
+    const cx::Point& boundingMaxPt = boundingArea.vertices[2];
+
+    corex::core::Rectangle buildingRect {
+      solution.getBuildingXPos(buildingIndex),
+      solution.getBuildingYPos(buildingIndex),
+      inputBuildings[buildingIndex].width,
+      inputBuildings[buildingIndex].length,
+      solution.getBuildingAngle(buildingIndex)
+    };
+
+    cx::Polygon<4> poly = cx::rotateRectangle(buildingRect);
+
+    float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
+    float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
+
+    float minBuildingXVal = boundingMinPt.x + (polyWidth / 2);
+    float maxBuildingXVal = boundingMaxPt.x - (polyWidth / 2);
+    float minBuildingYVal = boundingMinPt.y + (polyHeight / 2);
+    float maxBuildingYVal = boundingMaxPt.y - (polyHeight / 2);
+
+    if (minBuildingXVal > maxBuildingXVal) {
+      eastl::swap(minBuildingXVal, maxBuildingXVal);
+    }
+
+    if (minBuildingYVal > maxBuildingYVal) {
+      eastl::swap(minBuildingYVal, maxBuildingYVal);
+    }
+
+    return eastl::make_pair(cx::Point{ minBuildingXVal, minBuildingYVal },
+                            cx::Point{ maxBuildingXVal, maxBuildingYVal });
+  }
+
   void applyLocalSearch1(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
@@ -728,83 +768,181 @@ namespace bpt
   {
     constexpr int32_t numMovements = 8;
     constexpr float maxShiftAmount = 5.f;
+
+    const cx::Point& minPt = boundingArea.vertices[0];
+    const cx::Point& maxPt = boundingArea.vertices[2];
+
     std::uniform_real_distribution<float> shiftDistrib{ 1.f, maxShiftAmount };
     static const
-    eastl::array<eastl::function<Solution(Solution, int32_t)>,
-      numMovements> searchFunctions = {
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+    eastl::array<eastl::function<Solution(Solution, int32_t)>, numMovements>
+    searchFunctions = {
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the right.
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
         float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingXPos(buildingIndex, shiftAmount);
+        solution.moveBuildingXPos(buildingIndex,
+                                  shiftAmount,
+                                  minMaxPoints.first.x,
+                                  minMaxPoints.second.x);
 
         return solution;
       },
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the left.
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
         float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingXPos(buildingIndex, -shiftAmount);
+        solution.moveBuildingXPos(buildingIndex,
+                                  -shiftAmount,
+                                  minMaxPoints.first.x,
+                                  minMaxPoints.second.x);
 
         return solution;
       },
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the top.
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
         float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingYPos(buildingIndex, -shiftAmount);
+        solution.moveBuildingYPos(buildingIndex,
+                                  -shiftAmount,
+                                  minMaxPoints.first.y,
+                                  minMaxPoints.second.y);
 
         return solution;
       },
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the bottom.
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
         float shiftAmount = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingYPos(buildingIndex, shiftAmount);
+        solution.moveBuildingYPos(buildingIndex,
+                                  shiftAmount,
+                                  minMaxPoints.first.y,
+                                  minMaxPoints.second.y);
 
         return solution;
       },
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the right then upward.
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
         float shiftAmount0 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingXPos(buildingIndex, shiftAmount0);
+        solution.moveBuildingXPos(buildingIndex,
+                                  shiftAmount0,
+                                  minMaxPoints.first.x,
+                                  minMaxPoints.second.x);
 
+        minMaxPoints = getBuildingMinMaxPoints(solution,
+                                               boundingArea,
+                                               inputBuildings,
+                                               buildingIndex);
         float shiftAmount1 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingYPos(buildingIndex, -shiftAmount1);
+        solution.moveBuildingYPos(buildingIndex,
+                                  -shiftAmount1,
+                                  minMaxPoints.first.x,
+                                  minMaxPoints.second.x);
 
         return solution;
       },
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the right and then downward.
-        float shiftAmount0 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingXPos(buildingIndex, shiftAmount0);
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
 
+        float shiftAmount0 = corex::core::generateRandomReal(shiftDistrib);
+        solution.moveBuildingXPos(buildingIndex,
+                                  shiftAmount0,
+                                  minMaxPoints.first.x,
+                                  minMaxPoints.second.x);
+
+        minMaxPoints = getBuildingMinMaxPoints(solution,
+                                               boundingArea,
+                                               inputBuildings,
+                                               buildingIndex);
         float shiftAmount1 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingYPos(buildingIndex, shiftAmount1);
+        solution.moveBuildingYPos(buildingIndex,
+                                  shiftAmount1,
+                                  minMaxPoints.first.y,
+                                  minMaxPoints.second.y);
 
         return solution;
       },
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the left and then upward.
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
         float shiftAmount0 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingXPos(buildingIndex, -shiftAmount0);
+        solution.moveBuildingXPos(buildingIndex,
+                                  -shiftAmount0,
+                                  minMaxPoints.first.x,
+                                  minMaxPoints.second.x);
 
+        minMaxPoints = getBuildingMinMaxPoints(solution,
+                                               boundingArea,
+                                               inputBuildings,
+                                               buildingIndex);
         float shiftAmount1 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingYPos(buildingIndex, -shiftAmount1);
+        solution.moveBuildingYPos(buildingIndex,
+                                  -shiftAmount1,
+                                  minMaxPoints.first.y,
+                                  minMaxPoints.second.y);
 
         return solution;
       },
-      [&shiftDistrib](Solution solution, int32_t buildingIndex) -> Solution
+      [&shiftDistrib, &boundingArea, &inputBuildings]
+      (Solution solution, int32_t buildingIndex) -> Solution
       {
         // Move the building to the left and then downward.
-        float shiftAmount0 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingXPos(buildingIndex, shiftAmount0);
+        auto minMaxPoints = getBuildingMinMaxPoints(solution,
+                                                    boundingArea,
+                                                    inputBuildings,
+                                                    buildingIndex);
 
+        float shiftAmount0 = corex::core::generateRandomReal(shiftDistrib);
+        solution.moveBuildingXPos(buildingIndex,
+                                  shiftAmount0,
+                                  minMaxPoints.first.x,
+                                  minMaxPoints.second.x);
+
+        minMaxPoints = getBuildingMinMaxPoints(solution,
+                                               boundingArea,
+                                               inputBuildings,
+                                               buildingIndex);
         float shiftAmount1 = corex::core::generateRandomReal(shiftDistrib);
-        solution.moveBuildingYPos(buildingIndex, shiftAmount1);
+        solution.moveBuildingYPos(buildingIndex,
+                                  shiftAmount1,
+                                  minMaxPoints.first.y,
+                                  minMaxPoints.second.y);
 
         return solution;
       }

@@ -47,6 +47,26 @@ namespace bpt
     this->genesAssignmentStatus[buildingIndex] = true;
   }
 
+  void Solution::moveBuildingXPos(int32_t buildingIndex,
+                                  float xDelta,
+                                  float minX,
+                                  float maxX)
+  {
+    this->setBuildingXPos(
+      buildingIndex,
+      cx::clamp(minX, this->getBuildingXPos(buildingIndex) + xDelta, maxX));
+  }
+
+  void Solution::moveBuildingYPos(int32_t buildingIndex,
+                                  float yDelta,
+                                  float minY,
+                                  float maxY)
+  {
+    this->setBuildingYPos(
+      buildingIndex,
+      cx::clamp(minY, this->getBuildingYPos(buildingIndex) + yDelta, maxY));
+  }
+
   void Solution::moveBuildingXPos(int32_t buildingIndex, float xDelta)
   {
     this->setBuildingXPos(buildingIndex,
