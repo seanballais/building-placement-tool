@@ -100,6 +100,14 @@ namespace bpt
     averageFitnesses.push_back(averageFitness);
     worstFitnesses.push_back(worstFitness);
 
+    std::sort(
+      wolves.begin(),
+      wolves.end(),
+      [](Solution& solutionA, Solution& solutionB) {
+        return solutionA.getFitness() < solutionB.getFitness();
+      }
+    );
+
     solutions.push_back(wolves);
 
     float alpha = 2.f;
@@ -130,6 +138,44 @@ namespace bpt
       // Reduce values of alpha vector.
       alpha = cx::clamp(alpha - alphaDecayRate, 0.f, 1.25f);
 
+      std::sort(
+        wolves.begin(),
+        wolves.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return solutionA.getFitness() < solutionB.getFitness();
+        }
+      );
+
+      Solution& currGenBest = *std::min_element(
+        wolves.begin(),
+        wolves.end(),
+        [](const Solution& a, const Solution& b) {
+          return a.getFitness() < b.getFitness();
+        }
+      );
+
+      applyLocalSearch1(currGenBest,
+                        boundingArea,
+                        inputBuildings,
+                        flowRates,
+                        buildingDistanceWeight);
+
+      if (i >= numIterations - 50) {
+        applyLocalSearch2(currGenBest,
+                          boundingArea,
+                          inputBuildings,
+                          flowRates,
+                          buildingDistanceWeight);
+      }
+
+      std::sort(
+        wolves.begin(),
+        wolves.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return solutionA.getFitness() < solutionB.getFitness();
+        }
+      );
+
       // Compute statistical data.
       double worstFitness = eastl::max_element(
         wolves.begin(),
@@ -155,31 +201,15 @@ namespace bpt
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
 
+      std::sort(
+        wolves.begin(),
+        wolves.end(),
+        [](Solution& solutionA, Solution& solutionB) {
+          return solutionA.getFitness() < solutionB.getFitness();
+        }
+      );
+
       solutions.push_back(wolves);
-    }
-
-    if (isLocalSearchEnabled) {
-      Solution& bestSolution = wolves[0];
-      auto lsGeneratedSolutions = this->hillClimbing.generateSolution(
-        bestSolution,
-        inputBuildings,
-        boundingArea,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty,
-        buildingDistanceWeight,
-        timeLimit,
-        &(this->currRunIterationNumber));
-
-      for (const eastl::vector<Solution>& solution : lsGeneratedSolutions) {
-        bestFitnesses.push_back(solution[0].getFitness());
-      }
-
-      solutions.insert(solutions.end(),
-                       lsGeneratedSolutions.begin(),
-                       lsGeneratedSolutions.end());
     }
 
     double elapsedTime = this->runTimer.getElapsedTime();
@@ -255,27 +285,7 @@ namespace bpt
     // First element is the alpha wolf.
     // Second element is the beta wolf.
     // Third element is the delta wolf.
-    eastl::array<Solution, 3> bestWolves;
-    eastl::array<bool, 3> bestWolfHasBeenAssigned{ false, false, false };
-
-    for (Solution& wolf : wolves) {
-      if (!bestWolfHasBeenAssigned[0]
-          || wolf.getFitness() < bestWolves[0].getFitness()) {
-        bestWolves[2] = bestWolves[1];
-        bestWolves[1] = bestWolves[0];
-        bestWolves[0] = wolf;
-        bestWolfHasBeenAssigned[0] = true;
-      } else if (!bestWolfHasBeenAssigned[1]
-                 || wolf.getFitness() < bestWolves[1].getFitness()) {
-        bestWolves[2] = bestWolves[1];
-        bestWolves[1] = wolf;
-        bestWolfHasBeenAssigned[1] = true;
-      } else if (!bestWolfHasBeenAssigned[2]
-                 || wolf.getFitness() < bestWolves[2].getFitness()) {
-        bestWolves[2] = wolf;
-        bestWolfHasBeenAssigned[2] = true;
-      }
-    }
+    eastl::array<Solution, 3> bestWolves{ wolves[0], wolves[1], wolves[2] };
 
     constexpr int32_t numLeadingWolves = 3;
     eastl::array<float, numLeadingWolves> A{ 0.f, 0.f, 0.f };

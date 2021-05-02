@@ -49,6 +49,18 @@ namespace bpt
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings);
+  void applyLocalSearch1(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const eastl::vector<eastl::vector<float>>& flowRates,
+    const float buildingDistanceWeight);
+  void applyLocalSearch2(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const eastl::vector<eastl::vector<float>>& flowRates,
+    const float buildingDistanceWeight);
 }
 
 #endif
