@@ -102,36 +102,30 @@ namespace bpt
 
       if (!cx::isRectWithinNPolygonAABB(buildingRect, boundingArea)) {
         constexpr double penaltyVal = 1000000.0;
-        if (cx::isRectIntersectingNPolygon(buildingRect, boundingArea)) {
-          // We just get a percentage of the penalty value based on how much
-          // of the area of the building is outside of the bounding area.
-          float boundingWidth = boundingArea.vertices[1].x
-                                - boundingArea.vertices[0].x;
-          float boundingHeight = boundingArea.vertices[2].y
-                                 - boundingArea.vertices[0].y;
-          auto boundingRect = cx::Rectangle{
-            boundingArea.vertices[0].x,
-            boundingArea.vertices[0].y,
-            boundingWidth,
-            boundingHeight,
-            0.f
-          };
-          auto intersectingPoly = cx::getIntersectingRectAABB(buildingRect,
-                                                              boundingRect);
-          cx::Point& interMinPt = intersectingPoly.vertices[0];
-          cx::Point& interMaxPt = intersectingPoly.vertices[2];
-          float interWidth = interMaxPt.x - interMinPt.x;
-          float interHeight = interMaxPt.y - interMinPt.y;
-          double intersectionArea = interWidth * interHeight;
-          double buildingArea = buildingRect.width * buildingRect.height;
-          double outsideArea = buildingArea - intersectionArea;
+        // We just get a percentage of the penalty value based on how much
+        // of the area of the building is outside of the bounding area.
+        float boundingWidth = boundingArea.vertices[1].x
+                              - boundingArea.vertices[0].x;
+        float boundingHeight = boundingArea.vertices[2].y
+                               - boundingArea.vertices[0].y;
+        auto boundingRect = cx::Rectangle{
+          boundingArea.vertices[0].x,
+          boundingArea.vertices[0].y,
+          boundingWidth,
+          boundingHeight,
+          0.f
+        };
+        auto intersectingPoly = cx::getIntersectingRectAABB(buildingRect,
+                                                            boundingRect);
+        cx::Point& interMinPt = intersectingPoly.vertices[0];
+        cx::Point& interMaxPt = intersectingPoly.vertices[2];
+        float interWidth = interMaxPt.x - interMinPt.x;
+        float interHeight = interMaxPt.y - interMinPt.y;
+        double intersectionArea = interWidth * interHeight;
+        double buildingArea = buildingRect.width * buildingRect.height;
+        double outsideArea = buildingArea - intersectionArea;
 
-          fitness += (penaltyVal * (outsideArea / buildingArea)) + penaltyVal;
-        } else {
-          // The building is completely outside. So, we give it the entire value
-          // of the penalty value for being outside of the bounding area.
-          fitness *= 2.0;
-        }
+        fitness += (penaltyVal * (outsideArea / buildingArea)) + penaltyVal;
       }
     }
 

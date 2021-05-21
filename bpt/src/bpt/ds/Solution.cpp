@@ -54,7 +54,7 @@ namespace bpt
   {
     this->setBuildingXPos(
       buildingIndex,
-      cx::clamp(minX, this->getBuildingXPos(buildingIndex) + xDelta, maxX));
+      cx::clamp(this->getBuildingXPos(buildingIndex) + xDelta, minX, maxX));
   }
 
   void Solution::moveBuildingYPos(int32_t buildingIndex,
@@ -64,7 +64,7 @@ namespace bpt
   {
     this->setBuildingYPos(
       buildingIndex,
-      cx::clamp(minY, this->getBuildingYPos(buildingIndex) + yDelta, maxY));
+      cx::clamp(this->getBuildingYPos(buildingIndex) + yDelta, minY, maxY));
   }
 
   void Solution::moveBuildingXPos(int32_t buildingIndex, float xDelta)

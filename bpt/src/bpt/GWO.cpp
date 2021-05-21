@@ -76,18 +76,16 @@ namespace bpt
       landslideProneAreaPenalty,
       buildingDistanceWeight);
 
-    double worstFitness = eastl::max_element(
+    std::sort(
       wolves.begin(),
       wolves.end(),
-      [](const Solution& solutionA, const Solution& solutionB) -> bool {
+      [](Solution& solutionA, Solution& solutionB) {
         return solutionA.getFitness() < solutionB.getFitness();
-      })->getFitness();
-    double bestFitness = eastl::min_element(
-      wolves.begin(),
-      wolves.end(),
-      [](const Solution& solutionA, const Solution& solutionB) -> bool {
-        return solutionA.getFitness() < solutionB.getFitness();
-      })->getFitness();
+      }
+    );
+
+    double worstFitness = wolves.back().getFitness();
+    double bestFitness = wolves[0].getFitness();
 
     double averageFitness = 0.0;
     for (Solution& wolf : wolves) {
@@ -100,19 +98,20 @@ namespace bpt
     averageFitnesses.push_back(averageFitness);
     worstFitnesses.push_back(worstFitness);
 
-    std::sort(
-      wolves.begin(),
-      wolves.end(),
-      [](Solution& solutionA, Solution& solutionB) {
-        return solutionA.getFitness() < solutionB.getFitness();
-      }
-    );
-
     solutions.push_back(wolves);
 
     float alpha = 2.f;
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
+
+      if (i < 100) {
+        // We apply the swapping method to the first 100 iterations.
+        std::cout << "Applying the swapping method.\n";
+
+        for (Solution& wolf : wolves) {
+          applySwappingMethod(wolf, boundingArea, inputBuildings);
+        }
+      }
 
       // Update individuals based on a custom search operator.
       this->updateWolves(
@@ -135,8 +134,22 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
-      // Reduce values of alpha vector.
-      alpha = cx::clamp(alpha - alphaDecayRate, 0.f, 1.25f);
+      // Perform adaptive mutation.
+      this->mutateWolves(wolves, wolfMutationRates, boundingArea,
+                         inputBuildings, keepInfeasibleSolutions);
+
+      // Evaluate individual fitness and mutation rate.
+      this->computeWolfValues(
+        wolves,
+        wolfMutationRates,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight);
 
       std::sort(
         wolves.begin(),
@@ -146,14 +159,7 @@ namespace bpt
         }
       );
 
-      Solution& currGenBest = *std::min_element(
-        wolves.begin(),
-        wolves.end(),
-        [](const Solution& a, const Solution& b) {
-          return a.getFitness() < b.getFitness();
-        }
-      );
-
+      Solution& currGenBest = wolves[0];
       applyLocalSearch1(currGenBest,
                         boundingArea,
                         inputBuildings,
@@ -177,20 +183,10 @@ namespace bpt
       );
 
       // Compute statistical data.
-      double worstFitness = eastl::max_element(
-        wolves.begin(),
-        wolves.end(),
-        [](const Solution& solutionA, const Solution& solutionB) -> bool {
-          return solutionA.getFitness() < solutionB.getFitness();
-        })->getFitness();
-      double bestFitness = eastl::min_element(
-        wolves.begin(),
-        wolves.end(),
-        [](const Solution& solutionA, const Solution& solutionB) -> bool {
-          return solutionA.getFitness() < solutionB.getFitness();
-        })->getFitness();
+      worstFitness = wolves.back().getFitness();
+      bestFitness = wolves[0].getFitness();
 
-      double averageFitness = 0.0;
+      averageFitness = 0.0;
       for (Solution& wolf : wolves) {
         averageFitness += wolf.getFitness();
       }
@@ -200,14 +196,6 @@ namespace bpt
       bestFitnesses.push_back(bestFitness);
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
-
-      std::sort(
-        wolves.begin(),
-        wolves.end(),
-        [](Solution& solutionA, Solution& solutionB) {
-          return solutionA.getFitness() < solutionB.getFitness();
-        }
-      );
 
       solutions.push_back(wolves);
     }
@@ -285,122 +273,20 @@ namespace bpt
     // First element is the alpha wolf.
     // Second element is the beta wolf.
     // Third element is the delta wolf.
-    eastl::array<Solution, 3> bestWolves{ wolves[0], wolves[1], wolves[2] };
+    eastl::vector<Solution> bestWolves{ wolves[0], wolves[1], wolves[2] };
 
-    constexpr int32_t numLeadingWolves = 3;
-    eastl::array<float, numLeadingWolves> A{ 0.f, 0.f, 0.f };
-    eastl::array<float, numLeadingWolves> C{ 0.f, 0.f, 0.f };
-    for (int32_t i = 0; i < numLeadingWolves; i++) {
-      A[i] = (2 * alpha * cx::getRandomRealUniformly(0.f, 1.f)) - alpha;
-      C[i] = 2 * cx::getRandomRealUniformly(0.f, 1.f);
+    // Assume keeping the best 3 wolves.
+    constexpr int32_t numElites = 3;
+    for (int32_t i = numElites; i < wolves.size(); i++) {
+      Solution partner = cx::selectItemRandomly(bestWolves);
+      wolves[i] = performUniformCrossover(wolves[i],
+                                          partner,
+                                          boundingArea,
+                                          inputBuildings,
+                                          true)[0];
     }
 
-    float minX = boundingArea.vertices[0].x;
-    float minY = boundingArea.vertices[0].y;
-    float maxX = boundingArea.vertices[2].x;
-    float maxY = boundingArea.vertices[2].y;
-    float width = maxX - minX;
-    float height = maxY - minY;
-
-    cx::VecN alphaSolVecN = convertSolutionToVecN(
-      translateSolutionOrigin(bestWolves[0], -minX, -minY));
-    cx::VecN betaSolVecN = convertSolutionToVecN(
-      translateSolutionOrigin(bestWolves[1], -minX, -minY));
-    cx::VecN deltaSolVecN = convertSolutionToVecN(
-      translateSolutionOrigin(bestWolves[2], -minX, -minY));
-
-    std::cout << "#############\n";
-
-    std::cout << "Bounding Area Dimensions:\t"
-              << "W: " << (maxX - minX) << "\t"
-              << "H: " << (maxY - minY) << "\n";
-
-    std::cout << "Alpha\t|";
-    printVecN(alphaSolVecN);
-
-    std::cout << "Beta\t|";
-    printVecN(betaSolVecN);
-
-    std::cout << "Delta\t|";
-    printVecN(deltaSolVecN);
-
-    std::cout << "alpha\t| " << alpha << "\n";
-    std::cout << "A\t| " << A[0] << "\t" << A[1] << "\t" << A[2] << "\n";
-    std::cout << "C\t| " << C[0] << "\t" << C[1] << "\t" << C[2] << "\n";
-    std::cout << "min\t| (" << minX << ", " << minY << ")\n";
-    std::cout << "max\t| (" << maxX << ", " << maxY << ")\n";
-
-    std::cout << "#############\n";
-
     for (Solution& wolf : wolves) {
-      cx::VecN X = convertSolutionToVecN(
-        translateSolutionOrigin(wolf, -minX, -minY));
-
-      cx::VecN alphaD = cx::vecNAbs((C[0] * alphaSolVecN) - X);
-      cx::VecN betaD = cx::vecNAbs((C[1] * betaSolVecN) - X);
-      cx::VecN deltaD = cx::vecNAbs((C[2] * deltaSolVecN) - X);
-
-      cx::VecN X1 = wrapAroundSolutionVecN(
-        alphaSolVecN - A[0] * alphaD, 0.f, 0.f, width, height);
-      cx::VecN X2 = wrapAroundSolutionVecN(
-        betaSolVecN - A[1] * betaD, 0.f, 0.f, width, height);
-      cx::VecN X3 = wrapAroundSolutionVecN(
-        deltaSolVecN - A[2] * deltaD, 0.f, 0.f, width, height);
-
-      // Translate buildings back to world origin.
-      wolf = translateSolutionOrigin(
-        convertVecNToSolution((X1 + X2 + X3) / 3), minX, minY);
-
-      std::cout << "X\t| ";
-      printVecN(X);
-
-      std::cout << "aD\t| ";
-      printVecN(alphaD);
-
-      std::cout << "bD\t| ";
-      printVecN(betaD);
-
-      std::cout << "dD\t| ";
-      printVecN(deltaD);
-
-      std::cout << "cAAD| ";
-      printVecN(A[0] * alphaD);
-
-      std::cout << "cABD| ";
-      printVecN(A[1] * betaD);
-
-      std::cout << "cADD| ";
-      printVecN(A[2] * deltaD);
-
-      std::cout << "X1\t| ";
-      printVecN(X1);
-
-      std::cout << "Xn1\t| ";
-      printVecN(alphaSolVecN - A[0] * alphaD);
-
-      std::cout << "X2\t| ";
-      printVecN(X2);
-
-      std::cout << "Xn2\t| ";
-      printVecN(betaSolVecN - A[1] * betaD);
-
-      std::cout << "X3\t| ";
-      printVecN(X3);
-
-      std::cout << "Xn3\t| ";
-      printVecN(deltaSolVecN - A[2] * deltaD);
-
-      std::cout << "w\t| ";
-      printVecN((X1 + X2 + X3) / 3);
-
-      std::cout << "------------------\n";
-
-      // Do a crossover for the building angles, since they get wrongly modified
-      // by the mixing of the alpha, beta, and delta wolves.
-      for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
-        int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
-        wolf.setBuildingAngle(i, bestWolves[partnerIndex].getBuildingAngle(i));
-      }
     }
   }
 
