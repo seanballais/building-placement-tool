@@ -4,6 +4,41 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/EAAssert" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EABase/test/packages/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAAssert/test/packages/EAThread" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAMain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EASTL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAStdC" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EATest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EABase/test/packages/EAThread" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EAMain" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EASTL" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libs/EAAssert/test/packages/EAStdC" vcs="Git" />
