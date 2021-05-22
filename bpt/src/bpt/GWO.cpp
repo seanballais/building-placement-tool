@@ -104,15 +104,6 @@ namespace bpt
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
 
-      if (i < 100) {
-        // We apply the swapping method to the first 100 iterations.
-        std::cout << "Applying the swapping method.\n";
-
-        for (Solution& wolf : wolves) {
-          applySwappingMethod(wolf, boundingArea, inputBuildings);
-        }
-      }
-
       // Update individuals based on a custom search operator.
       this->updateWolves(
         wolves,
@@ -134,46 +125,6 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
-      // Perform adaptive mutation.
-      this->mutateWolves(wolves, wolfMutationRates, boundingArea,
-                         inputBuildings, keepInfeasibleSolutions);
-
-      // Evaluate individual fitness and mutation rate.
-      this->computeWolfValues(
-        wolves,
-        wolfMutationRates,
-        inputBuildings,
-        boundingArea,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty,
-        buildingDistanceWeight);
-
-      std::sort(
-        wolves.begin(),
-        wolves.end(),
-        [](Solution& solutionA, Solution& solutionB) {
-          return solutionA.getFitness() < solutionB.getFitness();
-        }
-      );
-
-      Solution& currGenBest = wolves[0];
-      applyLocalSearch1(currGenBest,
-                        boundingArea,
-                        inputBuildings,
-                        flowRates,
-                        buildingDistanceWeight);
-
-      if (i >= numIterations - 50) {
-        applyLocalSearch2(currGenBest,
-                          boundingArea,
-                          inputBuildings,
-                          flowRates,
-                          buildingDistanceWeight);
-      }
-
       std::sort(
         wolves.begin(),
         wolves.end(),
@@ -191,13 +142,15 @@ namespace bpt
         averageFitness += wolf.getFitness();
       }
 
-      averageFitness /= wolves.size();
+      averageFitness /= static_cast<float>(wolves.size());
 
       bestFitnesses.push_back(bestFitness);
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
 
       solutions.push_back(wolves);
+
+      alpha = 2.f - (2.f * (static_cast<float>(i) / numIterations));
     }
 
     double elapsedTime = this->runTimer.getElapsedTime();
@@ -269,24 +222,57 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
   {
-    // Get best three wolves.
-    // First element is the alpha wolf.
-    // Second element is the beta wolf.
-    // Third element is the delta wolf.
-    eastl::vector<Solution> bestWolves{ wolves[0], wolves[1], wolves[2] };
+    eastl::array<Solution, 3> leadingWolves{ wolves[0], wolves[1], wolves[2] };
 
-    // Assume keeping the best 3 wolves.
-    constexpr int32_t numElites = 3;
-    for (int32_t i = numElites; i < wolves.size(); i++) {
-      Solution partner = cx::selectItemRandomly(bestWolves);
-      wolves[i] = performUniformCrossover(wolves[i],
-                                          partner,
-                                          boundingArea,
-                                          inputBuildings,
-                                          true)[0];
-    }
+    cx::VecN alphaVecN = convertSolutionToVecN(leadingWolves[0]);
+    cx::VecN betaVecN = convertSolutionToVecN(leadingWolves[1]);
+    cx::VecN deltaVecN = convertSolutionToVecN(leadingWolves[2]);
+
+    // Coefficient values of the leading wolves.
+    constexpr int32_t numLeaders = 3;
+    cx::VecN defVecN(inputBuildings.size() * 3, 0.f);
+    eastl::array<cx::VecN, numLeaders> ALeaders{ defVecN, defVecN, defVecN };
+    eastl::array<cx::VecN, numLeaders> CLeaders{ defVecN, defVecN, defVecN };
+    eastl::array<cx::VecN, numLeaders> r1Leaders{ defVecN, defVecN, defVecN };
+    eastl::array<cx::VecN, numLeaders> r2Leaders{ defVecN, defVecN, defVecN };
 
     for (Solution& wolf : wolves) {
+      for (int32_t n = 0; n < numLeaders; n++) {
+        r1Leaders[n] = this->createRandomVector(defVecN.size());
+        r2Leaders[n] = this->createRandomVector(defVecN.size());
+        ALeaders[n] = this->createACoefficientVector(defVecN.size(),
+                                                     r1Leaders[n],
+                                                     alpha);
+        CLeaders[n] = this->createCCoefficientVector(defVecN.size(),
+                                                     r2Leaders[n]);
+      }
+
+      cx::VecN r1Wolf = this->createRandomVector(defVecN.size());
+      cx::VecN r2Wolf = this->createRandomVector(defVecN.size());
+      cx::VecN AWolf = this->createACoefficientVector(defVecN.size(),
+                                                      r1Wolf,
+                                                      alpha);
+      cx::VecN CWolf = this->createCCoefficientVector(defVecN.size(), r2Wolf);
+
+      cx::VecN wolfSol = convertSolutionToVecN(wolf);
+
+      auto Da = cx::vecNAbs(cx::pairwiseMult(CLeaders[0], alphaVecN)) - wolfSol;
+      auto Db = cx::vecNAbs(cx::pairwiseMult(CLeaders[1], betaVecN)) - wolfSol;
+      auto Dd = cx::vecNAbs(cx::pairwiseMult(CLeaders[2], deltaVecN)) - wolfSol;
+
+      auto X1 = alphaVecN - cx::pairwiseMult(ALeaders[0], Da);
+      auto X2 = betaVecN - cx::pairwiseMult(ALeaders[1], Db);
+      auto X3 = deltaVecN - cx::pairwiseMult(ALeaders[2], Dd);
+
+      wolf = convertVecNToSolution((X1 + X2 + X3) / 3.f);
+
+      // Do a crossover for the building angles, since they get wrongly modified
+      // by the mixing of the alpha, beta, and delta wolves.
+      for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
+        int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
+        Solution partnerWolf = leadingWolves[partnerIndex];
+        wolf.setBuildingAngle(i, partnerWolf.getBuildingAngle(i));
+      }
     }
   }
 
@@ -370,5 +356,28 @@ namespace bpt
     }
 
     return randomVecN;
+  }
+
+  cx::VecN GWO::createACoefficientVector(const int32_t vectorSize,
+                                         const cx::VecN randomVector1,
+                                         const float alpha)
+  {
+    cx::VecN aCoefficient{vectorSize};
+    for (int32_t i = 0; i < vectorSize; i++) {
+      aCoefficient[i] = (2 * alpha * randomVector1[i]) - alpha;
+    }
+
+    return aCoefficient;
+  }
+
+  cx::VecN GWO::createCCoefficientVector(const int32_t vectorSize,
+                                         const cx::VecN randomVector2)
+  {
+    cx::VecN cCoefficient{vectorSize};
+    for (int32_t i = 0; i < vectorSize; i++) {
+      cCoefficient[i] = 2 * randomVector2[i];
+    }
+
+    return cCoefficient;
   }
 }

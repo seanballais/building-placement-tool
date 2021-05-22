@@ -12,8 +12,6 @@ namespace corex::core
   public:
     explicit VecN(int32_t size, float initialValue = 0.f);
     explicit VecN(eastl::vector<float> elements);
-    VecN(const VecN& other) = default;
-    VecN(VecN&& other) = default;
 
     size_t size() const;
 
@@ -28,7 +26,7 @@ namespace corex::core
     eastl::vector<float>::const_iterator end() const;
   private:
     eastl::vector<float> elements;
-    const int32_t maxNumElements;
+    int32_t maxNumElements;
   };
 
   VecN operator+(const VecN& p, const VecN& q);

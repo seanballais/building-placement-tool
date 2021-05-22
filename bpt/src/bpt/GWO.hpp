@@ -65,6 +65,11 @@ namespace bpt
                         const eastl::vector<InputBuilding>& inputBuildings,
                         const bool& keepInfeasibleSolutions);
     cx::VecN createRandomVector(const int32_t vectorSize);
+    cx::VecN createACoefficientVector(const int32_t vectorSize,
+                                      const cx::VecN randomVector,
+                                      const float alpha);
+    cx::VecN createCCoefficientVector(const int32_t vectorSize,
+                                      const cx::VecN randomVector);
 
     cx::Timer runTimer;
     int32_t currRunIterationNumber;
