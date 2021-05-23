@@ -109,6 +109,7 @@ namespace bpt
     eastl::vector<entt::entity> landslideProneAreaEntities;
     eastl::vector<InputBuilding> inputBuildings;
     eastl::vector<entt::entity> buildingEntities;
+    eastl::vector<entt::entity> gwoPreyEntities;
     eastl::vector<eastl::vector<float>> flowRates;
     eastl::vector<entt::entity> buildingTextEntities;
     eastl::vector<entt::entity> floodProneAreaTextEntities;

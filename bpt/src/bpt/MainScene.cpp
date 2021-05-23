@@ -121,6 +121,7 @@ namespace bpt
     , landslideProneAreaEntities()
     , inputBuildings()
     , buildingEntities()
+    , gwoPreyEntities()
     , flowRates()
     , buildingTextEntities()
     , floodProneAreaTextEntities()
@@ -457,327 +458,65 @@ namespace bpt
       }
     }
 
-    switch (this->currentContext) {
-      case Context::NO_ACTION: {
-        if (!this->registry.valid(this->boundingAreaEntity)) {
-          this->boundingAreaEntity = this->registry.create();
-          this->registry.emplace<corex::core::Position>(
-            this->boundingAreaEntity,
-            0.f,
-            0.f,
-            3.f,
-            static_cast<int8_t>(2));
-          this->registry.emplace<corex::core::Renderable>(
-            this->boundingAreaEntity,
-            corex::core::RenderableType::PRIMITIVE_POLYGON);
-          this->registry.emplace<corex::core::RenderPolygon>(
-            this->boundingAreaEntity,
-            eastl::vector<corex::core::Point>{},
-            SDL_Color{ 64, 64, 64, 255},
-            false);
+    if (!this->registry.valid(this->boundingAreaEntity)) {
+      this->boundingAreaEntity = this->registry.create();
+      this->registry.emplace<corex::core::Position>(
+        this->boundingAreaEntity,
+        0.f,
+        0.f,
+        3.f,
+        static_cast<int8_t>(2));
+      this->registry.emplace<corex::core::Renderable>(
+        this->boundingAreaEntity,
+        corex::core::RenderableType::PRIMITIVE_POLYGON);
+      this->registry.emplace<corex::core::RenderPolygon>(
+        this->boundingAreaEntity,
+        eastl::vector<corex::core::Point>{},
+        SDL_Color{ 64, 64, 64, 255},
+        false);
 
-          for (auto& triangle : this->boundingAreaTriangles) {
-            entt::entity triangleEntity = this->registry.create();
-            this->registry.emplace<cx::Position>(triangleEntity,
-                                                 0.f,
-                                                 0.f,
-                                                 2.f,
-                                                 static_cast<int8_t>(2));
-            this->registry.emplace<cx::Renderable>(
-              triangleEntity,
-              cx::RenderableType::PRIMITIVE_POLYGON);
-            this->registry.emplace<cx::RenderPolygon>(
-              triangleEntity,
-              eastl::vector<corex::core::Point>{},
-              SDL_Color{ 255, 0, 0, 255 },
-              false);
+      for (auto& triangle : this->boundingAreaTriangles) {
+        entt::entity triangleEntity = this->registry.create();
+        this->registry.emplace<cx::Position>(triangleEntity,
+                                             0.f,
+                                             0.f,
+                                             2.f,
+                                             static_cast<int8_t>(2));
+        this->registry.emplace<cx::Renderable>(
+          triangleEntity,
+          cx::RenderableType::PRIMITIVE_POLYGON);
+        this->registry.emplace<cx::RenderPolygon>(
+          triangleEntity,
+          eastl::vector<corex::core::Point>{},
+          SDL_Color{ 255, 0, 0, 255 },
+          false);
 
-            this->boundingAreaTriangleEntities.push_back(triangleEntity);
+        this->boundingAreaTriangleEntities.push_back(triangleEntity);
+      }
+    } else {
+      this->registry.patch<corex::core::RenderPolygon>(
+        this->boundingAreaEntity,
+        [this](corex::core::RenderPolygon& poly) {
+          poly.vertices = this->boundingArea.vertices;
+        }
+      );
+
+      for (int32_t i = 0; i < this->boundingAreaTriangles.size(); i++) {
+        eastl::vector<cx::Point> triangleVertices;
+        for (auto& v : this->boundingAreaTriangles[i].vertices) {
+          triangleVertices.push_back(v);
+        }
+
+        this->registry.patch<corex::core::RenderPolygon>(
+          this->boundingAreaTriangleEntities[i],
+          [&triangleVertices](corex::core::RenderPolygon& poly) {
+            poly.vertices = triangleVertices;
           }
-        } else {
-          this->registry.patch<corex::core::RenderPolygon>(
-            this->boundingAreaEntity,
-            [this](corex::core::RenderPolygon& poly) {
-              poly.vertices = this->boundingArea.vertices;
-            }
-          );
-
-          for (int32_t i = 0; i < this->boundingAreaTriangles.size(); i++) {
-            eastl::vector<cx::Point> triangleVertices;
-            for (auto& v : this->boundingAreaTriangles[i].vertices) {
-              triangleVertices.push_back(v);
-            }
-
-            this->registry.patch<corex::core::RenderPolygon>(
-              this->boundingAreaTriangleEntities[i],
-              [&triangleVertices](corex::core::RenderPolygon& poly) {
-                poly.vertices = triangleVertices;
-              }
-            );
-          }
-        }
-
-        // Draw hazard areas.
-        // Draw flood-prone areas.
-        for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
-          if (!this->registry.valid(this->floodProneAreaEntities[i])) {
-            this->floodProneAreaEntities[i] = this->registry.create();
-            this->registry.emplace<corex::core::Position>(
-              this->floodProneAreaEntities[i],
-              0.f,
-              0.f,
-              1.f,
-              static_cast<int8_t>(0));
-            this->registry.emplace<corex::core::Renderable>(
-              this->floodProneAreaEntities[i],
-              corex::core::RenderableType::PRIMITIVE_POLYGON);
-            this->registry.emplace<corex::core::RenderPolygon>(
-              this->floodProneAreaEntities[i],
-              eastl::vector<corex::core::Point>{},
-              SDL_Color{ 0, 115, 153, 255 },
-              true);
-          } else {
-            this->registry.patch<corex::core::RenderPolygon>(
-              this->floodProneAreaEntities[i],
-              [this, &i](corex::core::RenderPolygon& poly) {
-                poly.vertices = this->floodProneAreas[i].vertices;
-              }
-            );
-          }
-        }
-
-        for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
-          if (!this->registry.valid(this->floodProneAreaTextEntities[i])) {
-            // Add the flood-prone area number.
-            this->floodProneAreaTextEntities[i] = this->registry.create();
-            auto polygonCentroid = corex::core::getPolygonCentroid(
-              this->floodProneAreas[i]);
-            this->registry.emplace<corex::core::Position>(
-              this->floodProneAreaTextEntities[i],
-              polygonCentroid.x,
-              polygonCentroid.y,
-              0.f,
-              static_cast<int8_t>(10));
-            this->registry.emplace<corex::core::Renderable>(
-              this->floodProneAreaTextEntities[i],
-              corex::core::RenderableType::TEXT);
-            this->registry.emplace<corex::core::Text>(
-              this->floodProneAreaTextEntities[i],
-              eastl::to_string(i),
-              this->assetManager.getFont("liberation-sans-regular-font", 15),
-              SDL_Color{ 255, 255, 255, 255 });
-          }
-        }
-
-        // Draw landslide-prone areas.
-        for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
-          if (!this->registry.valid(this->landslideProneAreaEntities[i])) {
-            this->landslideProneAreaEntities[i] = this->registry.create();
-            this->registry.emplace<corex::core::Position>(
-              this->landslideProneAreaEntities[i],
-              0.f,
-              0.f,
-              1.f,
-              static_cast<int8_t>(0));
-            this->registry.emplace<corex::core::Renderable>(
-              this->landslideProneAreaEntities[i],
-              corex::core::RenderableType::PRIMITIVE_POLYGON);
-            this->registry.emplace<corex::core::RenderPolygon>(
-              this->landslideProneAreaEntities[i],
-              eastl::vector<corex::core::Point>{},
-              SDL_Color{ 102, 34, 0, 255 },
-              true);
-          } else {
-            this->registry.patch<corex::core::RenderPolygon>(
-              this->landslideProneAreaEntities[i],
-              [this, &i](corex::core::RenderPolygon& poly) {
-                poly.vertices = this->landslideProneAreas[i].vertices;
-              }
-            );
-          }
-        }
-
-        for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
-          if (!this->registry.valid(this->landslideProneAreaTextEntities[i])) {
-            // Add the landslide-prone area number.
-            this->landslideProneAreaTextEntities[i] = this->registry.create();
-            auto polygonCentroid = corex::core::getPolygonCentroid(
-              this->landslideProneAreas[i]);
-            this->registry.emplace<corex::core::Position>(
-              this->landslideProneAreaTextEntities[i],
-              polygonCentroid.x,
-              polygonCentroid.y,
-              0.f,
-              static_cast<int8_t>(10));
-            this->registry.emplace<corex::core::Renderable>(
-              this->landslideProneAreaTextEntities[i],
-              corex::core::RenderableType::TEXT);
-            this->registry.emplace<corex::core::Text>(
-              this->landslideProneAreaTextEntities[i],
-              eastl::to_string(i),
-              this->assetManager.getFont("liberation-sans-regular-font", 15),
-              SDL_Color{ 255, 255, 255, 255 });
-          }
-        }
-
-        if (this->registry.valid(this->wipBoundingAreaEntity)) {
-          this->registry.destroy(this->wipBoundingAreaEntity);
-        }
-
-        if (this->registry.valid(this->wipHazardAreaEntity)) {
-          this->registry.destroy(this->wipHazardAreaEntity);
-        }
-
-        if (this->registry.valid(this->closeAreaTriggerEntity)) {
-          this->registry.destroy(this->closeAreaTriggerEntity);
-        }
-      } break;
-      case Context::DRAW_AREA_BOUND: {
-        if (!this->registry.valid(this->wipBoundingAreaEntity)) {
-          this->wipBoundingAreaEntity = this->registry.create();
-          this->registry.emplace<corex::core::Position>(
-            this->wipBoundingAreaEntity,
-            0.f,
-            0.f,
-            32.f,
-            static_cast<int8_t>(1));
-          this->registry.emplace<corex::core::Renderable>(
-            this->wipBoundingAreaEntity,
-            corex::core::RenderableType::LINE_SEGMENTS);
-          this->registry.emplace<corex::core::RenderLineSegments>(
-            this->wipBoundingAreaEntity,
-            eastl::vector<corex::core::Point>{},
-            SDL_Color{64, 64, 64, 255});
-        } else {
-          this->registry.patch<corex::core::RenderLineSegments>(
-            this->wipBoundingAreaEntity,
-            [this](corex::core::RenderLineSegments& segments) {
-              segments.vertices = this->wipBoundingArea.vertices;
-            }
-          );
-        }
-
-        if (!this->registry.valid(this->closeAreaTriggerEntity)) {
-          this->closeAreaTriggerEntity = this->registry.create();
-          this->registry.emplace<corex::core::Position>(
-            this->closeAreaTriggerEntity,
-            0.f,
-            0.f,
-            32.f,
-            static_cast<int8_t>(1));
-          this->registry.emplace<corex::core::Renderable>(
-            this->closeAreaTriggerEntity,
-            corex::core::RenderableType::PRIMITIVE_CIRCLE);
-          this->registry.emplace<corex::core::RenderCircle>(
-            this->closeAreaTriggerEntity,
-            this->closeAreaTriggerCircle.radius,
-            SDL_Color{64, 64, 64, 255},
-            true);
-        } else {
-          this->registry.patch<corex::core::Position>(
-            this->closeAreaTriggerEntity,
-            [this](corex::core::Position& pos) {
-              pos.x = this->closeAreaTriggerCircle.position.x;
-              pos.y = this->closeAreaTriggerCircle.position.y;
-            }
-          );
-          this->registry.patch<corex::core::RenderCircle>(
-            this->closeAreaTriggerEntity,
-            [this](corex::core::RenderCircle& circle) {
-              circle.radius = this->closeAreaTriggerCircle.radius;
-            }
-          );
-        }
-
-        if (this->registry.valid(this->boundingAreaEntity)) {
-          this->boundingArea.vertices.clear();
-          this->boundingAreaTriangles.clear();
-
-          for (auto& e : this->boundingAreaTriangleEntities) {
-            this->registry.destroy(e);
-          }
-
-          this->boundingAreaTriangleEntities.clear();
-
-          this->registry.destroy(this->boundingAreaEntity);
-        }
-      } break;
-      case Context::DRAW_FLOOD_PRONE_AREA:
-      case Context::DRAW_LANDSLIDE_PRONE_AREA: {
-        SDL_Color wipHazardAreaColour;
-        switch (this->currentContext) {
-          case Context::DRAW_FLOOD_PRONE_AREA:
-            wipHazardAreaColour = SDL_Color{ 0, 115, 153, 255 };
-            break;
-          case Context::DRAW_LANDSLIDE_PRONE_AREA:
-            wipHazardAreaColour = SDL_Color{ 102, 32, 0, 255};
-            break;
-          default:
-            break;
-        }
-
-        if (!this->registry.valid(this->wipHazardAreaEntity)) {
-          this->wipHazardAreaEntity = this->registry.create();
-          this->registry.emplace<corex::core::Position>(
-            this->wipHazardAreaEntity,
-            0.f,
-            0.f,
-            32.f,
-            static_cast<int8_t>(-1));
-          this->registry.emplace<corex::core::Renderable>(
-            this->wipHazardAreaEntity,
-            corex::core::RenderableType::LINE_SEGMENTS);
-          this->registry.emplace<corex::core::RenderLineSegments>(
-            this->wipHazardAreaEntity,
-            eastl::vector<corex::core::Point>{},
-            wipHazardAreaColour);
-        } else {
-          this->registry.patch<corex::core::RenderLineSegments>(
-            this->wipHazardAreaEntity,
-            [this](corex::core::RenderLineSegments& segments) {
-              segments.vertices = this->wipHazardArea.vertices;
-            }
-          );
-        }
-
-        if (!this->registry.valid(this->closeAreaTriggerEntity)) {
-          this->closeAreaTriggerEntity = this->registry.create();
-          this->registry.emplace<corex::core::Position>(
-            this->closeAreaTriggerEntity,
-            0.f,
-            0.f,
-            32.f,
-            static_cast<int8_t>(-1));
-          this->registry.emplace<corex::core::Renderable>(
-            this->closeAreaTriggerEntity,
-            corex::core::RenderableType::PRIMITIVE_CIRCLE);
-          this->registry.emplace<corex::core::RenderCircle>(
-            this->closeAreaTriggerEntity,
-            this->closeAreaTriggerCircle.radius,
-            wipHazardAreaColour,
-            true);
-        } else {
-          this->registry.patch<corex::core::Position>(
-            this->closeAreaTriggerEntity,
-            [this](corex::core::Position& pos) {
-              pos.x = this->closeAreaTriggerCircle.position.x;
-              pos.y = this->closeAreaTriggerCircle.position.y;
-            }
-          );
-          this->registry.patch<corex::core::RenderCircle>(
-            this->closeAreaTriggerEntity,
-            [this](corex::core::RenderCircle& circle) {
-              circle.radius = this->closeAreaTriggerCircle.radius;
-            }
-          );
-        }
-      } break;
-      default:
-        break;
+        );
+      }
     }
 
     this->buildConstructBoundingAreaWindow();
-    this->buildWarningWindow();
     this->buildInputBuildingsWindow();
     this->buildFlowRateWindow();
     this->buildAlgorithmControlsWindow();
@@ -916,226 +655,6 @@ namespace bpt
 
     this->settings.setVariable("boundingAreaLength", areaLength);
     this->settings.setVariable("boundingAreaHeight", areaHeight);
-  }
-
-  void MainScene::buildHazardsWindow()
-  {
-    static int32_t removedFloodProneAreaIndex;
-    static int32_t removedLandslideProneAreaIndex;
-    removedFloodProneAreaIndex = -1;
-    removedLandslideProneAreaIndex = -1;
-
-    ImGui::Begin("Hazards");
-
-    switch (this->currentContext) {
-      case Context::NO_ACTION:
-        if (ImGui::Button("Add Flood-Prone Area")) {
-          this->currentContext = Context::DRAW_FLOOD_PRONE_AREA;
-
-          // Just doing this to make sure we don't get unneeded vertices.
-          this->wipHazardArea.vertices.clear();
-          this->wipHazardArea.vertices.push_back(corex::core::Point{});
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Add Landslide-Prone Area")) {
-          this->currentContext = Context::DRAW_LANDSLIDE_PRONE_AREA;
-
-          // Just doing this to make sure we don't get unneeded vertices.
-          this->wipHazardArea.vertices.clear();
-          this->wipHazardArea.vertices.push_back(corex::core::Point{});
-        }
-
-        break;
-      case Context::DRAW_FLOOD_PRONE_AREA:
-        ImGui::Text("Press RMB to cancel drawing a flood-prone area.");
-        break;
-      case Context::DRAW_LANDSLIDE_PRONE_AREA:
-        ImGui::Text("Press RMB to cancel drawing a landslide-prone area.");
-        break;
-      case Context::DRAW_AREA_BOUND:
-        ImGui::Text("Finish drawing the area bound first.");
-        break;
-      default:
-        break;
-    }
-
-    ImGui::Separator();
-
-    ImGui::BeginChild("Hazard Areas List");
-    if (ImGui::CollapsingHeader("Flood-Prone Areas")) {
-      for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
-        corex::core::NPolygon& area = this->floodProneAreas[i];
-        char areaText[23];
-        char removeAreaBtnText[21];
-
-        sprintf(areaText, "Flood-Prone Area #%d", i);
-        sprintf(removeAreaBtnText, "Remove Area #%d##0", i);
-        if (ImGui::TreeNode(areaText)) {
-          for (corex::core::Point& pt : area.vertices) {
-            ImGui::Text("%f, %f", pt.x, pt.y);
-          }
-
-          ImGui::TreePop();
-        }
-
-        if (ImGui::Button(removeAreaBtnText)) {
-          removedFloodProneAreaIndex = i;
-        }
-      }
-
-      if (this->currentContext == Context::DRAW_FLOOD_PRONE_AREA) {
-        ImGui::Separator();
-
-        ImGui::Text("New Area Vertices");
-        for (corex::core::Point& pt : this->wipHazardArea.vertices) {
-          ImGui::Text("%f, %f", pt.x, pt.y);
-        }
-      }
-    }
-
-    if (ImGui::CollapsingHeader("Landslide-Prone Areas")) {
-      for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
-        corex::core::NPolygon& area = this->landslideProneAreas[i];
-        char areaText[27];
-        char removeAreaBtnText[21];
-
-        sprintf(areaText, "Landslide-Prone Area #%d", i);
-        sprintf(removeAreaBtnText, "Remove Area #%d##1", i);
-        if (ImGui::TreeNode(areaText)) {
-          for (corex::core::Point& pt : area.vertices) {
-            ImGui::Text("%f, %f", pt.x, pt.y);
-          }
-
-          ImGui::TreePop();
-        }
-
-        if (ImGui::Button(removeAreaBtnText)) {
-          removedLandslideProneAreaIndex = i;
-        }
-      }
-
-      if (this->currentContext == Context::DRAW_LANDSLIDE_PRONE_AREA) {
-        ImGui::Separator();
-
-        ImGui::Text("New Area Vertices");
-        for (corex::core::Point& pt : this->wipHazardArea.vertices) {
-          ImGui::Text("%f, %f", pt.x, pt.y);
-        }
-      }
-    }
-    ImGui::EndChild();
-
-    ImGui::End();
-
-    if (removedFloodProneAreaIndex != -1) {
-      this->registry.destroy(
-        this->floodProneAreaEntities[removedFloodProneAreaIndex]);
-      this->registry.destroy(
-        this->floodProneAreaTextEntities[removedFloodProneAreaIndex]);
-      this->floodProneAreas.erase(
-        this->floodProneAreas.begin() + removedFloodProneAreaIndex);
-      this->floodProneAreaEntities.erase(
-        this->floodProneAreaEntities.begin() + removedFloodProneAreaIndex);
-      this->floodProneAreaTextEntities.erase(
-        this->floodProneAreaTextEntities.begin() + removedFloodProneAreaIndex);
-
-      // Update the area IDs.
-      for (int32_t i = 0; i < this->floodProneAreas.size(); i++) {
-        if (this->registry.valid(this->floodProneAreaTextEntities[i])) {
-          this->registry.patch<corex::core::Text>(
-            this->floodProneAreaTextEntities[i],
-            [&i](corex::core::Text& text) {
-              text.setText(eastl::to_string(i));
-            }
-          );
-        }
-      }
-    }
-
-    if (removedLandslideProneAreaIndex != -1) {
-      this->registry.destroy(
-        this->landslideProneAreaEntities[removedLandslideProneAreaIndex]);
-      this->registry.destroy(
-        this->landslideProneAreaTextEntities[removedLandslideProneAreaIndex]);
-      this->landslideProneAreas.erase(
-        this->landslideProneAreas.begin() + removedLandslideProneAreaIndex);
-      this->landslideProneAreaEntities.erase(
-        this->landslideProneAreaEntities.begin()
-        + removedLandslideProneAreaIndex);
-      this->landslideProneAreaTextEntities.erase(
-        this->landslideProneAreaTextEntities.begin()
-        + removedLandslideProneAreaIndex);
-
-      // Update the area IDs.
-      for (int32_t i = 0; i < this->landslideProneAreas.size(); i++) {
-        if (this->registry.valid(this->landslideProneAreaTextEntities[i])) {
-          this->registry.patch<corex::core::Text>(
-            this->landslideProneAreaTextEntities[i],
-            [&i](corex::core::Text& text) {
-              text.setText(eastl::to_string(i));
-            }
-          );
-        }
-      }
-    }
-  }
-
-  void MainScene::buildWarningWindow()
-  {
-    if (!this->doesInputDataExist
-        || !this->doesInputBoundingAreaFieldExist
-        || !this->doesInputBuildingsExist
-        || !this->doesGASettingsFieldExist
-        || !this->doFloodProneAreasExist
-        || !this->doLandslideProneAreasExist) {
-      ImGui::Begin("Warnings");
-      ImGui::BeginChild("Warnings List");
-
-      int32_t numWarnings = 0;
-
-      if (!this->doesInputDataExist) {
-        ImGui::Text("WARNING: Input data does not exist.");
-        numWarnings++;
-      }
-
-      if (!this->doesInputBoundingAreaFieldExist) {
-        ImGui::Text("WARNING: Bounding area field in input data "
-                    "does not exist.");
-        numWarnings++;
-      }
-
-      if (!this->doesInputBuildingsExist) {
-        ImGui::Text("WARNING: Input buildings field in input data "
-                    "does not exist.");
-        numWarnings++;
-      }
-
-      if (!this->doesGASettingsFieldExist) {
-        ImGui::Text("WARNING: GA settings field in input data "
-                    "does not exist.");
-        numWarnings++;
-      }
-
-      if (!this->doFloodProneAreasExist) {
-        ImGui::Text("WARNING: Flood-prone areas data in input data "
-                    "does not exist.");
-        numWarnings++;
-      }
-
-      if (!this->doLandslideProneAreasExist) {
-        ImGui::Text("WARNING: Landslide-prone areas data in input data "
-                    "does not exist.");
-        numWarnings++;
-      }
-
-      ImGui::EndChild();
-
-      ImGui::Text("Total No. of Warnings: %d", numWarnings);
-
-      ImGui::End();
-    }
   }
 
   void MainScene::buildInputBuildingsWindow()
