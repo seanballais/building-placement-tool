@@ -47,8 +47,6 @@ namespace bpt
 
   private:
     void buildConstructBoundingAreaWindow();
-    void buildHazardsWindow();
-    void buildWarningWindow();
     void buildInputBuildingsWindow();
     void buildFlowRateWindow();
     void buildAlgorithmControlsWindow();
@@ -60,7 +58,6 @@ namespace bpt
     void handleMouseButtonEvents(const corex::core::MouseButtonEvent& e);
     void handleMouseMovementEvents(const corex::core::MouseMovementEvent& e);
     void handleMouseScrollEvents(const corex::core::MouseScrollEvent& e);
-    void saveResultsToCSVFile();
     void clearCurrentlyRenderedSolution();
 
     Context currentContext;
