@@ -1,13 +1,16 @@
 #ifndef COREX_CORE_UTILS_HPP
 #define COREX_CORE_UTILS_HPP
 
+#include <cassert>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <random>
 
+#include <EASTL/algorithm.h>
 #include <EASTL/set.h>
 #include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <nlohmann/json.hpp>
 #include <pcg_random.hpp>
 
@@ -71,6 +74,19 @@ namespace corex::core
   float metersToPixels(float meters, float ppmRatio);
   float pixelsToMeters(float pixels, float ppmRatio);
   Point screenToWorldCoordinates(const Point&& point, Camera& camera);
+
+  template <class T, class Allocator>
+  void reorderVector(eastl::vector<T, Allocator>& targetVec,
+                     eastl::vector<size_t> indices)
+  {
+    assert(targetVec.size() == indices.size());
+    for (int32_t i = 0; i < targetVec.size(); i++) {
+      while (indices[i] != i) {
+        eastl::swap(targetVec[indices[i]], targetVec[i]);
+        eastl::swap(indices[indices[i]], indices[i]);
+      }
+    }
+  }
 }
 
 namespace cx

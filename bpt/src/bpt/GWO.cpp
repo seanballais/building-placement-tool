@@ -26,7 +26,8 @@ namespace bpt
   GWO::GWO()
     : runTimer()
     , currRunIterationNumber(0)
-    , hillClimbing() {}
+    , hillClimbing()
+    , recentRunData() {}
 
   GWOResult GWO::generateSolutions(
     const eastl::vector<InputBuilding> &inputBuildings,
@@ -125,6 +126,45 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
+      // Sort GWO debugging data based on solution fitness.
+      eastl::vector<size_t> dataIndices(wolves.size(), 0);
+      std::iota(dataIndices.begin(), dataIndices.end(), 0);
+      std::sort(
+        dataIndices.begin(),
+        dataIndices.end(),
+        [&wolves](size_t a, size_t b) {
+          return wolves[a].getFitness() < wolves[b].getFitness();
+        }
+      );
+
+      cx::reorderVector(this->recentRunData.r1Alphas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.r1Betas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.r1Deltas.back(), dataIndices);
+
+      cx::reorderVector(this->recentRunData.r2Alphas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.r2Betas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.r2Deltas.back(), dataIndices);
+
+      cx::reorderVector(this->recentRunData.Aalphas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.Abetas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.Adeltas.back(), dataIndices);
+
+      cx::reorderVector(this->recentRunData.Calphas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.Cbetas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.Cdeltas.back(), dataIndices);
+
+      cx::reorderVector(this->recentRunData.Dalphas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.Dbetas.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.Ddeltas.back(), dataIndices);
+
+      cx::reorderVector(this->recentRunData.X1s.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.X2s.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.X3s.back(), dataIndices);
+
+      cx::reorderVector(this->recentRunData.oldWolves.back(), dataIndices);
+
+      // Sort the wolves now. We could do this earlier, but it looks cleaner
+      // to just put it here.
       std::sort(
         wolves.begin(),
         wolves.end(),
@@ -228,6 +268,10 @@ namespace bpt
     cx::VecN betaVecN = convertSolutionToVecN(leadingWolves[1]);
     cx::VecN deltaVecN = convertSolutionToVecN(leadingWolves[2]);
 
+    this->recentRunData.alphaWolves.push_back(alphaVecN);
+    this->recentRunData.betaWolves.push_back(betaVecN);
+    this->recentRunData.deltaWolves.push_back(deltaVecN);
+
     // Coefficient values of the leading wolves.
     constexpr int32_t numLeaders = 3;
     cx::VecN defVecN(inputBuildings.size() * 3, 0.f);
@@ -235,6 +279,33 @@ namespace bpt
     eastl::array<cx::VecN, numLeaders> CLeaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r1Leaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r2Leaders{ defVecN, defVecN, defVecN };
+
+    // For the GWO debugging data.
+    eastl::vector<cx::VecN> r1Alphas;
+    eastl::vector<cx::VecN> r1Betas;
+    eastl::vector<cx::VecN> r1Deltas;
+
+    eastl::vector<cx::VecN> r2Alphas;
+    eastl::vector<cx::VecN> r2Betas;
+    eastl::vector<cx::VecN> r2Deltas;
+
+    eastl::vector<cx::VecN> Aalphas;
+    eastl::vector<cx::VecN> Abetas;
+    eastl::vector<cx::VecN> Adeltas;
+
+    eastl::vector<cx::VecN> Calphas;
+    eastl::vector<cx::VecN> Cbetas;
+    eastl::vector<cx::VecN> Cdeltas;
+
+    eastl::vector<cx::VecN> Dalphas;
+    eastl::vector<cx::VecN> Dbetas;
+    eastl::vector<cx::VecN> Ddeltas;
+
+    eastl::vector<cx::VecN> X1s;
+    eastl::vector<cx::VecN> X2s;
+    eastl::vector<cx::VecN> X3s;
+
+    eastl::vector<cx::VecN> oldWolves;
 
     for (Solution& wolf : wolves) {
       for (int32_t n = 0; n < numLeaders; n++) {
@@ -247,12 +318,21 @@ namespace bpt
                                                      r2Leaders[n]);
       }
 
-      cx::VecN r1Wolf = this->createRandomVector(defVecN.size());
-      cx::VecN r2Wolf = this->createRandomVector(defVecN.size());
-      cx::VecN AWolf = this->createACoefficientVector(defVecN.size(),
-                                                      r1Wolf,
-                                                      alpha);
-      cx::VecN CWolf = this->createCCoefficientVector(defVecN.size(), r2Wolf);
+      r1Alphas.push_back(r1Leaders[0]);
+      r1Betas.push_back(r1Leaders[1]);
+      r1Deltas.push_back(r1Leaders[2]);
+
+      r2Alphas.push_back(r2Leaders[0]);
+      r2Betas.push_back(r2Leaders[1]);
+      r2Deltas.push_back(r2Leaders[2]);
+
+      Aalphas.push_back(ALeaders[0]);
+      Abetas.push_back(ALeaders[1]);
+      Adeltas.push_back(ALeaders[2]);
+
+      Calphas.push_back(CLeaders[0]);
+      Cbetas.push_back(CLeaders[1]);
+      Cdeltas.push_back(CLeaders[2]);
 
       cx::VecN wolfSol = convertSolutionToVecN(wolf);
 
@@ -264,16 +344,92 @@ namespace bpt
       auto X2 = betaVecN - cx::pairwiseMult(ALeaders[1], Db);
       auto X3 = deltaVecN - cx::pairwiseMult(ALeaders[2], Dd);
 
+      Dalphas.push_back(Da);
+      Dbetas.push_back(Db);
+      Ddeltas.push_back(Dd);
+
+      X1s.push_back(X1);
+      X2s.push_back(X2);
+      X3s.push_back(X3);
+
+      oldWolves.push_back(wolfSol);
+
       wolf = convertVecNToSolution((X1 + X2 + X3) / 3.f);
 
       // Do a crossover for the building angles, since they get wrongly modified
-      // by the mixing of the alpha, beta, and delta wolves.
+      // by the mixing of the alpha, beta, and delta wolves. Clamp building
+      // positions to the bounding area too.
       for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
         int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
         Solution partnerWolf = leadingWolves[partnerIndex];
         wolf.setBuildingAngle(i, partnerWolf.getBuildingAngle(i));
+
+//        // Clamping time.
+//        const cx::Point regionMinPt = boundingArea.vertices[0];
+//        const cx::Point regionMaxPt = boundingArea.vertices[2];
+//
+//        cx::Rectangle buildingRect {
+//          wolf.getBuildingXPos(i),
+//          wolf.getBuildingYPos(i),
+//          inputBuildings[i].width,
+//          inputBuildings[i].length,
+//          wolf.getBuildingAngle(i)
+//        };
+//
+//        cx::Polygon<4> poly = cx::rotateRectangle(buildingRect);
+//
+//        float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
+//        float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
+//
+//        // We need a buffer since we do not buildings to be intersecting by
+//        // exactly 1 pixel.
+//        float minBuildingXVal = (regionMinPt.x + (polyWidth / 2)) + 1;
+//        float maxBuildingXVal = (regionMaxPt.x - (polyWidth / 2)) - 1;
+//        float minBuildingYVal = (regionMinPt.y + (polyHeight / 2)) + 1;
+//        float maxBuildingYVal = (regionMaxPt.y - (polyHeight / 2)) - 1;
+//
+//        if (minBuildingXVal > maxBuildingXVal) {
+//          eastl::swap(minBuildingXVal, maxBuildingXVal);
+//        }
+//
+//        if (minBuildingYVal > maxBuildingYVal) {
+//          eastl::swap(minBuildingYVal, maxBuildingYVal);
+//        }
+//
+//        wolf.setBuildingXPos(
+//          i,
+//          cx::clamp(wolf.getBuildingXPos(i), minBuildingXVal, maxBuildingXVal));
+//        wolf.setBuildingYPos(
+//          i,
+//          cx::clamp(wolf.getBuildingYPos(i), minBuildingYVal, maxBuildingYVal));
       }
     }
+
+    this->recentRunData.r1Alphas.push_back(r1Alphas);
+    this->recentRunData.r1Betas.push_back(r1Betas);
+    this->recentRunData.r1Deltas.push_back(r1Deltas);
+
+    this->recentRunData.r2Alphas.push_back(r2Alphas);
+    this->recentRunData.r2Betas.push_back(r2Betas);
+    this->recentRunData.r2Deltas.push_back(r2Deltas);
+
+    this->recentRunData.Aalphas.push_back(Aalphas);
+    this->recentRunData.Abetas.push_back(Abetas);
+    this->recentRunData.Adeltas.push_back(Adeltas);
+
+    this->recentRunData.Calphas.push_back(Calphas);
+    this->recentRunData.Cbetas.push_back(Cbetas);
+    this->recentRunData.Cdeltas.push_back(Cdeltas);
+
+    this->recentRunData.Dalphas.push_back(Dalphas);
+    this->recentRunData.Dbetas.push_back(Dbetas);
+    this->recentRunData.Ddeltas.push_back(Ddeltas);
+
+    this->recentRunData.X1s.push_back(X1s);
+    this->recentRunData.X2s.push_back(X2s);
+    this->recentRunData.X3s.push_back(X3s);
+
+    this->recentRunData.oldWolves.push_back(oldWolves);
   }
 
   void GWO::mutateWolves(

@@ -15,6 +15,7 @@ add_executable(bpt
     SA.cpp
     ds/AlgorithmType.hpp
     ds/GAResult.cpp
+    ds/GWOData.hpp
     ds/GWOResult.cpp
     ds/Result.cpp
     ds/Solution.cpp

@@ -12,6 +12,7 @@
 #include <bpt/HC.hpp>
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
+#include <bpt/ds/GWOData.hpp>
 #include <bpt/ds/GWOResult.hpp>
 
 namespace bpt
@@ -36,6 +37,7 @@ namespace bpt
       const double timeLimit,
       const bool &keepInfeasibleSolutions);
     int32_t getCurrentRunIterationNumber();
+    const GWOData& getRecentRunData();
   private:
     void computeWolfValues(
       eastl::vector<Solution>& wolves,
@@ -74,6 +76,7 @@ namespace bpt
     cx::Timer runTimer;
     int32_t currRunIterationNumber;
     HC hillClimbing;
+    GWOData recentRunData;
   };
 }
 

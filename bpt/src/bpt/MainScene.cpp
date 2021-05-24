@@ -386,6 +386,41 @@ namespace bpt
         && !this->isAlgoThreadRunning) {
       this->clearCurrentlyRenderedSolution();
 
+      if (this->currentAlgorithm == AlgorithmType::GWO
+          && !this->solutions.empty()
+          && this->currSelectedIter > 0) {
+        auto& currGeneration = this->solutions[this->currSelectedIter];
+        cx::VecN alpha = convertSolutionToVecN(currGeneration[0]);
+        cx::VecN beta = convertSolutionToVecN(currGeneration[1]);
+        cx::VecN delta = convertSolutionToVecN(currGeneration[2]);
+        cx::VecN preyWolfSol = (alpha + beta + delta) / 3.f;
+        Solution prey = convertVecNToSolution(preyWolfSol);
+
+        for (int32_t i = 0; i < prey.getNumBuildings(); i++) {
+          entt::entity e = this->registry.create();
+          this->registry.emplace<corex::core::Position>(
+            e,
+            prey.getBuildingXPos(i),
+            prey.getBuildingYPos(i),
+            0.f,
+            static_cast<int8_t>(1));
+          this->registry.emplace<corex::core::Renderable>(
+            e,
+            corex::core::RenderableType::PRIMITIVE_RECTANGLE);
+          this->registry.emplace<corex::core::RenderRectangle>(
+            e,
+            prey.getBuildingXPos(i),
+            prey.getBuildingYPos(i),
+            this->inputBuildings[i].width,
+            this->inputBuildings[i].length,
+            this->currentSolution->getBuildingAngle(i),
+            SDL_Color{230, 83, 167, 100},
+            true);
+
+          this->gwoPreyEntities.push_back(e);
+        }
+      }
+
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
         entt::entity e = this->registry.create();
         this->registry.emplace<corex::core::Position>(
@@ -1550,7 +1585,17 @@ namespace bpt
       this->registry.destroy(e);
     }
 
+    if (this->currentAlgorithm == AlgorithmType::GWO) {
+      for (entt::entity& e : this->gwoPreyEntities) {
+        this->registry.destroy(e);
+      }
+    }
+
     this->buildingEntities.clear();
     this->buildingTextEntities.clear();
+
+    if (this->currentAlgorithm == AlgorithmType::GWO) {
+      this->gwoPreyEntities.clear();
+    }
   }
 }
