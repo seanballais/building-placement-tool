@@ -9,12 +9,12 @@ namespace bpt
 {
   struct GWOData
   {
-    bool hasValidData = false;
-
-    // Each iteration only has one alpha, one beta, and one delta.
+    // Each iteration only has one alpha, one beta, one delta, and one alpha
+    // value.
     eastl::vector<cx::VecN> alphaWolves;
     eastl::vector<cx::VecN> betaWolves;
     eastl::vector<cx::VecN> deltaWolves;
+    eastl::vector<float> alphaValues;
 
     // Each wolf in an iteration have different values for the following.
     eastl::vector<eastl::vector<cx::VecN>> r1Alphas;

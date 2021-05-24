@@ -52,6 +52,7 @@ namespace bpt
     void buildAlgorithmControlsWindow();
     void buildAlgorithmResultsWindow();
     void buildDebugSolutionWindow();
+    void buildGWODebugWindow();
     void handleGATimelinePlayback(float timeDelta);
     void handleWindowEvents(const corex::core::WindowEvent& e);
     void handleKeyboardEvents(const corex::core::KeyboardEvent& e);
@@ -59,6 +60,8 @@ namespace bpt
     void handleMouseMovementEvents(const corex::core::MouseMovementEvent& e);
     void handleMouseScrollEvents(const corex::core::MouseScrollEvent& e);
     void clearCurrentlyRenderedSolution();
+    void drawGWOSolBuildingData(const cx::VecN &data,
+                                const int32_t buildingIdx);
 
     Context currentContext;
     GA geneticAlgo;

@@ -52,7 +52,29 @@ namespace bpt
     eastl::vector<double> averageFitnesses;
     eastl::vector<double> worstFitnesses;
 
-    // NOTE: wolves and wolfMutationRates must *never* be sorted.
+    // Clear previous run data.
+    this->recentRunData.alphaWolves.clear();
+    this->recentRunData.betaWolves.clear();
+    this->recentRunData.deltaWolves.clear();
+    this->recentRunData.r1Alphas.clear();
+    this->recentRunData.r1Betas.clear();
+    this->recentRunData.r1Deltas.clear();
+    this->recentRunData.r2Alphas.clear();
+    this->recentRunData.r2Betas.clear();
+    this->recentRunData.r2Deltas.clear();
+    this->recentRunData.Aalphas.clear();
+    this->recentRunData.Abetas.clear();
+    this->recentRunData.Adeltas.clear();
+    this->recentRunData.Calphas.clear();
+    this->recentRunData.Cbetas.clear();
+    this->recentRunData.Cdeltas.clear();
+    this->recentRunData.Dalphas.clear();
+    this->recentRunData.Dbetas.clear();
+    this->recentRunData.Ddeltas.clear();
+    this->recentRunData.X1s.clear();
+    this->recentRunData.X2s.clear();
+    this->recentRunData.X3s.clear();
+    this->recentRunData.oldWolves.clear();
 
     this->runTimer.start();
 
@@ -216,6 +238,11 @@ namespace bpt
     return this->currRunIterationNumber;
   }
 
+  const GWOData& GWO::getRecentRunData()
+  {
+    return this->recentRunData;
+  }
+
   void GWO::computeWolfValues(
     eastl::vector<Solution>& wolves,
     eastl::vector<double>& wolfMutationRates,
@@ -271,6 +298,7 @@ namespace bpt
     this->recentRunData.alphaWolves.push_back(alphaVecN);
     this->recentRunData.betaWolves.push_back(betaVecN);
     this->recentRunData.deltaWolves.push_back(deltaVecN);
+    this->recentRunData.alphaValues.push_back(alpha);
 
     // Coefficient values of the leading wolves.
     constexpr int32_t numLeaders = 3;

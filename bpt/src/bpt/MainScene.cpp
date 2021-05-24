@@ -389,7 +389,7 @@ namespace bpt
       if (this->currentAlgorithm == AlgorithmType::GWO
           && !this->solutions.empty()
           && this->currSelectedIter > 0) {
-        auto& currGeneration = this->solutions[this->currSelectedIter];
+        auto &currGeneration = this->solutions[this->currSelectedIter];
         cx::VecN alpha = convertSolutionToVecN(currGeneration[0]);
         cx::VecN beta = convertSolutionToVecN(currGeneration[1]);
         cx::VecN delta = convertSolutionToVecN(currGeneration[2]);
@@ -557,6 +557,10 @@ namespace bpt
     this->buildAlgorithmControlsWindow();
     this->buildAlgorithmResultsWindow();
     this->buildDebugSolutionWindow();
+
+    if (this->currentAlgorithm == AlgorithmType::GWO) {
+      this->buildGWODebugWindow();
+    }
   }
 
   void MainScene::dispose()
@@ -1312,6 +1316,142 @@ namespace bpt
     ImGui::End();
   }
 
+  void MainScene::buildGWODebugWindow()
+  {
+    ImGui::Begin("GWO Debug Window");
+    ImGui::BeginChild("GWO Debug Window Content",
+                      ImVec2(0, 0),
+                      false,
+                      ImGuiWindowFlags_HorizontalScrollbar);
+
+    if (this->currSelectedIter > 0) {
+      // Skipping the first iteration since it's just the random initial
+      // population.
+      static int32_t buildingIdx = 0;
+
+      // Draw the alpha wolf.
+      auto& runData = this->gwoAlgo.getRecentRunData();
+      int32_t currIter = this->currSelectedIter - 1;
+      int32_t currIterSolIdx = this->currSelectedIterSolution;
+
+      ImGui::InputInt("Building Index", &buildingIdx);
+
+      ImGui::Text("a: %f", runData.alphaValues[currIter]);
+
+      ImGui::Text("Alpha:");
+      this->drawGWOSolBuildingData(runData.alphaWolves[currIter],
+                                   buildingIdx);
+
+      // Draw the beta wolf.
+      ImGui::Text("Beta:");
+      this->drawGWOSolBuildingData(runData.betaWolves[currIter],
+                                   buildingIdx);
+
+      // Draw the delta wolf.
+      ImGui::Text("Delta:");
+      this->drawGWOSolBuildingData(runData.deltaWolves[currIter],
+                                   buildingIdx);
+
+      // Draw the r1 alpha coefficient.
+      ImGui::Text("r1 (a):");
+      this->drawGWOSolBuildingData(runData.r1Alphas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the r1 beta coefficient.
+      ImGui::Text("r1 (b):");
+      this->drawGWOSolBuildingData(runData.r1Betas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the r1 delta coefficient.
+      ImGui::Text("r1 (d):");
+      this->drawGWOSolBuildingData(runData.r1Deltas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the r2 alpha coefficient.
+      ImGui::Text("r2 (a):");
+      this->drawGWOSolBuildingData(runData.r2Alphas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the r2 beta coefficient.
+      ImGui::Text("r2 (b):");
+      this->drawGWOSolBuildingData(runData.r2Betas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the r2 delta coefficient.
+      ImGui::Text("r2 (d):");
+      this->drawGWOSolBuildingData(runData.r2Deltas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the A alpha coefficient.
+      ImGui::Text("A (a):");
+      this->drawGWOSolBuildingData(runData.Aalphas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the A beta coefficient.
+      ImGui::Text("A (b):");
+      this->drawGWOSolBuildingData(runData.Abetas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the A delta coefficient.
+      ImGui::Text("A (d):");
+      this->drawGWOSolBuildingData(runData.Adeltas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the C alpha coefficient.
+      ImGui::Text("C (a):");
+      this->drawGWOSolBuildingData(runData.Calphas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the C beta coefficient.
+      ImGui::Text("C (b):");
+      this->drawGWOSolBuildingData(runData.Cbetas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the C delta coefficient.
+      ImGui::Text("C (d):");
+      this->drawGWOSolBuildingData(runData.Cdeltas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the D alpha coefficient.
+      ImGui::Text("D (a):");
+      this->drawGWOSolBuildingData(runData.Dalphas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the D beta coefficient.
+      ImGui::Text("D (b):");
+      this->drawGWOSolBuildingData(runData.Dbetas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the D delta coefficient.
+      ImGui::Text("D (d):");
+      this->drawGWOSolBuildingData(runData.Ddeltas[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the X1 coefficient.
+      ImGui::Text("X1:");
+      this->drawGWOSolBuildingData(runData.X1s[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the X2 coefficient.
+      ImGui::Text("X2:");
+      this->drawGWOSolBuildingData(runData.X2s[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the X3 coefficient.
+      ImGui::Text("X3:");
+      this->drawGWOSolBuildingData(runData.X3s[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the X3 coefficient.
+      ImGui::Text("W (old):");
+      this->drawGWOSolBuildingData(runData.oldWolves[currIter][currIterSolIdx],
+                                   buildingIdx);
+    }
+
+    ImGui::EndChild();
+    ImGui::End();
+  }
+
   void MainScene::handleGATimelinePlayback(float timeDelta)
   {
     static float timeElapsed = 0.f;
@@ -1597,5 +1737,18 @@ namespace bpt
     if (this->currentAlgorithm == AlgorithmType::GWO) {
       this->gwoPreyEntities.clear();
     }
+  }
+
+  void MainScene::drawGWOSolBuildingData(const cx::VecN& data,
+                                         const int32_t buildingIdx)
+  {
+    ImGui::PushItemWidth(ImGui::GetFontSize() * 6);
+
+    for (int32_t i = 0; i < 3; i++) {
+      ImGui::SameLine();
+      ImGui::Text("%f", data[(buildingIdx * 3) + i]);
+    }
+
+    ImGui::PopItemWidth();
   }
 }
