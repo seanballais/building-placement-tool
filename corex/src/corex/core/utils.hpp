@@ -8,6 +8,7 @@
 #include <random>
 
 #include <EASTL/algorithm.h>
+#include <EASTL/functional.h>
 #include <EASTL/set.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
@@ -77,7 +78,7 @@ namespace corex::core
 
   template <class T, class Allocator>
   void reorderVector(eastl::vector<T, Allocator>& targetVec,
-                     eastl::vector<size_t> indices)
+                     eastl::vector<int32_t> indices)
   {
     assert(targetVec.size() == indices.size());
 
@@ -87,6 +88,32 @@ namespace corex::core
         eastl::swap(indices[indices[i]], indices[i]);
       }
     }
+  }
+
+  template <class T, class Allocator, class Comparator>
+  eastl::vector<int32_t> rankVectors(eastl::vector<T, Allocator>& vec,
+                                     Comparator cmp)
+  {
+    // Based on:
+    //   https://stackoverflow.com/a/35595758/1116098
+    eastl::vector<int32_t> ranking(vec.size(), 0);
+    for (int32_t i = 0; i < vec.size(); i++) {
+      int32_t currRank = 0;
+
+      for (int32_t j = 0; j < i; j++) {
+        if (!cmp(vec[i], vec[j])) {
+          // We negate the comparator function because we want it to show the
+          // expected order of the elements.
+          currRank++;
+        } else {
+          ranking[j]++;
+        }
+      }
+
+      ranking[i] = currRank;
+    }
+
+    return ranking;
   }
 }
 

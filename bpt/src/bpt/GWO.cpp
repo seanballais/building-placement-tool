@@ -3,6 +3,7 @@
 
 #include <EASTL/algorithm.h>
 #include <EASTL/array.h>
+#include <EASTL/functional.h>
 #include <EASTL/vector.h>
 
 #include <corex/core/math_functions.hpp>
@@ -150,30 +151,11 @@ namespace bpt
         buildingDistanceWeight);
 
       // Sort GWO debugging data based on solution fitness.
-      eastl::vector<size_t> dataIndices(wolves.size(), 0);
-      std::iota(dataIndices.begin(), dataIndices.end(), 0);
-      std::sort(
-        dataIndices.begin(),
-        dataIndices.end(),
-        [&wolves](size_t a, size_t b) {
-          return wolves[a].getFitness() < wolves[b].getFitness();
-        }
-      );
-
-      std::cout << "F: ";
-      std::cout << std::fixed;
-      for (const Solution& wolf : wolves) {
-        std::cout << wolf.getFitness() << " ";
-      }
-      std::cout << "\n";
-
-      std::cout << std::scientific;
-
-      std::cout << "I: ";
-      for (const size_t& idx : dataIndices) {
-        std::cout << idx << " ";
-      }
-      std::cout << "\n";
+      // Rank wolves pre-sorting. Ranking starts at 0.
+      auto cmpFunc = [](Solution& a, Solution& b) -> bool {
+        return a.getFitness() < b.getFitness();
+      };
+      eastl::vector<int32_t> dataIndices = cx::rankVectors(wolves, cmpFunc);
 
       cx::reorderVector(this->recentRunData.r1Alphas.back(), dataIndices);
       cx::reorderVector(this->recentRunData.r1Betas.back(), dataIndices);
