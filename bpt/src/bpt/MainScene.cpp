@@ -1334,7 +1334,10 @@ namespace bpt
       int32_t currIter = this->currSelectedIter - 1;
       int32_t currIterSolIdx = this->currSelectedIterSolution;
 
-      ImGui::InputInt("Building Index", &buildingIdx);
+      if (ImGui::InputInt("Building Index", &buildingIdx)) {
+        auto numBuildings = static_cast<int32_t>(this->inputBuildings.size());
+        buildingIdx = cx::clamp(buildingIdx, 0, numBuildings - 1);
+      }
 
       ImGui::Text("a: %f", runData.alphaValues[currIter]);
 
