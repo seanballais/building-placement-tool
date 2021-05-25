@@ -558,7 +558,9 @@ namespace bpt
     this->buildAlgorithmResultsWindow();
     this->buildDebugSolutionWindow();
 
-    if (this->currentAlgorithm == AlgorithmType::GWO) {
+    if (this->currentAlgorithm == AlgorithmType::GWO
+        && !this->solutions.empty()
+        && !this->isAlgoThreadRunning) {
       this->buildGWODebugWindow();
     }
   }
@@ -1445,9 +1447,14 @@ namespace bpt
       this->drawGWOSolBuildingData(runData.X3s[currIter][currIterSolIdx],
                                    buildingIdx);
 
-      // Draw the X3 coefficient.
+      // Draw the old wolf value.
       ImGui::Text("W (old):");
       this->drawGWOSolBuildingData(runData.oldWolves[currIter][currIterSolIdx],
+                                   buildingIdx);
+
+      // Draw the new wolf value.
+      ImGui::Text("W (new):");
+      this->drawGWOSolBuildingData(runData.newWolves[currIter][currIterSolIdx],
                                    buildingIdx);
     }
 

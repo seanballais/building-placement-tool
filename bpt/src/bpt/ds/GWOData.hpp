@@ -42,6 +42,7 @@ namespace bpt
     eastl::vector<eastl::vector<cx::VecN>> X3s;
 
     eastl::vector<eastl::vector<cx::VecN>> oldWolves;
+    eastl::vector<eastl::vector<cx::VecN>> newWolves;
   };
 }
 

@@ -75,6 +75,7 @@ namespace bpt
     this->recentRunData.X2s.clear();
     this->recentRunData.X3s.clear();
     this->recentRunData.oldWolves.clear();
+    this->recentRunData.newWolves.clear();
 
     this->runTimer.start();
 
@@ -159,6 +160,21 @@ namespace bpt
         }
       );
 
+      std::cout << "F: ";
+      std::cout << std::fixed;
+      for (const Solution& wolf : wolves) {
+        std::cout << wolf.getFitness() << " ";
+      }
+      std::cout << "\n";
+
+      std::cout << std::scientific;
+
+      std::cout << "I: ";
+      for (const size_t& idx : dataIndices) {
+        std::cout << idx << " ";
+      }
+      std::cout << "\n";
+
       cx::reorderVector(this->recentRunData.r1Alphas.back(), dataIndices);
       cx::reorderVector(this->recentRunData.r1Betas.back(), dataIndices);
       cx::reorderVector(this->recentRunData.r1Deltas.back(), dataIndices);
@@ -184,6 +200,7 @@ namespace bpt
       cx::reorderVector(this->recentRunData.X3s.back(), dataIndices);
 
       cx::reorderVector(this->recentRunData.oldWolves.back(), dataIndices);
+      cx::reorderVector(this->recentRunData.newWolves.back(), dataIndices);
 
       // Sort the wolves now. We could do this earlier, but it looks cleaner
       // to just put it here.
@@ -334,6 +351,7 @@ namespace bpt
     eastl::vector<cx::VecN> X3s;
 
     eastl::vector<cx::VecN> oldWolves;
+    eastl::vector<cx::VecN> newWolves;
 
     for (Solution& wolf : wolves) {
       for (int32_t n = 0; n < numLeaders; n++) {
@@ -431,6 +449,8 @@ namespace bpt
 //          i,
 //          cx::clamp(wolf.getBuildingYPos(i), minBuildingYVal, maxBuildingYVal));
       }
+
+      newWolves.push_back(convertSolutionToVecN(wolf));
     }
 
     this->recentRunData.r1Alphas.push_back(r1Alphas);
@@ -458,6 +478,7 @@ namespace bpt
     this->recentRunData.X3s.push_back(X3s);
 
     this->recentRunData.oldWolves.push_back(oldWolves);
+    this->recentRunData.newWolves.push_back(newWolves);
   }
 
   void GWO::mutateWolves(

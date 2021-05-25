@@ -80,6 +80,7 @@ namespace corex::core
                      eastl::vector<size_t> indices)
   {
     assert(targetVec.size() == indices.size());
+
     for (int32_t i = 0; i < targetVec.size(); i++) {
       while (indices[i] != i) {
         eastl::swap(targetVec[indices[i]], targetVec[i]);
