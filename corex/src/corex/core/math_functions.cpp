@@ -488,6 +488,18 @@ namespace corex::core {
     return w;
   }
 
+  VecN translateVecN(const VecN& vec, const VecN& deltaVec)
+  {
+    assert(vec.size() == deltaVec.size());
+
+    cx::VecN newVec(vec.size());
+    for (int32_t i = 0; i < vec.size(); i++) {
+      newVec[i] = vec[i] + deltaVec[i];
+    }
+
+    return newVec;
+  }
+
   float signedDistPointToInfLine(const Point& point, const Line& line)
   {
     return setDecPlaces(dotProduct(lineNormalVector(line), (point - line.end)),

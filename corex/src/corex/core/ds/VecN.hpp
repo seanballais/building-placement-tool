@@ -2,6 +2,7 @@
 #define COREX_CORE_DS_VECN_HPP
 
 #include <cstdlib>
+#include <iostream>
 
 #include <EASTL/vector.h>
 
@@ -37,6 +38,8 @@ namespace corex::core
 
   bool operator==(const VecN& p, const VecN& q);
   bool operator!=(const VecN& p, const VecN& q);
+
+  std::ostream& operator<<(std::ostream& os, const VecN& vec);
 }
 
 namespace cx

@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 
 #include <EASTL/vector.h>
 
@@ -131,5 +132,14 @@ namespace corex::core
   bool operator!=(const VecN& p, const VecN& q)
   {
     return !(p == q);
+  }
+
+  std::ostream& operator<<(std::ostream& os, const VecN& vec)
+  {
+    for (const float& f : vec) {
+      os << f << " ";
+    }
+
+    return os;
   }
 }

@@ -90,6 +90,7 @@ namespace bpt
     bool isResultsTimelinePlaying;
     float cameraMovementSpeed;
     float timeDelta;
+    float timePerIteration;
     int32_t currSelectedIter;
     int32_t currSelectedIterSolution;
     int32_t resultsTimelinePlaybackSpeed;

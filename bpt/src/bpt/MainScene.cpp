@@ -103,6 +103,7 @@ namespace bpt
       })
     , cameraMovementSpeed(15.f)
     , timeDelta(0.f)
+    , timePerIteration(0.15f)
     , currSelectedIter(0)
     , currSelectedIterSolution(0)
     , resultsTimelinePlaybackSpeed(1)
@@ -387,14 +388,25 @@ namespace bpt
       this->clearCurrentlyRenderedSolution();
 
       if (this->currentAlgorithm == AlgorithmType::GWO
-          && !this->solutions.empty()
-          && this->currSelectedIter > 0) {
+          && !this->solutions.empty()) {
         auto &currGeneration = this->solutions[this->currSelectedIter];
+
         cx::VecN alpha = convertSolutionToVecN(currGeneration[0]);
         cx::VecN beta = convertSolutionToVecN(currGeneration[1]);
         cx::VecN delta = convertSolutionToVecN(currGeneration[2]);
         cx::VecN preyWolfSol = (alpha + beta + delta) / 3.f;
         Solution prey = convertVecNToSolution(preyWolfSol);
+
+        for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
+          int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
+          if (partnerIndex == 0) {
+            prey.setBuildingAngle(i, alpha[(i * 3) + 2]);
+          } else if (partnerIndex == 1) {
+            prey.setBuildingAngle(i, beta[(i * 3) + 2]);
+          } else {
+            prey.setBuildingAngle(i, delta[(i * 3) + 2]);
+          }
+        }
 
         for (int32_t i = 0; i < prey.getNumBuildings(); i++) {
           entt::entity e = this->registry.create();
@@ -413,7 +425,7 @@ namespace bpt
             prey.getBuildingYPos(i),
             this->inputBuildings[i].width,
             this->inputBuildings[i].length,
-            this->currentSolution->getBuildingAngle(i),
+            prey.getBuildingAngle(i),
             SDL_Color{230, 83, 167, 100},
             true);
 
@@ -1221,6 +1233,10 @@ namespace bpt
       }
     }
 
+    if (ImGui::InputFloat("Time Per Iteration", &this->timePerIteration)) {
+      this->timePerIteration = std::max(0.f, this->timePerIteration);
+    }
+
     ImGui::SliderInt("Timeline Playback Speed",
                      &(this->resultsTimelinePlaybackSpeed),
                      1,
@@ -1335,6 +1351,123 @@ namespace bpt
       auto& runData = this->gwoAlgo.getRecentRunData();
       int32_t currIter = this->currSelectedIter - 1;
       int32_t currIterSolIdx = this->currSelectedIterSolution;
+
+      if (ImGui::Button("Save Debug Data")) {
+        auto time = std::chrono::system_clock::to_time_t(
+          std::chrono::system_clock::now());
+        std::stringstream gwoDebugDataRelPath;
+        gwoDebugDataRelPath << "data/gwo-dbg-data-"
+                            << std::to_string(time) << ".csv";
+
+        std::filesystem::path dbgFilePath = corex::core::getBinFolder()
+                                            / gwoDebugDataRelPath.str();
+        std::cout << "Filepath: " << dbgFilePath.string() << "\n";
+        std::ofstream dataFile;
+        dataFile.open(dbgFilePath.string());
+
+        // Put the header of the CSV
+        dataFile << "Iteration No.,"
+                 << "a,"
+                 << "Alpha X,Alpha Y,Alpha Angle,"
+                 << "Beta X,Beta Y,Beta Angle,"
+                 << "Delta X,Delta Y,Delta Angle,"
+                 << "r1 (a) X,r1 (a) Y,r1 (a) Angle,"
+                 << "r1 (b) X,r1 (b) Y,r1 (b) Angle,"
+                 << "r1 (d) X,r1 (d) Y,r1 (d) Angle,"
+                 << "r2 (a) X,r2 (a) Y,r2 (a) Angle,"
+                 << "r2 (b) X,r2 (b) Y,r2 (b) Angle,"
+                 << "r2 (d) X,r2 (d) Y,r2 (d) Angle,"
+                 << "A (a) X,A (a) Y,A (a) Angle,"
+                 << "A (b) X,A (b) Y,A (b) Angle,"
+                 << "A (d) X,A (d) Y,A (d) Angle,"
+                 << "C (a) X,C (a) Y,C (a) Angle,"
+                 << "C (b) X,C (b) Y,C (b) Angle,"
+                 << "C (d) X,C (d) Y,C (d) Angle,"
+                 << "D (a) X,D (a) Y,D (a) Angle,"
+                 << "D (b) X,D (b) Y,D (b) Angle,"
+                 << "D (d) X,D (d) Y,D (d) Angle,"
+                 << "X1 X,X1 Y,X1 Angle,"
+                 << "X2 X,X2 Y,X2 Angle,"
+                 << "X3 X,X3 Y,X3 Angle,"
+                 << "X,Y,Angle\n";
+
+        auto numIters = this->settings.getIntegerVariable("gwoNumIterations")
+                                      .value;
+        for (int32_t i = 0; i < numIters; i++) {
+          dataFile << i + 1 << ","
+                   << runData.alphaValues[i] << ","
+                   << runData.alphaWolves[i][0] << ","
+                   << runData.alphaWolves[i][1] << ","
+                   << runData.alphaWolves[i][2] << ","
+                   << runData.betaWolves[i][0] << ","
+                   << runData.betaWolves[i][1] << ","
+                   << runData.betaWolves[i][2] << ","
+                   << runData.deltaWolves[i][0] << ","
+                   << runData.deltaWolves[i][1] << ","
+                   << runData.deltaWolves[i][2] << ","
+                   << runData.r1Alphas[i][0][0] << ","
+                   << runData.r1Alphas[i][0][1] << ","
+                   << runData.r1Alphas[i][0][2] << ","
+                   << runData.r1Betas[i][0][0] << ","
+                   << runData.r1Betas[i][0][1] << ","
+                   << runData.r1Betas[i][0][2] << ","
+                   << runData.r1Deltas[i][0][0] << ","
+                   << runData.r1Deltas[i][0][1] << ","
+                   << runData.r1Deltas[i][0][2] << ","
+                   << runData.r2Alphas[i][0][0] << ","
+                   << runData.r2Alphas[i][0][1] << ","
+                   << runData.r2Alphas[i][0][2] << ","
+                   << runData.r2Betas[i][0][0] << ","
+                   << runData.r2Betas[i][0][1] << ","
+                   << runData.r2Betas[i][0][2] << ","
+                   << runData.r2Deltas[i][0][0] << ","
+                   << runData.r2Deltas[i][0][1] << ","
+                   << runData.r2Deltas[i][0][2] << ","
+                   << runData.Aalphas[i][0][0] << ","
+                   << runData.Aalphas[i][0][1] << ","
+                   << runData.Aalphas[i][0][2] << ","
+                   << runData.Abetas[i][0][0] << ","
+                   << runData.Abetas[i][0][1] << ","
+                   << runData.Abetas[i][0][2] << ","
+                   << runData.Adeltas[i][0][0] << ","
+                   << runData.Adeltas[i][0][1] << ","
+                   << runData.Adeltas[i][0][2] << ","
+                   << runData.Calphas[i][0][0] << ","
+                   << runData.Calphas[i][0][1] << ","
+                   << runData.Calphas[i][0][2] << ","
+                   << runData.Cbetas[i][0][0] << ","
+                   << runData.Cbetas[i][0][1] << ","
+                   << runData.Cbetas[i][0][2] << ","
+                   << runData.Cdeltas[i][0][0] << ","
+                   << runData.Cdeltas[i][0][1] << ","
+                   << runData.Cdeltas[i][0][2] << ","
+                   << runData.Dalphas[i][0][0] << ","
+                   << runData.Dalphas[i][0][1] << ","
+                   << runData.Dalphas[i][0][2] << ","
+                   << runData.Dbetas[i][0][0] << ","
+                   << runData.Dbetas[i][0][1] << ","
+                   << runData.Dbetas[i][0][2] << ","
+                   << runData.Ddeltas[i][0][0] << ","
+                   << runData.Ddeltas[i][0][1] << ","
+                   << runData.Ddeltas[i][0][2] << ","
+                   << runData.X1s[i][0][0] << ","
+                   << runData.X1s[i][0][1] << ","
+                   << runData.X1s[i][0][2] << ","
+                   << runData.X2s[i][0][0] << ","
+                   << runData.X2s[i][0][1] << ","
+                   << runData.X2s[i][0][2] << ","
+                   << runData.X3s[i][0][0] << ","
+                   << runData.X3s[i][0][1] << ","
+                   << runData.X3s[i][0][2] << ","
+                   << runData.newWolves[i][0][0] << ","
+                   << runData.newWolves[i][0][1] << ","
+                   << runData.newWolves[i][0][2] << "\n";
+        }
+
+        if (dataFile.is_open()) {
+          dataFile.close();
+        }
+      }
 
       if (ImGui::InputInt("Building Index", &buildingIdx)) {
         auto numBuildings = static_cast<int32_t>(this->inputBuildings.size());
@@ -1468,7 +1601,8 @@ namespace bpt
     if (this->isResultsTimelinePlaying) {
       timeElapsed += timeDelta;
 
-      const float timePerGeneration = 0.15f / this->resultsTimelinePlaybackSpeed;
+      const float timePerGeneration = this->timePerIteration
+                                      / this->resultsTimelinePlaybackSpeed;
       if (corex::core::floatGreEqual(timeElapsed, timePerGeneration)) {
         this->currSelectedIter = corex::core::mod(
           this->currSelectedIter + 1,

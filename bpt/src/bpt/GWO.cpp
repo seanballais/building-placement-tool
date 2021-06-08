@@ -150,6 +150,25 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
+      this->mutateWolves(
+        wolves,
+        wolfMutationRates,
+        boundingArea,
+        inputBuildings,
+        keepInfeasibleSolutions);
+
+      this->computeWolfValues(
+        wolves,
+        wolfMutationRates,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight);
+
       // Sort GWO debugging data based on solution fitness.
       // Rank wolves pre-sorting. Ranking starts at 0.
       auto cmpFunc = [](Solution& a, Solution& b) -> bool {
@@ -290,9 +309,38 @@ namespace bpt
   {
     eastl::array<Solution, 3> leadingWolves{ wolves[0], wolves[1], wolves[2] };
 
+    // Get the delta vector.
+    cx::Point minBoundingPt = boundingArea.vertices[0];
+
+    float boundWidth = boundingArea.vertices[1].x
+                       - boundingArea.vertices[0].x;
+    float boundHeight = boundingArea.vertices[3].y
+                        - boundingArea.vertices[0].y;
+
+    cx::VecN deltaVec(inputBuildings.size() * 3);
+    cx::VecN newOrigDelta(inputBuildings.size() * 3);
+    for (int32_t i = 0; i < inputBuildings.size(); i++) {
+      deltaVec[i * 3] = -minBoundingPt.x;
+      deltaVec[(i * 3) + 1] = -minBoundingPt.y;
+
+      newOrigDelta[i * 3] = -boundWidth / 2.f;
+      newOrigDelta[(i * 3) + 1] = -boundHeight / 2.f;
+    }
+
     cx::VecN alphaVecN = convertSolutionToVecN(leadingWolves[0]);
     cx::VecN betaVecN = convertSolutionToVecN(leadingWolves[1]);
     cx::VecN deltaVecN = convertSolutionToVecN(leadingWolves[2]);
+
+    // Translated top three wolves.
+    alphaVecN = cx::translateVecN(alphaVecN, deltaVec);
+    betaVecN = cx::translateVecN(betaVecN, deltaVec);
+    deltaVecN = cx::translateVecN(deltaVecN, deltaVec);
+
+    // Translate the wolves to put their origins in the middle of the bounding
+    // area.
+    alphaVecN = cx::translateVecN(alphaVecN, newOrigDelta);
+    betaVecN = cx::translateVecN(betaVecN, newOrigDelta);
+    deltaVecN = cx::translateVecN(deltaVecN, newOrigDelta);
 
     this->recentRunData.alphaWolves.push_back(alphaVecN);
     this->recentRunData.betaWolves.push_back(betaVecN);
@@ -363,10 +411,15 @@ namespace bpt
       Cdeltas.push_back(CLeaders[2]);
 
       cx::VecN wolfSol = convertSolutionToVecN(wolf);
+      wolfSol = cx::translateVecN(wolfSol, deltaVec);
 
-      auto Da = cx::vecNAbs(cx::pairwiseMult(CLeaders[0], alphaVecN)) - wolfSol;
-      auto Db = cx::vecNAbs(cx::pairwiseMult(CLeaders[1], betaVecN)) - wolfSol;
-      auto Dd = cx::vecNAbs(cx::pairwiseMult(CLeaders[2], deltaVecN)) - wolfSol;
+      // Translate the wolf to move the origin in the middle of the bounding
+      // area.
+      wolfSol = cx::translateVecN(wolfSol, newOrigDelta);
+
+      auto Da = cx::vecNAbs(cx::pairwiseMult(CLeaders[0], alphaVecN) - wolfSol);
+      auto Db = cx::vecNAbs(cx::pairwiseMult(CLeaders[1], betaVecN) - wolfSol);
+      auto Dd = cx::vecNAbs(cx::pairwiseMult(CLeaders[2], deltaVecN) - wolfSol);
 
       auto X1 = alphaVecN - cx::pairwiseMult(ALeaders[0], Da);
       auto X2 = betaVecN - cx::pairwiseMult(ALeaders[1], Db);
@@ -382,57 +435,63 @@ namespace bpt
 
       oldWolves.push_back(wolfSol);
 
-      wolf = convertVecNToSolution((X1 + X2 + X3) / 3.f);
+      wolfSol = (X1 + X2 + X3) / 3.f;
 
       // Do a crossover for the building angles, since they get wrongly modified
       // by the mixing of the alpha, beta, and delta wolves. Clamp building
       // positions to the bounding area too.
-      for (int32_t i = 0; i < wolf.getNumBuildings(); i++) {
+      for (int32_t i = 0; i < inputBuildings.size(); i++) {
         int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
         Solution partnerWolf = leadingWolves[partnerIndex];
-        wolf.setBuildingAngle(i, partnerWolf.getBuildingAngle(i));
+        wolfSol[(i * 3) + 2] = partnerWolf.getBuildingAngle(i);
 
-//        // Clamping time.
-//        const cx::Point regionMinPt = boundingArea.vertices[0];
-//        const cx::Point regionMaxPt = boundingArea.vertices[2];
-//
-//        cx::Rectangle buildingRect {
-//          wolf.getBuildingXPos(i),
-//          wolf.getBuildingYPos(i),
-//          inputBuildings[i].width,
-//          inputBuildings[i].length,
-//          wolf.getBuildingAngle(i)
-//        };
-//
-//        cx::Polygon<4> poly = cx::rotateRectangle(buildingRect);
-//
-//        float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
-//        float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
-//
-//        // We need a buffer since we do not buildings to be intersecting by
-//        // exactly 1 pixel.
-//        float minBuildingXVal = (regionMinPt.x + (polyWidth / 2)) + 1;
-//        float maxBuildingXVal = (regionMaxPt.x - (polyWidth / 2)) - 1;
-//        float minBuildingYVal = (regionMinPt.y + (polyHeight / 2)) + 1;
-//        float maxBuildingYVal = (regionMaxPt.y - (polyHeight / 2)) - 1;
-//
-//        if (minBuildingXVal > maxBuildingXVal) {
-//          eastl::swap(minBuildingXVal, maxBuildingXVal);
-//        }
-//
-//        if (minBuildingYVal > maxBuildingYVal) {
-//          eastl::swap(minBuildingYVal, maxBuildingYVal);
-//        }
-//
-//        wolf.setBuildingXPos(
-//          i,
-//          cx::clamp(wolf.getBuildingXPos(i), minBuildingXVal, maxBuildingXVal));
-//        wolf.setBuildingYPos(
-//          i,
-//          cx::clamp(wolf.getBuildingYPos(i), minBuildingYVal, maxBuildingYVal));
+        // Clamping time.
+        cx::Rectangle buildingRect {
+          wolf.getBuildingXPos(i),
+          wolf.getBuildingYPos(i),
+          inputBuildings[i].width,
+          inputBuildings[i].length,
+          wolf.getBuildingAngle(i)
+        };
+
+        cx::Polygon<4> poly = cx::rotateRectangle(buildingRect);
+
+        float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
+        float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
+
+        // We need a buffer since we do not buildings to be intersecting by
+        // exactly 1 pixel. Note also that we are in origin at this point.
+        float minBuildingXVal = (polyWidth / 2) + 1;
+        float maxBuildingXVal = (boundWidth - (polyWidth / 2)) - 1;
+        float minBuildingYVal = (polyHeight / 2) + 1;
+        float maxBuildingYVal = (boundHeight - (polyHeight / 2)) - 1;
+
+        if (minBuildingXVal > maxBuildingXVal) {
+          eastl::swap(minBuildingXVal, maxBuildingXVal);
+        }
+
+        if (minBuildingYVal > maxBuildingYVal) {
+          eastl::swap(minBuildingYVal, maxBuildingYVal);
+        }
+
+//        wolfSol[i * 3] = cx::clamp(wolfSol[i * 3],
+//                                   minBuildingXVal,
+//                                   maxBuildingXVal);
+//        wolfSol[(i * 3) + 1] = cx::clamp(wolfSol[(i * 3) + 1],
+//                                         minBuildingYVal,
+//                                         maxBuildingYVal);
       }
 
-      newWolves.push_back(convertSolutionToVecN(wolf));
+      newWolves.push_back(wolfSol);
+
+      // Translate the buildings to put the origin in the top left corner of
+      // the bounding area.
+      wolfSol = cx::translateVecN(wolfSol, -newOrigDelta);
+
+      // Translate the buildings pack to their original position.
+      wolfSol = cx::translateVecN(wolfSol, -deltaVec);
+
+      wolf = convertVecNToSolution(wolfSol);
     }
 
     this->recentRunData.r1Alphas.push_back(r1Alphas);
@@ -523,7 +582,7 @@ namespace bpt
       tempSolution = solution;
       //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
       //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 0;
+      const int32_t mutationFuncIndex = 1;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,

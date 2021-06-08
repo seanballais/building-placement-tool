@@ -113,6 +113,7 @@ namespace corex::core
   VecN pairwiseSubt(const VecN& p, const float& a);
   VecN pairwiseSubt(const float& a, const VecN& p);
   VecN vecNAbs(const VecN& vec);
+  VecN translateVecN(const VecN& vec, const VecN& deltaVec);
 
   template <typename... Args>
   inline constexpr auto rotatePoint(Args&&... args)
