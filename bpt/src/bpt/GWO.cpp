@@ -312,17 +312,6 @@ namespace bpt
     cx::VecN betaVecN = convertSolutionToVecN(leadingWolves[1]);
     cx::VecN deltaVecN = convertSolutionToVecN(leadingWolves[2]);
 
-    // Translated top three wolves.
-    alphaVecN = cx::translateVecN(alphaVecN, deltaVec);
-    betaVecN = cx::translateVecN(betaVecN, deltaVec);
-    deltaVecN = cx::translateVecN(deltaVecN, deltaVec);
-
-    // Translate the wolves to put their origins in the middle of the bounding
-    // area.
-    alphaVecN = cx::translateVecN(alphaVecN, newOrigDelta);
-    betaVecN = cx::translateVecN(betaVecN, newOrigDelta);
-    deltaVecN = cx::translateVecN(deltaVecN, newOrigDelta);
-
     this->recentRunData.alphaWolves.push_back(alphaVecN);
     this->recentRunData.betaWolves.push_back(betaVecN);
     this->recentRunData.deltaWolves.push_back(deltaVecN);
@@ -336,6 +325,7 @@ namespace bpt
     eastl::array<cx::VecN, numLeaders> r1Leaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r2Leaders{ defVecN, defVecN, defVecN };
 
+#pragma region GWO_Gen_Debug_Data
     // For the GWO debugging data.
     eastl::vector<cx::VecN> r1Alphas;
     eastl::vector<cx::VecN> r1Betas;
@@ -363,6 +353,7 @@ namespace bpt
 
     eastl::vector<cx::VecN> oldWolves;
     eastl::vector<cx::VecN> newWolves;
+#pragma endregion GWO_Gen_Debug_Data
 
     for (Solution& wolf : wolves) {
       for (int32_t n = 0; n < numLeaders; n++) {
@@ -375,6 +366,7 @@ namespace bpt
                                                      r2Leaders[n]);
       }
 
+#pragma region GWO_Add_Debug_Data_1
       r1Alphas.push_back(r1Leaders[0]);
       r1Betas.push_back(r1Leaders[1]);
       r1Deltas.push_back(r1Leaders[2]);
@@ -390,13 +382,9 @@ namespace bpt
       Calphas.push_back(CLeaders[0]);
       Cbetas.push_back(CLeaders[1]);
       Cdeltas.push_back(CLeaders[2]);
+#pragma endregion GWO_Add_Debug_Data_1
 
       cx::VecN wolfSol = convertSolutionToVecN(wolf);
-      wolfSol = cx::translateVecN(wolfSol, deltaVec);
-
-      // Translate the wolf to move the origin in the middle of the bounding
-      // area.
-      wolfSol = cx::translateVecN(wolfSol, newOrigDelta);
 
       auto Da = cx::vecNAbs((CLeaders[0] + alphaVecN) - wolfSol);
       auto Db = cx::vecNAbs((CLeaders[1] + betaVecN) - wolfSol);
@@ -464,17 +452,10 @@ namespace bpt
       }
 
       newWolves.push_back(wolfSol);
-
-      // Translate the buildings to put the origin in the top left corner of
-      // the bounding area.
-      wolfSol = cx::translateVecN(wolfSol, -newOrigDelta);
-
-      // Translate the buildings pack to their original position.
-      wolfSol = cx::translateVecN(wolfSol, -deltaVec);
-
       wolf = convertVecNToSolution(wolfSol);
     }
 
+#pragma region GWO_Add_Debug_Data_2
     this->recentRunData.r1Alphas.push_back(r1Alphas);
     this->recentRunData.r1Betas.push_back(r1Betas);
     this->recentRunData.r1Deltas.push_back(r1Deltas);
@@ -501,6 +482,7 @@ namespace bpt
 
     this->recentRunData.oldWolves.push_back(oldWolves);
     this->recentRunData.newWolves.push_back(newWolves);
+#pragma endregion GWO_Add_Debug_Data_2
   }
 
   void GWO::mutateWolves(
