@@ -150,25 +150,6 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
-      this->mutateWolves(
-        wolves,
-        wolfMutationRates,
-        boundingArea,
-        inputBuildings,
-        keepInfeasibleSolutions);
-
-      this->computeWolfValues(
-        wolves,
-        wolfMutationRates,
-        inputBuildings,
-        boundingArea,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty,
-        buildingDistanceWeight);
-
       // Sort GWO debugging data based on solution fitness.
       // Rank wolves pre-sorting. Ranking starts at 0.
       auto cmpFunc = [](Solution& a, Solution& b) -> bool {
@@ -386,7 +367,7 @@ namespace bpt
     for (Solution& wolf : wolves) {
       for (int32_t n = 0; n < numLeaders; n++) {
         r1Leaders[n] = this->createRandomVector(defVecN.size());
-        r2Leaders[n] = this->createRandomVector(defVecN.size());
+        r2Leaders[n] = this->createRandomVector(defVecN.size(), -1.f, 1.f);
         ALeaders[n] = this->createACoefficientVector(defVecN.size(),
                                                      r1Leaders[n],
                                                      alpha);
@@ -417,9 +398,9 @@ namespace bpt
       // area.
       wolfSol = cx::translateVecN(wolfSol, newOrigDelta);
 
-      auto Da = cx::vecNAbs(cx::pairwiseMult(CLeaders[0], alphaVecN) - wolfSol);
-      auto Db = cx::vecNAbs(cx::pairwiseMult(CLeaders[1], betaVecN) - wolfSol);
-      auto Dd = cx::vecNAbs(cx::pairwiseMult(CLeaders[2], deltaVecN) - wolfSol);
+      auto Da = cx::vecNAbs((CLeaders[0] + alphaVecN) - wolfSol);
+      auto Db = cx::vecNAbs((CLeaders[1] + betaVecN) - wolfSol);
+      auto Dd = cx::vecNAbs((CLeaders[2] + deltaVecN) - wolfSol);
 
       auto X1 = alphaVecN - cx::pairwiseMult(ALeaders[0], Da);
       auto X2 = betaVecN - cx::pairwiseMult(ALeaders[1], Db);
@@ -582,7 +563,7 @@ namespace bpt
       tempSolution = solution;
       //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
       //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 1;
+      const int32_t mutationFuncIndex = 0;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,
@@ -594,11 +575,12 @@ namespace bpt
     solution = tempSolution;
   }
 
-  cx::VecN GWO::createRandomVector(const int32_t vectorSize)
+  cx::VecN GWO::createRandomVector(const int32_t vectorSize,
+                                   float min, float max)
   {
     cx::VecN randomVecN{vectorSize};
     for (int32_t i = 0; i < vectorSize; i++) {
-      randomVecN[i] = cx::getRandomRealUniformly(0.f, 1.f);
+      randomVecN[i] = cx::getRandomRealUniformly(min, max);
     }
 
     return randomVecN;
@@ -621,7 +603,7 @@ namespace bpt
   {
     cx::VecN cCoefficient{vectorSize};
     for (int32_t i = 0; i < vectorSize; i++) {
-      cCoefficient[i] = 2 * randomVector2[i];
+      cCoefficient[i] = 4 * randomVector2[i];
     }
 
     return cCoefficient;
