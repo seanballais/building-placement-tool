@@ -150,6 +150,25 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
+      this->mutateWolves(
+        wolves,
+        wolfMutationRates,
+        boundingArea,
+        inputBuildings,
+        keepInfeasibleSolutions);
+
+      this->computeWolfValues(
+        wolves,
+        wolfMutationRates,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight);
+
       // Sort GWO debugging data based on solution fitness.
       // Rank wolves pre-sorting. Ranking starts at 0.
       auto cmpFunc = [](Solution& a, Solution& b) -> bool {
@@ -545,7 +564,7 @@ namespace bpt
       tempSolution = solution;
       //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
       //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 0;
+      const int32_t mutationFuncIndex = 1;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,
