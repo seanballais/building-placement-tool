@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cmath>
 #include <iostream>
 
 #include <EASTL/algorithm.h>
@@ -157,6 +158,7 @@ namespace bpt
       };
       eastl::vector<int32_t> dataIndices = cx::rankVectors(wolves, cmpFunc);
 
+#pragma region GWO_Add_Debug_Data_3
       cx::reorderVector(this->recentRunData.r1Alphas.back(), dataIndices);
       cx::reorderVector(this->recentRunData.r1Betas.back(), dataIndices);
       cx::reorderVector(this->recentRunData.r1Deltas.back(), dataIndices);
@@ -183,6 +185,7 @@ namespace bpt
 
       cx::reorderVector(this->recentRunData.oldWolves.back(), dataIndices);
       cx::reorderVector(this->recentRunData.newWolves.back(), dataIndices);
+#pragma endregion GWO_Add_Debug_Data_3
 
       // Sort the wolves now. We could do this earlier, but it looks cleaner
       // to just put it here.
@@ -212,6 +215,15 @@ namespace bpt
       solutions.push_back(wolves);
 
       alpha = 2.f - (2.f * (static_cast<float>(i) / numIterations));
+
+      float mu = 1.3f;
+      float p = 6.f;
+
+      alpha = 2.f
+              - std::pow(
+                  std::log(
+                    1.f + (mu * std::pow(std::tan(i / numIterations), 3.f))),
+                    p);
     }
 
     double elapsedTime = this->runTimer.getElapsedTime();

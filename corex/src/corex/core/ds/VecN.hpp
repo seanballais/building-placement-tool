@@ -34,6 +34,8 @@ namespace corex::core
   VecN operator-(const VecN& p, const VecN& q);
   VecN operator*(const VecN& p, const float& a);
   VecN operator*(const float& a, const VecN& p);
+  VecN operator*(const double& a, const VecN& p);
+  VecN operator*(const VecN& p, const double& a);
   VecN operator/(const VecN& p, const float& a);
 
   bool operator==(const VecN& p, const VecN& q);

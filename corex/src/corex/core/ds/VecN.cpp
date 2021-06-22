@@ -109,6 +109,21 @@ namespace corex::core
     return p * a;
   }
 
+  VecN operator*(const VecN& p, const double& a)
+  {
+    VecN q = p;
+    for (int32_t i = 0; i < q.size(); i++) {
+      q[i] = static_cast<float>(static_cast<double>(q[i]) * a);
+    }
+
+    return q;
+  }
+
+  VecN operator*(const double& a, const VecN& p)
+  {
+    return p * a;
+  }
+
   VecN operator/(const VecN& p, const float& a)
   {
     return p * (1 / a);
