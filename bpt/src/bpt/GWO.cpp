@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <iterator>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/array.h>
@@ -16,12 +18,12 @@
 #include <bpt/evaluator.hpp>
 #include <bpt/generator.hpp>
 #include <bpt/GWO.hpp>
-#include <bpt/HC.hpp>
 #include <bpt/operators.hpp>
 #include <bpt/utils.hpp>
 #include <bpt/ds/GWOResult.hpp>
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/Solution.hpp>
+#include <bpt/ds/Wolf.hpp>
 
 namespace bpt
 {
@@ -48,8 +50,7 @@ namespace bpt
     const bool &keepInfeasibleSolutions)
   {
     eastl::vector<eastl::vector<Solution>> solutions;
-    eastl::vector<Solution> wolves;
-    eastl::vector<double> wolfMutationRates;
+    eastl::vector<Wolf> wolves;
     eastl::vector<double> bestFitnesses;
     eastl::vector<double> averageFitnesses;
     eastl::vector<double> worstFitnesses;
@@ -84,15 +85,18 @@ namespace bpt
     // Generate initial wolves.
     for (int32_t i = 0; i < numWolves; i++) {
       std::cout << "Generating Wolf #" << i << "\n";
-      wolves.push_back(generateRandomSolution(inputBuildings,
-                                              boundingArea));
-      wolfMutationRates.push_back(0.0);
+      Solution randomSolution = generateRandomSolution(inputBuildings,
+                                                       boundingArea);
+
+      wolves.push_back(Wolf{
+        randomSolution,
+        randomSolution
+      });
     }
 
     // Evaluate individual fitness and mutation rate.
     this->computeWolfValues(
       wolves,
-      wolfMutationRates,
       inputBuildings,
       boundingArea,
       flowRates,
@@ -114,7 +118,7 @@ namespace bpt
     double bestFitness = wolves[0].getFitness();
 
     double averageFitness = 0.0;
-    for (Solution& wolf : wolves) {
+    for (const Wolf& wolf : wolves) {
       averageFitness += wolf.getFitness();
     }
 
@@ -124,7 +128,11 @@ namespace bpt
     averageFitnesses.push_back(averageFitness);
     worstFitnesses.push_back(worstFitness);
 
-    solutions.push_back(wolves);
+    eastl::vector<Solution> currIterWolves;
+    std::transform(wolves.begin(), wolves.end(),
+                   std::back_inserter(currIterWolves),
+                   [](const Wolf& w) -> Solution { return w.currSolution; });
+    solutions.push_back(currIterWolves);
 
     float alpha = 2.f;
     for (int32_t i = 0; i < numIterations; i++) {
@@ -141,7 +149,6 @@ namespace bpt
       // Evaluate individual fitness and mutation rate.
       this->computeWolfValues(
         wolves,
-        wolfMutationRates,
         inputBuildings,
         boundingArea,
         flowRates,
@@ -202,7 +209,7 @@ namespace bpt
       bestFitness = wolves[0].getFitness();
 
       averageFitness = 0.0;
-      for (Solution& wolf : wolves) {
+      for (const Wolf& wolf : wolves) {
         averageFitness += wolf.getFitness();
       }
 
@@ -212,7 +219,12 @@ namespace bpt
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
 
-      solutions.push_back(wolves);
+      // Add in the wolves into the solutions collections.
+      currIterWolves.clear();
+      std::transform(wolves.begin(), wolves.end(),
+                     std::back_inserter(currIterWolves),
+                     [](const Wolf& w) -> Solution { return w.currSolution; });
+      solutions.push_back(currIterWolves);
 
       float mu = 1.3f;
       float p = 6.f;
@@ -254,8 +266,7 @@ namespace bpt
   }
 
   void GWO::computeWolfValues(
-    eastl::vector<Solution>& wolves,
-    eastl::vector<double>& wolfMutationRates,
+    eastl::vector<Wolf>& wolves,
     const eastl::vector<InputBuilding>& inputBuildings,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<eastl::vector<float>>& flowRates,
@@ -265,41 +276,27 @@ namespace bpt
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight)
   {
-    for (Solution& wolf : wolves) {
-      wolf.setFitness(computeSolutionFitness(wolf,
+    for (Wolf& wolf : wolves) {
+      wolf.setFitness(computeSolutionFitness(wolf.currSolution,
                                              inputBuildings,
                                              boundingArea,
                                              flowRates,
                                              buildingDistanceWeight));
     }
-
-    double maxFitness = eastl::max_element(
-      wolves.begin(),
-      wolves.end(),
-      [](const Solution& solutionA, const Solution& solutionB) -> bool {
-        return solutionA.getFitness() < solutionB.getFitness();
-      })->getFitness();
-    double minFitness = eastl::min_element(
-      wolves.begin(),
-      wolves.end(),
-      [](const Solution& solutionA, const Solution& solutionB) -> bool {
-        return solutionA.getFitness() < solutionB.getFitness();
-      })->getFitness();
-    double fitnessLength = maxFitness - minFitness;
-    for (int32_t i = 0; i < wolves.size(); i++) {
-      double wolfFitness = wolves[i].getFitness();
-      wolfMutationRates[i] = 1 - ((maxFitness - wolfFitness) / fitnessLength);
-    }
   }
 
   void GWO::updateWolves(
-    eastl::vector<Solution>& wolves,
+    eastl::vector<Wolf>& wolves,
     const float& alpha,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
   {
-    eastl::array<Solution, 3> leadingWolves{ wolves[0], wolves[1], wolves[2] };
+    eastl::array<Solution, 3> leadingWolves{
+      wolves[0].currSolution,
+      wolves[1].currSolution,
+      wolves[2].currSolution
+    };
 
     // Get the delta vector.
     cx::Point minBoundingPt = boundingArea.vertices[0];
@@ -366,7 +363,7 @@ namespace bpt
     eastl::vector<cx::VecN> newWolves;
 #pragma endregion GWO_Gen_Debug_Data
 
-    for (Solution& wolf : wolves) {
+    for (Wolf& wolf : wolves) {
       for (int32_t n = 0; n < numLeaders; n++) {
         r1Leaders[n] = this->createRandomVector(defVecN.size());
         r2Leaders[n] = this->createRandomVector(defVecN.size(), -1.f, 1.f);
@@ -395,7 +392,7 @@ namespace bpt
       Cdeltas.push_back(CLeaders[2]);
 #pragma endregion GWO_Add_Debug_Data_1
 
-      cx::VecN wolfSol = convertSolutionToVecN(wolf);
+      cx::VecN wolfSol = convertSolutionToVecN(wolf.currSolution);
 
       auto Da = cx::vecNAbs((CLeaders[0] + alphaVecN) - wolfSol);
       auto Db = cx::vecNAbs((CLeaders[1] + betaVecN) - wolfSol);
@@ -418,52 +415,15 @@ namespace bpt
       wolfSol = (X1 + X2 + X3) / 3.f;
 
       // Do a crossover for the building angles, since they get wrongly modified
-      // by the mixing of the alpha, beta, and delta wolves. Clamp building
-      // positions to the bounding area too.
+      // by the mixing of the alpha, beta, and delta wolves.
       for (int32_t i = 0; i < inputBuildings.size(); i++) {
         int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
         Solution partnerWolf = leadingWolves[partnerIndex];
         wolfSol[(i * 3) + 2] = partnerWolf.getBuildingAngle(i);
-
-        // Clamping time.
-        cx::Rectangle buildingRect {
-          wolf.getBuildingXPos(i),
-          wolf.getBuildingYPos(i),
-          inputBuildings[i].width,
-          inputBuildings[i].length,
-          wolf.getBuildingAngle(i)
-        };
-
-        cx::Polygon<4> poly = cx::rotateRectangle(buildingRect);
-
-        float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
-        float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
-
-        // We need a buffer since we do not buildings to be intersecting by
-        // exactly 1 pixel. Note also that we are in origin at this point.
-        float minBuildingXVal = (polyWidth / 2) + 1;
-        float maxBuildingXVal = (boundWidth - (polyWidth / 2)) - 1;
-        float minBuildingYVal = (polyHeight / 2) + 1;
-        float maxBuildingYVal = (boundHeight - (polyHeight / 2)) - 1;
-
-        if (minBuildingXVal > maxBuildingXVal) {
-          eastl::swap(minBuildingXVal, maxBuildingXVal);
-        }
-
-        if (minBuildingYVal > maxBuildingYVal) {
-          eastl::swap(minBuildingYVal, maxBuildingYVal);
-        }
-
-//        wolfSol[i * 3] = cx::clamp(wolfSol[i * 3],
-//                                   minBuildingXVal,
-//                                   maxBuildingXVal);
-//        wolfSol[(i * 3) + 1] = cx::clamp(wolfSol[(i * 3) + 1],
-//                                         minBuildingYVal,
-//                                         maxBuildingYVal);
       }
 
       newWolves.push_back(wolfSol);
-      wolf = convertVecNToSolution(wolfSol);
+      wolf.currSolution = convertVecNToSolution(wolfSol);
     }
 
 #pragma region GWO_Add_Debug_Data_2

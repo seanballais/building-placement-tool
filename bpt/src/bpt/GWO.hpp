@@ -14,6 +14,7 @@
 #include <bpt/ds/InputBuilding.hpp>
 #include <bpt/ds/GWOData.hpp>
 #include <bpt/ds/GWOResult.hpp>
+#include <bpt/ds/Wolf.hpp>
 
 namespace bpt
 {
@@ -40,8 +41,7 @@ namespace bpt
     const GWOData& getRecentRunData();
   private:
     void computeWolfValues(
-      eastl::vector<Solution>& wolves,
-      eastl::vector<double>& wolfMutationRates,
+      eastl::vector<Wolf>& wolves,
       const eastl::vector<InputBuilding>& inputBuildings,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<eastl::vector<float>>& flowRates,
@@ -51,7 +51,7 @@ namespace bpt
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight);
     void updateWolves(
-      eastl::vector<Solution>& wolves,
+      eastl::vector<Wolf>& wolves,
       const float& alpha,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,

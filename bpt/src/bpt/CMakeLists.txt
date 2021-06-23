@@ -19,4 +19,5 @@ add_executable(bpt
     ds/GWOResult.cpp
     ds/Result.cpp
     ds/Solution.cpp
-    ds/Time.cpp)
+    ds/Time.cpp
+    ds/Wolf.cpp)
