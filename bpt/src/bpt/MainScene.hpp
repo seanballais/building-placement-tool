@@ -52,7 +52,6 @@ namespace bpt
     void buildAlgorithmControlsWindow();
     void buildAlgorithmResultsWindow();
     void buildDebugSolutionWindow();
-    void buildGWODebugWindow();
     void handleGATimelinePlayback(float timeDelta);
     void handleWindowEvents(const corex::core::WindowEvent& e);
     void handleKeyboardEvents(const corex::core::KeyboardEvent& e);

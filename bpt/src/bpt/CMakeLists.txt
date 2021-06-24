@@ -20,4 +20,4 @@ add_executable(bpt
     ds/Result.cpp
     ds/Solution.cpp
     ds/Time.cpp
-    ds/Wolf.cpp)
+    ds/Wolf.hpp)

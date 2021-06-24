@@ -9,10 +9,6 @@ namespace bpt
   {
     Solution currSolution;
     Solution bestSolution;
-
-    [[nodiscard]] double getFitness() const;
-    void setFitness(double fitness);
-    void setCurrAsBest();
   };
 }
 
