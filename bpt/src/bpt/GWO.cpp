@@ -167,16 +167,15 @@ namespace bpt
                      [](const Wolf& w) -> Solution { return w.currSolution; });
       solutions.push_back(currIterWolves);
 
-//      float mu = 1.3f;
-//      float p = 6.f;
-//
-//      alpha = 2.f
-//              - std::pow(
-//                  std::log(
-//                    1.f + (mu * std::pow(std::tan(i / numIterations), 3.f))
-//                  ),
-//                  p);
-      alpha = 2.f - (2.f * (static_cast<float>(i) / numIterations));
+      float mu = 1.3f;
+      float p = 6.f;
+
+      alpha = 2.f
+              - std::pow(
+                  std::log(
+                    1.f + (mu * std::pow(std::tan(i / numIterations), 3.f))
+                  ),
+                  p);
     }
 
     double elapsedTime = this->runTimer.getElapsedTime();
