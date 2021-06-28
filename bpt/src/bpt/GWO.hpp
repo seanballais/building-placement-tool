@@ -33,8 +33,10 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight,
-      const bool isLocalSearchEnabled,
-      const double timeLimit,
+      const float fMin,
+      const float fMax,
+      const float CR,
+      const float epsilon,
       const bool &keepInfeasibleSolutions);
     int32_t getCurrentRunIterationNumber();
   private:
@@ -48,15 +50,48 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight);
-    void updateWolves(
-      eastl::vector<Wolf>& wolves,
+    eastl::vector<Wolf> updateWolves(
+      const eastl::vector<Wolf> wolves,
+      const Wolf& alphaWolf,
+      const Wolf& betaWolf,
+      const Wolf& deltaWolf,
       const float& alpha,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);
+    eastl::vector<Wolf> evolveWolves(
+      const eastl::vector<Wolf> wolves,
+      const Wolf& alphaWolf,
+      const Wolf& betaWolf,
+      const Wolf& deltaWolf,
+      const int32_t iter,
+      const int32_t maxIters,
+      const float& alpha,
+      const float& fMin,
+      const float& fMax,
+      const float& CR,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
+    Wolf evolveWolf(
+      const int32_t& wolfIdx,
+      const eastl::vector<Wolf>& wolves,
+      const Wolf& alphaWolf,
+      const Wolf& betaWolf,
+      const Wolf& deltaWolf,
+      const int32_t iter,
+      const int32_t maxIters,
+      const float& alpha,
+      const float& fMin,
+      const float& fMax,
+      const float& CR,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
     Wolf huntPrey(
       const int32_t& wolfIdx,
       const eastl::vector<Wolf>& wolves,
+      const Wolf& alphaWolf,
+      const Wolf& betaWolf,
+      const Wolf& deltaWolf,
       const float& alpha,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,

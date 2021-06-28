@@ -44,8 +44,10 @@ namespace bpt
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
     const float buildingDistanceWeight,
-    const bool isLocalSearchEnabled,
-    const double timeLimit,
+    const float fMin,
+    const float fMax,
+    const float CR,
+    const float epsilon,
     const bool &keepInfeasibleSolutions)
   {
     eastl::vector<eastl::vector<Solution>> solutions;
@@ -107,9 +109,16 @@ namespace bpt
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
 
+      const Wolf& alphaWolf = wolves[0];
+      const Wolf& betaWolf = wolves[1];
+      const Wolf& deltaWolf = wolves[2];
+
       // Update individuals based on a custom search operator.
-      this->updateWolves(
+      eastl::vector<Wolf> newWolves = this->updateWolves(
         wolves,
+        alphaWolf,
+        betaWolf,
+        deltaWolf,
         alpha,
         boundingArea,
         inputBuildings,
@@ -127,6 +136,20 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
+      this->evolv
+
+      this->computeWolfValues(
+        wolves,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight);
+
+      // Selection.
       for (Wolf& wolf : wolves) {
         if (wolf.currSolution.getFitness() > wolf.bestSolution.getFitness()) {
           wolf.currSolution = wolf.bestSolution;
@@ -223,43 +246,127 @@ namespace bpt
     }
   }
 
-  void GWO::updateWolves(
-    eastl::vector<Wolf>& wolves,
+  eastl::vector<Wolf> GWO::updateWolves(
+    const eastl::vector<Wolf> wolves,
+    const Wolf& alphaWolf,
+    const Wolf& betaWolf,
+    const Wolf& deltaWolf,
     const float& alpha,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
   {
-    constexpr float crossoverProbability = 0.5f;
+    eastl::vector<Wolf> newWolves = wolves;
     int32_t wolfIdx = 0;
-    for (Wolf& wolf : wolves) {
-      wolf = this->huntPrey(wolfIdx,
-                            wolves,
-                            alpha,
-                            boundingArea,
-                            inputBuildings,
+    for (Wolf& wolf : newWolves) {
+      wolf = this->huntPrey(wolfIdx, wolves,
+                            alphaWolf, betaWolf, deltaWolf,
+                            alpha, boundingArea, inputBuildings,
                             keepInfeasibleSolutions);
 
       wolfIdx++;
     }
+
+    return newWolves;
+  }
+
+  eastl::vector<Wolf> GWO::evolveWolves(
+    const eastl::vector<Wolf> wolves,
+    const Wolf& alphaWolf,
+    const Wolf& betaWolf,
+    const Wolf& deltaWolf,
+    const int32_t iter,
+    const int32_t maxIters,
+    const float& alpha,
+    const float& fMin,
+    const float& fMax,
+    const float& CR,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    eastl::vector<Wolf> newWolves = wolves;
+    int32_t wolfIdx = 0;
+    for (Wolf& wolf : newWolves) {
+      wolf = this->evolveWolf(wolfIdx, wolves, alphaWolf, betaWolf, deltaWolf,
+                              iter, maxIters, alpha, fMin, fMax, CR,
+                              boundingArea, inputBuildings);
+      wolfIdx++;
+    }
+
+    return newWolves;
+  }
+
+  Wolf GWO::evolveWolf(
+    const int32_t& wolfIdx,
+    const eastl::vector<Wolf>& wolves,
+    const Wolf& alphaWolf,
+    const Wolf& betaWolf,
+    const Wolf& deltaWolf,
+    const int32_t iter,
+    const int32_t maxIters,
+    const float& alpha,
+    const float& fMin,
+    const float& fMax,
+    const float& CR,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    // Mutation
+    float F = fMin + (fMax - fMin)
+              * (static_cast<float>(maxIters - (iter - 1))
+                 / static_cast<float>(maxIters));
+
+    std::vector<cx::VecN> leadingWolves{
+      convertSolutionToVecN(alphaWolf.currSolution),
+      convertSolutionToVecN(betaWolf.currSolution),
+      convertSolutionToVecN(deltaWolf.currSolution)
+    };
+
+    cx::VecN V = leadingWolves[0] + F * (leadingWolves[1] - leadingWolves[2]);
+    for (int32_t i = 0; i < inputBuildings.size(); i++) {
+      V[(i * 3) + 2] = cx::selectItemRandomly(
+        eastl::vector<float>{ 0.f, 90.f });
+    }
+
+    // Crossover
+    cx::VecN targetWolf = convertSolutionToVecN(wolves[wolfIdx].currSolution);
+    cx::VecN U = V;
+    for (int32_t i = 0; i < U.size(); i++) {
+      float probability = cx::getRandomRealUniformly(0.f, 1.f);
+      int32_t randIndex = cx::getRandomIntUniformly(
+        0, static_cast<int32_t>(U.size()) - 1);
+      if (probability >= CR && i != randIndex) {
+        U[i] = targetWolf[i];
+      }
+    }
+
+    Wolf wolf = wolves[wolfIdx];
+    wolf.currSolution = convertVecNToSolution(U);
+
+    // Note: Selection is deferred to another part.
+
+    return wolf;
   }
 
   Wolf GWO::huntPrey(
     const int32_t& wolfIdx,
     const eastl::vector<Wolf>& wolves,
+    const Wolf& alphaWolf,
+    const Wolf& betaWolf,
+    const Wolf& deltaWolf,
     const float& alpha,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
   {
-    eastl::array<Solution, 3> leadingWolves{
-      wolves[0].currSolution,
-      wolves[1].currSolution,
-      wolves[2].currSolution
+    eastl::vector<Solution> leadingWolves{
+      alphaWolf.currSolution,
+      betaWolf.currSolution,
+      deltaWolf.currSolution
     };
 
     cx::VecN alphaVecN = convertSolutionToVecN(leadingWolves[0]);
-    cx::VecN betaVecN = convertSolutionToVecN(leadingWolves[1]);
+    cx::VecN betaVecN  = convertSolutionToVecN(leadingWolves[1]);
     cx::VecN deltaVecN = convertSolutionToVecN(leadingWolves[2]);
 
     // Coefficient values of the leading wolves.
