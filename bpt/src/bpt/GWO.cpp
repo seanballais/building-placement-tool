@@ -170,6 +170,30 @@ namespace bpt
         }
       }
 
+      this->computeWolfValues(
+        wolves,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight);
+
+      this->eliminateWolves(wolves, epsilon, boundingArea, inputBuildings);
+
+      this->computeWolfValues(
+        wolves,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight);
+
       // Sort the wolves now. We could do this earlier, but it looks cleaner
       // to just put it here.
       std::sort(
@@ -255,6 +279,13 @@ namespace bpt
         flowRates,
         buildingDistanceWeight)
       );
+      wolf.bestSolution.setFitness(
+        computeSolutionFitness(wolf.currSolution,
+                               inputBuildings,
+                               boundingArea,
+                               flowRates,
+                               buildingDistanceWeight)
+      );
     }
   }
 
@@ -300,6 +331,28 @@ namespace bpt
                               iter, maxIters, alpha, fMin, fMax, CR,
                               boundingArea, inputBuildings);
       wolfIdx++;
+    }
+  }
+
+  void GWO::eliminateWolves(
+    eastl::vector<Wolf>& wolves,
+    const float& epsilon,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings)
+  {
+    const int32_t& numWolves = static_cast<int32_t>(wolves.size());
+    const int32_t& RMin = numWolves / epsilon;
+    const int32_t& RMax = numWolves / (0.75f * epsilon);
+
+    const int32_t numDeadWolves = cx::getRandomIntUniformly(RMin, RMax);
+    const int32_t numAliveWolves = numWolves - numDeadWolves;
+
+    for (int32_t i = numAliveWolves; i < numWolves; i++) {
+      Solution newSol = generateRandomSolution(inputBuildings, boundingArea);
+      wolves[i] = Wolf{
+        newSol,
+        newSol
+      };
     }
   }
 

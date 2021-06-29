@@ -72,6 +72,11 @@ namespace bpt
       const float& CR,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings);
+    void eliminateWolves(
+      eastl::vector<Wolf>& wolves,
+      const float& epsilon,
+      const corex::core::NPolygon& boundingArea,
+      const eastl::vector<InputBuilding>& inputBuildings);
     Wolf evolveWolf(
       const int32_t& wolfIdx,
       const eastl::vector<Wolf>& wolves,
