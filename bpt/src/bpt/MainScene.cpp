@@ -1098,9 +1098,10 @@ namespace bpt
                   this->settings.getFloatVariable("gwoLandslidePenalty").value,
                   this->settings.getFloatVariable("gwoBuildingDistanceWeight")
                        .value,
-                  this->settings.getBooleanVariable("gwoIsLocalSearchEnabled")
-                       .value,
-                  this->settings.getIntegerVariable("gwoNumLSIters").value,
+                  this->settings.getFloatVariable("gwoFMin").value,
+                  this->settings.getFloatVariable("gwoFMax").value,
+                  this->settings.getFloatVariable("gwoCR").value,
+                  this->settings.getFloatVariable("gwoEpsilon").value,
                   this->settings
                        .getBooleanVariable("gwoKeepInfeasibleSolutions")
                        .value);

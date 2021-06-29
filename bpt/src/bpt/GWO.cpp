@@ -109,12 +109,12 @@ namespace bpt
     for (int32_t i = 0; i < numIterations; i++) {
       this->currRunIterationNumber = i;
 
-      const Wolf& alphaWolf = wolves[0];
-      const Wolf& betaWolf = wolves[1];
-      const Wolf& deltaWolf = wolves[2];
+      const Wolf alphaWolf = wolves[0];
+      const Wolf betaWolf = wolves[1];
+      const Wolf deltaWolf = wolves[2];
 
       // Update individuals based on a custom search operator.
-      eastl::vector<Wolf> newWolves = this->updateWolves(
+      this->updateWolves(
         wolves,
         alphaWolf,
         betaWolf,
@@ -136,7 +136,19 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
-      this->evolv
+      this->evolveWolves(
+        wolves,
+        alphaWolf,
+        betaWolf,
+        deltaWolf,
+        i,
+        numIterations,
+        alpha,
+        fMin,
+        fMax,
+        CR,
+        boundingArea,
+        inputBuildings);
 
       this->computeWolfValues(
         wolves,
@@ -246,8 +258,8 @@ namespace bpt
     }
   }
 
-  eastl::vector<Wolf> GWO::updateWolves(
-    const eastl::vector<Wolf> wolves,
+  void GWO::updateWolves(
+    eastl::vector<Wolf>& wolves,
     const Wolf& alphaWolf,
     const Wolf& betaWolf,
     const Wolf& deltaWolf,
@@ -256,9 +268,8 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
   {
-    eastl::vector<Wolf> newWolves = wolves;
     int32_t wolfIdx = 0;
-    for (Wolf& wolf : newWolves) {
+    for (Wolf& wolf : wolves) {
       wolf = this->huntPrey(wolfIdx, wolves,
                             alphaWolf, betaWolf, deltaWolf,
                             alpha, boundingArea, inputBuildings,
@@ -266,12 +277,10 @@ namespace bpt
 
       wolfIdx++;
     }
-
-    return newWolves;
   }
 
-  eastl::vector<Wolf> GWO::evolveWolves(
-    const eastl::vector<Wolf> wolves,
+  void GWO::evolveWolves(
+    eastl::vector<Wolf>& wolves,
     const Wolf& alphaWolf,
     const Wolf& betaWolf,
     const Wolf& deltaWolf,
@@ -292,8 +301,6 @@ namespace bpt
                               boundingArea, inputBuildings);
       wolfIdx++;
     }
-
-    return newWolves;
   }
 
   Wolf GWO::evolveWolf(

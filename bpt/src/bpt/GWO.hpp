@@ -50,8 +50,8 @@ namespace bpt
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight);
-    eastl::vector<Wolf> updateWolves(
-      const eastl::vector<Wolf> wolves,
+    void updateWolves(
+      eastl::vector<Wolf>& wolves,
       const Wolf& alphaWolf,
       const Wolf& betaWolf,
       const Wolf& deltaWolf,
@@ -59,8 +59,8 @@ namespace bpt
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);
-    eastl::vector<Wolf> evolveWolves(
-      const eastl::vector<Wolf> wolves,
+    void evolveWolves(
+      eastl::vector<Wolf>& wolves,
       const Wolf& alphaWolf,
       const Wolf& betaWolf,
       const Wolf& deltaWolf,
