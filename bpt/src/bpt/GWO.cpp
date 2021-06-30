@@ -136,6 +136,15 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
+      // Selection.
+      for (Wolf& wolf : wolves) {
+        if (wolf.currSolution.getFitness() > wolf.bestSolution.getFitness()) {
+          wolf.currSolution = wolf.bestSolution;
+        } else {
+          wolf.bestSolution = wolf.currSolution;
+        }
+      }
+
       this->evolveWolves(
         wolves,
         alphaWolf,
@@ -170,18 +179,7 @@ namespace bpt
         }
       }
 
-      this->computeWolfValues(
-        wolves,
-        inputBuildings,
-        boundingArea,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty,
-        buildingDistanceWeight);
-
-      this->eliminateWolves(wolves, epsilon, boundingArea, inputBuildings);
+//      this->eliminateWolves(wolves, epsilon, boundingArea, inputBuildings);
 
       this->computeWolfValues(
         wolves,
@@ -193,6 +191,15 @@ namespace bpt
         floodProneAreaPenalty,
         landslideProneAreaPenalty,
         buildingDistanceWeight);
+
+      // Selection.
+      for (Wolf& wolf : wolves) {
+        if (wolf.currSolution.getFitness() > wolf.bestSolution.getFitness()) {
+          wolf.currSolution = wolf.bestSolution;
+        } else {
+          wolf.bestSolution = wolf.currSolution;
+        }
+      }
 
       // Sort the wolves now. We could do this earlier, but it looks cleaner
       // to just put it here.
