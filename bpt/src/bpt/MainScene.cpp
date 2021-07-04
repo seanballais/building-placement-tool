@@ -345,34 +345,6 @@ namespace bpt
     }
 
     returnState = this->settings
-                       .getFloatVariable("gwoFMin")
-                       .returnState;
-    if (returnState == cx::ReturnState::RETURN_FAIL) {
-      this->settings.setVariable("gwoFMin", 0.25f);
-    }
-
-    returnState = this->settings
-                       .getFloatVariable("gwoFMax")
-                       .returnState;
-    if (returnState == cx::ReturnState::RETURN_FAIL) {
-      this->settings.setVariable("gwoFMax", 1.5f);
-    }
-
-    returnState = this->settings
-                       .getFloatVariable("gwoCR")
-                       .returnState;
-    if (returnState == cx::ReturnState::RETURN_FAIL) {
-      this->settings.setVariable("gwoCR", 0.7f);
-    }
-
-    returnState = this->settings
-                       .getFloatVariable("gwoEpsilon")
-                       .returnState;
-    if (returnState == cx::ReturnState::RETURN_FAIL) {
-      this->settings.setVariable("gwoEpsilon", 5.f);
-    }
-
-    returnState = this->settings
                        .getBooleanVariable("gwoKeepInfeasibleSolutions")
                        .returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
@@ -905,13 +877,6 @@ namespace bpt
           this->settings.getFloatVariable("gwoLandslidePenalty").value;
         static float buildingDistanceWeight =
           this->settings.getFloatVariable("gwoBuildingDistanceWeight").value;
-        static float fValues[2] = {
-          this->settings.getFloatVariable("gwoFMin").value,
-          this->settings.getFloatVariable("gwoFMax").value
-        };
-        static float CR = this->settings.getFloatVariable("gwoCR").value;
-        static float epsilon = this->settings.getFloatVariable("gwoEpsilon")
-                                             .value;
         static bool keepInfeasibleSolutions =
           this->settings.getBooleanVariable("gwoKeepInfeasibleSolutions").value;
         static bool isLocalSearchEnabled =
@@ -924,11 +889,6 @@ namespace bpt
         ImGui::SliderFloat("Alpha Decay Rate", &alphaDecayRate, 0.f, 1.f);
         ImGui::InputFloat("Flood Penalty", &floodProneAreasPenalty);
         ImGui::InputFloat("Landslide Penalty", &landslideProneAreasPenalty);
-
-        ImGui::InputFloat2("fMin and fMax", fValues);
-        ImGui::InputFloat("Crossover Probability", &CR);
-        ImGui::InputFloat("Epsilon", &epsilon);
-
         ImGui::InputFloat("Building Distance Weight", &buildingDistanceWeight);
         ImGui::Checkbox("Keep Infeasible Solutions", &keepInfeasibleSolutions);
         ImGui::Checkbox("Enable Local Search", &isLocalSearchEnabled);
@@ -945,10 +905,6 @@ namespace bpt
                                    landslideProneAreasPenalty);
         this->settings.setVariable("gwoBuildingDistanceWeight",
                                    buildingDistanceWeight);
-        this->settings.setVariable("gwoFMin", fValues[0]);
-        this->settings.setVariable("gwoFMax", fValues[1]);
-        this->settings.setVariable("gwoCR", CR);
-        this->settings.setVariable("gwoEpsilon", epsilon);
         this->settings.setVariable("gwoKeepInfeasibleSolutions",
                                    keepInfeasibleSolutions);
         this->settings.setVariable("gwoIsLocalSearchEnabled",
@@ -1098,10 +1054,9 @@ namespace bpt
                   this->settings.getFloatVariable("gwoLandslidePenalty").value,
                   this->settings.getFloatVariable("gwoBuildingDistanceWeight")
                        .value,
-                  this->settings.getFloatVariable("gwoFMin").value,
-                  this->settings.getFloatVariable("gwoFMax").value,
-                  this->settings.getFloatVariable("gwoCR").value,
-                  this->settings.getFloatVariable("gwoEpsilon").value,
+                  this->settings.getBooleanVariable("gwoIsLocalSearchEnabled")
+                       .value,
+                  this->settings.getIntegerVariable("gwoNumLSIters").value,
                   this->settings
                        .getBooleanVariable("gwoKeepInfeasibleSolutions")
                        .value);
