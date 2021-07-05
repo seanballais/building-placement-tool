@@ -12,8 +12,8 @@
 #include <bpt/HC.hpp>
 #include <bpt/ds/CrossoverType.hpp>
 #include <bpt/ds/InputBuilding.hpp>
+#include <bpt/ds/GWOData.hpp>
 #include <bpt/ds/GWOResult.hpp>
-#include <bpt/ds/Wolf.hpp>
 
 namespace bpt
 {
@@ -22,8 +22,8 @@ namespace bpt
   public:
     GWO();
     GWOResult generateSolutions(
-      const eastl::vector<InputBuilding> &a,
-      const corex::core::NPolygon &b,
+      const eastl::vector<InputBuilding> &inputBuildings,
+      const corex::core::NPolygon &boundingArea,
       const eastl::vector<eastl::vector<float>> &flowRates,
       const eastl::vector<corex::core::NPolygon> &floodProneAreas,
       const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
@@ -37,9 +37,11 @@ namespace bpt
       const double timeLimit,
       const bool &keepInfeasibleSolutions);
     int32_t getCurrentRunIterationNumber();
+    const GWOData& getRecentRunData();
   private:
     void computeWolfValues(
-      eastl::vector<Wolf>& wolves,
+      eastl::vector<Solution>& wolves,
+      eastl::vector<double>& wolfMutationRates,
       const eastl::vector<InputBuilding>& inputBuildings,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<eastl::vector<float>>& flowRates,
@@ -49,18 +51,21 @@ namespace bpt
       const float landslideProneAreaPenalty,
       const float buildingDistanceWeight);
     void updateWolves(
-      eastl::vector<Wolf>& wolves,
+      eastl::vector<Solution>& wolves,
       const float& alpha,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);
-    Wolf huntPrey(
-      const int32_t& wolfIdx,
-      const eastl::vector<Wolf>& wolves,
-      const float& alpha,
+    void mutateWolves(
+      eastl::vector<Solution>& wolves,
+      eastl::vector<double>& wolfMutationRates,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);
+    void mutateSolution(Solution& solution,
+                        const corex::core::NPolygon& boundingArea,
+                        const eastl::vector<InputBuilding>& inputBuildings,
+                        const bool& keepInfeasibleSolutions);
     cx::VecN createRandomVector(const int32_t vectorSize,
                                 float min = 0.f, float max = 1.f);
     cx::VecN createACoefficientVector(const int32_t vectorSize,
@@ -72,6 +77,7 @@ namespace bpt
     cx::Timer runTimer;
     int32_t currRunIterationNumber;
     HC hillClimbing;
+    GWOData recentRunData;
   };
 }
 
