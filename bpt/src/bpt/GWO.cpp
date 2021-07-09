@@ -217,12 +217,14 @@ namespace bpt
       float mu = 1.3f;
       float p = 6.f;
 
-      alpha = 2.f
-              - std::pow(
-                  std::log(
-                    1.f + (mu * std::pow(std::tan(i / numIterations), 3.f))
-                  ),
-                  p);
+//      alpha = 2.f
+//              - std::pow(
+//                  std::log(
+//                    1.f + (mu * std::pow(std::tan(i / numIterations), 3.f))
+//                  ),
+//                  p);
+      alpha = 2.f - (2.f * (static_cast<float>(i) / numIterations));
+//      alpha = std::cos((static_cast<float>(i) / numIterations) * cx::pi) + 1;
     }
 
     double elapsedTime = this->runTimer.getElapsedTime();
@@ -441,10 +443,12 @@ namespace bpt
 
         // We need a buffer since we do not buildings to be intersecting by
         // exactly 1 pixel. Note also that we are in origin at this point.
-        float minBuildingXVal = (polyWidth / 2) + 1;
-        float maxBuildingXVal = (boundWidth - (polyWidth / 2)) - 1;
-        float minBuildingYVal = (polyHeight / 2) + 1;
-        float maxBuildingYVal = (boundHeight - (polyHeight / 2)) - 1;
+        float minBuildingXVal = minBoundingPt.x + (polyWidth / 2) + 1;
+        float maxBuildingXVal = minBoundingPt.x
+                                + (boundWidth - (polyWidth / 2)) - 1;
+        float minBuildingYVal = minBoundingPt.y + (polyHeight / 2) + 1;
+        float maxBuildingYVal = minBoundingPt.y
+                                + (boundHeight - (polyHeight / 2)) - 1;
 
         if (minBuildingXVal > maxBuildingXVal) {
           eastl::swap(minBuildingXVal, maxBuildingXVal);
@@ -454,13 +458,14 @@ namespace bpt
           eastl::swap(minBuildingYVal, maxBuildingYVal);
         }
 
-//        wolfSol[i * 3] = cx::clamp(wolfSol[i * 3],
-//                                   minBuildingXVal,
-//                                   maxBuildingXVal);
-//        wolfSol[(i * 3) + 1] = cx::clamp(wolfSol[(i * 3) + 1],
-//                                         minBuildingYVal,
-//                                         maxBuildingYVal);
+        wolfSol[i * 3] = cx::clamp(wolfSol[i * 3],
+                                   minBuildingXVal,
+                                   maxBuildingXVal);
+        wolfSol[(i * 3) + 1] = cx::clamp(wolfSol[(i * 3) + 1],
+                                         minBuildingYVal,
+                                         maxBuildingYVal);
       }
+      std::cout << "\n";
 
       newWolves.push_back(wolfSol);
       wolf = convertVecNToSolution(wolfSol);
@@ -595,8 +600,8 @@ namespace bpt
                                          const cx::VecN randomVector2)
   {
     cx::VecN cCoefficient{vectorSize};
-    for (int32_t i = 0; i < vectorSize; i++) {
-      cCoefficient[i] = 4 * randomVector2[i];
+    for (int32_t i = 0; i < vectorSize; i++ ) {
+      cCoefficient[i] = 12 * randomVector2[i];
     }
 
     return cCoefficient;
