@@ -22,17 +22,12 @@ namespace bpt
           continue;
         }
 
-        fitness += static_cast<double>(
-          corex::core::distance2D(corex::core::Point{
-                                    solution.getBuildingXPos(i),
-                                    solution.getBuildingYPos(i)
-                                  },
-                                  corex::core::Point{
-                                    solution.getBuildingXPos(j),
-                                    solution.getBuildingYPos(j)
-                                  })
-          * flowRates[i][j]
-        );
+        float xi = solution.getBuildingXPos(i);
+        float xj = solution.getBuildingXPos(j);
+        float yi = solution.getBuildingYPos(i);
+        float yj = solution.getBuildingYPos(j);
+
+        fitness += (cx::abs(xi - xj) + cx::abs(yi - yj)) * flowRates[i][j];
       }
     }
 

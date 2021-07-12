@@ -162,12 +162,26 @@ namespace corex::core {
     return floatLessEqual(a, val) && floatLessEqual(val, b);
   }
 
+  bool isFloatIncExcBetween(float a, float val, float b)
+  {
+    if (floatGreater(a, b)) {
+      std::swap(a, b);
+    }
+
+    return floatLessEqual(a, val) && floatLessThan(val, b);
+  }
+
   int32_t abs(int32_t n) {
     if (n < 0) {
       return n * -1;
     } else {
       return n;
     }
+  }
+
+  float abs(float n)
+  {
+    return std::fabs(n);
   }
 
   int32_t factorial(int32_t n) {

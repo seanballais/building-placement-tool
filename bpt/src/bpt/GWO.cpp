@@ -301,25 +301,12 @@ namespace bpt
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
   {
-    eastl::array<Solution, 3> leadingWolves{ wolves[0], wolves[1], wolves[2] };
+    constexpr int32_t numLeaders = 3;
 
-    // Get the delta vector.
-    cx::Point minBoundingPt = boundingArea.vertices[0];
-
-    float boundWidth = boundingArea.vertices[1].x
-                       - boundingArea.vertices[0].x;
-    float boundHeight = boundingArea.vertices[3].y
-                        - boundingArea.vertices[0].y;
-
-    cx::VecN deltaVec(inputBuildings.size() * 3);
-    cx::VecN newOrigDelta(inputBuildings.size() * 3);
-    for (int32_t i = 0; i < inputBuildings.size(); i++) {
-      deltaVec[i * 3] = -minBoundingPt.x;
-      deltaVec[(i * 3) + 1] = -minBoundingPt.y;
-
-      newOrigDelta[i * 3] = -boundWidth / 2.f;
-      newOrigDelta[(i * 3) + 1] = -boundHeight / 2.f;
-    }
+    // Building x and y positions data.
+    eastl::array<Solution, numLeaders> leadingWolves{
+      wolves[0], wolves[1], wolves[2]
+    };
 
     cx::VecN alphaVecN = convertSolutionToVecN(leadingWolves[0]);
     cx::VecN betaVecN = convertSolutionToVecN(leadingWolves[1]);
@@ -331,12 +318,30 @@ namespace bpt
     this->recentRunData.alphaValues.push_back(alpha);
 
     // Coefficient values of the leading wolves.
-    constexpr int32_t numLeaders = 3;
     cx::VecN defVecN(inputBuildings.size() * 3, 0.f);
     eastl::array<cx::VecN, numLeaders> ALeaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> CLeaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r1Leaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r2Leaders{ defVecN, defVecN, defVecN };
+
+    // Building orientations data.
+    cx::VecN alphaOrtVecN = getNormalizedSolutionOrientations(wolves[0]);
+    cx::VecN betaOrtVecN = getNormalizedSolutionOrientations(wolves[1]);
+    cx::VecN deltaOrtVecN = getNormalizedSolutionOrientations(wolves[2]);
+
+    cx::VecN defOrtVecN(inputBuildings.size() * 3, 0.f);
+    eastl::array<cx::VecN, numLeaders> AOrtLeaders{
+      defOrtVecN, defOrtVecN, defOrtVecN
+    };
+    eastl::array<cx::VecN, numLeaders> COrtLeaders{
+      defOrtVecN, defOrtVecN, defOrtVecN
+    };
+    eastl::array<cx::VecN, numLeaders> r1OrtLeaders{
+      defOrtVecN, defOrtVecN, defOrtVecN
+    };
+    eastl::array<cx::VecN, numLeaders> r2OrtLeaders{
+      defOrtVecN, defOrtVecN, defOrtVecN
+    };
 
 #pragma region GWO_Gen_Debug_Data
     // For the GWO debugging data.
@@ -368,8 +373,17 @@ namespace bpt
     eastl::vector<cx::VecN> newWolves;
 #pragma endregion GWO_Gen_Debug_Data
 
+    cx::Point minBoundingPt = boundingArea.vertices[0];
+
+    float boundWidth = boundingArea.vertices[1].x
+                       - boundingArea.vertices[0].x;
+    float boundHeight = boundingArea.vertices[3].y
+                        - boundingArea.vertices[0].y;
+
     for (Solution& wolf : wolves) {
+      // Set up necessary auxiliary data.
       for (int32_t n = 0; n < numLeaders; n++) {
+        // Building x and y positions auxiliary data.
         r1Leaders[n] = this->createRandomVector(defVecN.size());
         r2Leaders[n] = this->createRandomVector(defVecN.size(), -1.f, 1.f);
         ALeaders[n] = this->createACoefficientVector(defVecN.size(),
@@ -377,6 +391,16 @@ namespace bpt
                                                      alpha);
         CLeaders[n] = this->createCCoefficientVector(defVecN.size(),
                                                      r2Leaders[n]);
+
+        // Building orientations auxiliary data.
+        r1OrtLeaders[n] = this->createRandomVector(defOrtVecN.size());
+        r2OrtLeaders[n] = this->createRandomVector(defOrtVecN.size(),
+                                                   -1.f, 1.f);
+        AOrtLeaders[n] = this->createACoefficientVector(defOrtVecN.size(),
+                                                        r1OrtLeaders[n],
+                                                        alpha);
+        COrtLeaders[n] = this->createCCoefficientVector(defOrtVecN.size(),
+                                                        r2OrtLeaders[n]);
       }
 
 #pragma region GWO_Add_Debug_Data_1
@@ -397,6 +421,7 @@ namespace bpt
       Cdeltas.push_back(CLeaders[2]);
 #pragma endregion GWO_Add_Debug_Data_1
 
+      // Compute the building x and y positions.
       cx::VecN wolfSol = convertSolutionToVecN(wolf);
 
       auto Da = cx::vecNAbs((CLeaders[0] + alphaVecN) - wolfSol);
@@ -419,15 +444,42 @@ namespace bpt
 
       wolfSol = (X1 + X2 + X3) / 3.f;
 
-      // Do a crossover for the building angles, since they get wrongly modified
-      // by the mixing of the alpha, beta, and delta wolves. Clamp building
-      // positions to the bounding area too.
-      for (int32_t i = 0; i < inputBuildings.size(); i++) {
-        int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
-        Solution partnerWolf = leadingWolves[partnerIndex];
-        wolfSol[(i * 3) + 2] = partnerWolf.getBuildingAngle(i);
+      // Compute the building orientations.
+      cx::VecN wolfOrts = getNormalizedSolutionOrientations(wolf);
 
-        // Clamping time.
+      auto DOrta = cx::vecNAbs((COrtLeaders[0] + alphaOrtVecN) - wolfOrts);
+      auto DOrtb = cx::vecNAbs((COrtLeaders[1] + betaOrtVecN) - wolfOrts);
+      auto DOrtd = cx::vecNAbs((COrtLeaders[2] + deltaOrtVecN) - wolfOrts);
+
+      cx::VecN s1 = applySigmoid(AOrtLeaders[0], DOrta);
+      cx::VecN s2 = applySigmoid(AOrtLeaders[1], DOrtb);
+      cx::VecN s3 = applySigmoid(AOrtLeaders[2], DOrtd);
+
+      cx::VecN bStep1 = getBStep(s1);
+      cx::VecN bStep2 = getBStep(s2);
+      cx::VecN bStep3 = getBStep(s3);
+
+      cx::VecN XOrt1 = getBinX(alphaOrtVecN, bStep1);
+      cx::VecN XOrt2 = getBinX(betaOrtVecN, bStep2);
+      cx::VecN XOrt3 = getBinX(deltaOrtVecN, bStep3);
+
+      // Add orientations to the wolf VecN, and clamp building positions to the
+      // bounding area too.
+      for (int32_t i = 0; i < inputBuildings.size(); i++) {
+        // Crossover to get orientation.
+        float crossoverRand = cx::getRandomRealUniformly(0.f, 1.f);
+        if (cx::floatLessThan(crossoverRand, 1.f / 3.f)) {
+          wolfSol[(i * 3) + 2] = XOrt1[i];
+        } else if (cx::isFloatIncExcBetween(1.f / 3.f,
+                                            crossoverRand,
+                                            2.f / 3.f)) {
+          wolfSol[(i * 3) + 2] = XOrt2[i];
+        } else {
+          wolfSol[(i * 3) + 2] = XOrt3[i];
+        }
+
+        // TODO: Make sure that the building orientations are either 0 or 90.
+
         cx::Rectangle buildingRect {
           wolf.getBuildingXPos(i),
           wolf.getBuildingYPos(i),
@@ -465,7 +517,6 @@ namespace bpt
                                          minBuildingYVal,
                                          maxBuildingYVal);
       }
-      std::cout << "\n";
 
       newWolves.push_back(wolfSol);
       wolf = convertVecNToSolution(wolfSol);
@@ -601,9 +652,67 @@ namespace bpt
   {
     cx::VecN cCoefficient{vectorSize};
     for (int32_t i = 0; i < vectorSize; i++ ) {
-      cCoefficient[i] = 12 * randomVector2[i];
+      cCoefficient[i] = 2 * randomVector2[i];
     }
 
     return cCoefficient;
   }
+
+  cx::VecN GWO::getNormalizedSolutionOrientations(const Solution& solution)
+  {
+    cx::VecN orientations{ solution.getNumBuildings() };
+    for (int32_t i = 0; i < orientations.size(); i++) {
+      // Note: A building's angle can only either be 0° or 90°.
+      orientations[i] = solution.getBuildingAngle(i) / 90.f;
+    }
+
+    return orientations;
+  }
+
+  cx::VecN GWO::getVecNItemMultiples(const cx::VecN& p,
+                                     int32_t groupSize,
+                                     int32_t ordinality,
+                                     int32_t numItems)
+  {
+    // p's size must be divisible by the group size.
+    assert(p.size() % groupSize == 0);
+
+    cx::VecN collectedItems{ numItems };
+    for (int32_t i = 0; i < numItems; i++) {
+      collectedItems[i] = p[(i * groupSize) + ordinality];
+    }
+
+    return collectedItems;
+  }
+
+  cx::VecN GWO::applySigmoid(const cx::VecN& A, const cx::VecN& D)
+  {
+    cx::VecN s{ static_cast<int32_t>(A.size()) };
+    for (int32_t i = 0; i < s.size(); i++) {
+      s[i] = 1.f / (1.f + std::exp(-10 * ((A[i] * D[i]) - 0.5f)));
+    }
+
+    return s;
+  }
+
+  cx::VecN GWO::getBStep(const cx::VecN& s)
+  {
+    cx::VecN bStep{ static_cast<int32_t>(s.size()) };
+    for (int32_t i = 0; i < bStep.size(); i++) {
+      float randn = cx::getRandomRealUniformly(0.f, 1.f);
+      bStep[i] = cx::floatGreEqual(s[i], randn);
+    }
+
+    return bStep;
+  }
+
+  cx::VecN GWO::getBinX(const cx::VecN& X, const cx::VecN& bStep)
+  {
+    cx::VecN XVecN{ static_cast<int32_t>() };
+    for (int32_t i = 0; i < XVecN.size(); i++) {
+      XVecN[i] = cx::floatGreEqual(X[i] + bStep[i], 1.f);
+    }
+
+    return XVecN;
+  };
 }

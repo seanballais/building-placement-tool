@@ -73,6 +73,14 @@ namespace bpt
                                       const float alpha);
     cx::VecN createCCoefficientVector(const int32_t vectorSize,
                                       const cx::VecN randomVector);
+    cx::VecN getNormalizedSolutionOrientations(const Solution& solution);
+    cx::VecN getVecNItemMultiples(const cx::VecN& p,
+                                  int32_t groupSize,
+                                  int32_t ordinality,
+                                  int32_t numItems);
+    cx::VecN applySigmoid(const cx::VecN& A, const cx::VecN& D);
+    cx::VecN getBStep(const cx::VecN& s);
+    cx::VecN getBinX(const cx::VecN& X, const cx::VecN& bStep);
 
     cx::Timer runTimer;
     int32_t currRunIterationNumber;
