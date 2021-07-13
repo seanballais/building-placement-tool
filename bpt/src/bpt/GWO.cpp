@@ -47,6 +47,7 @@ namespace bpt
     const double timeLimit,
     const bool &keepInfeasibleSolutions)
   {
+    // TODO: Fix mutation.
     eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<Solution> wolves;
     eastl::vector<double> wolfMutationRates;
@@ -139,6 +140,25 @@ namespace bpt
         keepInfeasibleSolutions);
 
       // Evaluate individual fitness and mutation rate.
+      this->computeWolfValues(
+        wolves,
+        wolfMutationRates,
+        inputBuildings,
+        boundingArea,
+        flowRates,
+        floodProneAreas,
+        landslideProneAreas,
+        floodProneAreaPenalty,
+        landslideProneAreaPenalty,
+        buildingDistanceWeight);
+
+      this->mutateWolves(
+        wolves,
+        wolfMutationRates,
+        boundingArea,
+        inputBuildings,
+        keepInfeasibleSolutions);
+
       this->computeWolfValues(
         wolves,
         wolfMutationRates,
@@ -448,12 +468,12 @@ namespace bpt
       // or 1.
       cx::VecN wolfOrts = getNormalizedSolutionOrientations(wolf);
 
-      auto DOrta = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[0], alphaOrtVecN))
-                   - wolfOrts;
-      auto DOrtb = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[1], betaOrtVecN))
-                   - wolfOrts;
-      auto DOrtd = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[2], deltaOrtVecN))
-                   - wolfOrts;
+      auto DOrta = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[0], alphaOrtVecN)
+                               - wolfOrts);
+      auto DOrtb = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[1], betaOrtVecN)
+                               - wolfOrts);
+      auto DOrtd = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[2], deltaOrtVecN)
+                               - wolfOrts);
 
       cx::VecN s1 = applySigmoid(AOrtLeaders[0], DOrta);
       cx::VecN s2 = applySigmoid(AOrtLeaders[1], DOrtb);
@@ -583,7 +603,7 @@ namespace bpt
                                       const corex::core::NPolygon&,
                                       const eastl::vector<InputBuilding>&,
                                       const bool&)>,
-      3> mutationFunctions = {
+      4> mutationFunctions = {
       [](Solution& solution,
          const corex::core::NPolygon& boundingArea,
          const eastl::vector<InputBuilding>& inputBuildings,
@@ -608,6 +628,14 @@ namespace bpt
       {
         applyJiggleOperator(solution, boundingArea,
                             inputBuildings, keepInfeasibleSolutions);
+      },
+      [](Solution& solution,
+         const corex::core::NPolygon& boundingArea,
+         const eastl::vector<InputBuilding>& inputBuildings,
+         const bool& keepInfeasibleSolutions)
+      {
+        applyOrientationFlipping(solution, boundingArea,
+                                 inputBuildings, keepInfeasibleSolutions);
       }
     };
 
@@ -616,7 +644,7 @@ namespace bpt
       tempSolution = solution;
       //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
       //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 0;
+      const int32_t mutationFuncIndex = 3;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,

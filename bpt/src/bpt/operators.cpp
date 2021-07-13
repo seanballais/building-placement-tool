@@ -520,6 +520,21 @@ namespace bpt
       cx::selectItemRandomly(eastl::vector<float>{ 0.f, 90.f }));
   }
 
+  void applyOrientationFlipping(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions)
+  {
+    int32_t buildingIdx = cx::getRandomIntUniformly(0,
+                                                    inputBuildings.size() - 1);
+    if (cx::floatEquals(solution.getBuildingAngle(buildingIdx), 0.f)) {
+      solution.setBuildingAngle(buildingIdx, 90.f);
+    } else {
+      solution.setBuildingAngle(buildingIdx, 0.f);
+    }
+  }
+
   void applySwappingMethod(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,

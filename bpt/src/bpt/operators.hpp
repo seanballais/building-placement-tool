@@ -45,6 +45,11 @@ namespace bpt
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions);
+  void applyOrientationFlipping(
+    Solution& solution,
+    const corex::core::NPolygon& boundingArea,
+    const eastl::vector<InputBuilding>& inputBuildings,
+    const bool& keepInfeasibleSolutions);
   void applySwappingMethod(
     Solution& solution,
     const corex::core::NPolygon& boundingArea,
