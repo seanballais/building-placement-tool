@@ -457,34 +457,28 @@ namespace bpt
         this->buildingEntities.push_back(e);
       }
 
-//      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-//        // We are using two separate loops to update the building and building
-//        // text entities for performance reasons. Doing this will ensure that
-//        // there will be more cache hits than cache misses.
-//        float buildingWidth = this->inputBuildings[i].width;
-//        float buildingLength = this->inputBuildings[i].length;
-//        float buildingArea = buildingWidth * buildingLength;
-//
-//        int32_t fontSize = buildingArea *
-//
-//        entt::entity e = this->registry.create();
-//        this->registry.emplace<corex::core::Position>(
-//          e,
-//          this->currentSolution->getBuildingXPos(i),
-//          this->currentSolution->getBuildingYPos(i),
-//          0.f,
-//          static_cast<int8_t>(5));
-//        this->registry.emplace<corex::core::Renderable>(
-//          e,
-//          corex::core::RenderableType::TEXT);
-//        this->registry.emplace<corex::core::Text>(
-//          e,
-//          eastl::to_string(i),
-//          this->assetManager.getFont("liberation-sans-regular-font", 15),
-//          SDL_Color{ 255, 255, 255, 255 });
-//
-//        this->buildingTextEntities.push_back(e);
-//      }
+      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+        // We are using two separate loops to update the building and building
+        // text entities for performance reasons. Doing this will ensure that
+        // there will be more cache hits than cache misses.
+        entt::entity e = this->registry.create();
+        this->registry.emplace<corex::core::Position>(
+          e,
+          this->currentSolution->getBuildingXPos(i),
+          this->currentSolution->getBuildingYPos(i),
+          0.f,
+          static_cast<int8_t>(5));
+        this->registry.emplace<corex::core::Renderable>(
+          e,
+          corex::core::RenderableType::TEXT);
+        this->registry.emplace<corex::core::Text>(
+          e,
+          eastl::to_string(i),
+          this->assetManager.getFont("liberation-sans-regular-font", 15),
+          SDL_Color{ 255, 255, 255, 255 });
+
+        this->buildingTextEntities.push_back(e);
+      }
 
       this->currentSolution->setFitness(computeSolutionFitness(
         *(this->currentSolution),

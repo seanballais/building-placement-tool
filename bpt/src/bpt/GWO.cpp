@@ -329,7 +329,7 @@ namespace bpt
     cx::VecN betaOrtVecN = getNormalizedSolutionOrientations(wolves[1]);
     cx::VecN deltaOrtVecN = getNormalizedSolutionOrientations(wolves[2]);
 
-    cx::VecN defOrtVecN(inputBuildings.size() * 3, 0.f);
+    cx::VecN defOrtVecN(inputBuildings.size(), 0.f);
     eastl::array<cx::VecN, numLeaders> AOrtLeaders{
       defOrtVecN, defOrtVecN, defOrtVecN
     };
@@ -444,12 +444,16 @@ namespace bpt
 
       wolfSol = (X1 + X2 + X3) / 3.f;
 
-      // Compute the building orientations.
+      // Compute the building orientations. Remember that these are either 0
+      // or 1.
       cx::VecN wolfOrts = getNormalizedSolutionOrientations(wolf);
 
-      auto DOrta = cx::vecNAbs((COrtLeaders[0] + alphaOrtVecN) - wolfOrts);
-      auto DOrtb = cx::vecNAbs((COrtLeaders[1] + betaOrtVecN) - wolfOrts);
-      auto DOrtd = cx::vecNAbs((COrtLeaders[2] + deltaOrtVecN) - wolfOrts);
+      auto DOrta = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[0], alphaOrtVecN))
+                   - wolfOrts;
+      auto DOrtb = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[1], betaOrtVecN))
+                   - wolfOrts;
+      auto DOrtd = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[2], deltaOrtVecN))
+                   - wolfOrts;
 
       cx::VecN s1 = applySigmoid(AOrtLeaders[0], DOrta);
       cx::VecN s2 = applySigmoid(AOrtLeaders[1], DOrtb);
@@ -478,7 +482,7 @@ namespace bpt
           wolfSol[(i * 3) + 2] = XOrt3[i];
         }
 
-        // TODO: Make sure that the building orientations are either 0 or 90.
+        wolfSol[(i * 3) + 2] *= 90.f;
 
         cx::Rectangle buildingRect {
           wolf.getBuildingXPos(i),
@@ -708,7 +712,9 @@ namespace bpt
 
   cx::VecN GWO::getBinX(const cx::VecN& X, const cx::VecN& bStep)
   {
-    cx::VecN XVecN{ static_cast<int32_t>() };
+    assert(X.size() == bStep.size());
+
+    cx::VecN XVecN{ static_cast<int32_t>(X.size()) };
     for (int32_t i = 0; i < XVecN.size(); i++) {
       XVecN[i] = cx::floatGreEqual(X[i] + bStep[i], 1.f);
     }
