@@ -387,52 +387,6 @@ namespace bpt
         && !this->isAlgoThreadRunning) {
       this->clearCurrentlyRenderedSolution();
 
-      if (this->currentAlgorithm == AlgorithmType::GWO
-          && !this->solutions.empty()) {
-        auto &currGeneration = this->solutions[this->currSelectedIter];
-
-        cx::VecN alpha = convertSolutionToVecN(currGeneration[0]);
-        cx::VecN beta = convertSolutionToVecN(currGeneration[1]);
-        cx::VecN delta = convertSolutionToVecN(currGeneration[2]);
-        cx::VecN preyWolfSol = (alpha + beta + delta) / 3.f;
-        Solution prey = convertVecNToSolution(preyWolfSol);
-
-        for (int32_t i = 0; i < this->inputBuildings.size(); i++) {
-          int32_t partnerIndex = cx::getRandomIntUniformly(0, 2);
-          if (partnerIndex == 0) {
-            prey.setBuildingAngle(i, alpha[(i * 3) + 2]);
-          } else if (partnerIndex == 1) {
-            prey.setBuildingAngle(i, beta[(i * 3) + 2]);
-          } else {
-            prey.setBuildingAngle(i, delta[(i * 3) + 2]);
-          }
-        }
-
-        for (int32_t i = 0; i < prey.getNumBuildings(); i++) {
-          entt::entity e = this->registry.create();
-          this->registry.emplace<corex::core::Position>(
-            e,
-            prey.getBuildingXPos(i),
-            prey.getBuildingYPos(i),
-            0.f,
-            static_cast<int8_t>(1));
-          this->registry.emplace<corex::core::Renderable>(
-            e,
-            corex::core::RenderableType::PRIMITIVE_RECTANGLE);
-          this->registry.emplace<corex::core::RenderRectangle>(
-            e,
-            prey.getBuildingXPos(i),
-            prey.getBuildingYPos(i),
-            this->inputBuildings[i].width,
-            this->inputBuildings[i].length,
-            prey.getBuildingAngle(i),
-            SDL_Color{230, 83, 167, 100},
-            true);
-
-          this->gwoPreyEntities.push_back(e);
-        }
-      }
-
       for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
         entt::entity e = this->registry.create();
         this->registry.emplace<corex::core::Position>(
@@ -457,28 +411,28 @@ namespace bpt
         this->buildingEntities.push_back(e);
       }
 
-      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
-        // We are using two separate loops to update the building and building
-        // text entities for performance reasons. Doing this will ensure that
-        // there will be more cache hits than cache misses.
-        entt::entity e = this->registry.create();
-        this->registry.emplace<corex::core::Position>(
-          e,
-          this->currentSolution->getBuildingXPos(i),
-          this->currentSolution->getBuildingYPos(i),
-          0.f,
-          static_cast<int8_t>(5));
-        this->registry.emplace<corex::core::Renderable>(
-          e,
-          corex::core::RenderableType::TEXT);
-        this->registry.emplace<corex::core::Text>(
-          e,
-          eastl::to_string(i),
-          this->assetManager.getFont("liberation-sans-regular-font", 15),
-          SDL_Color{ 255, 255, 255, 255 });
-
-        this->buildingTextEntities.push_back(e);
-      }
+//      for (int32_t i = 0; i < this->currentSolution->getNumBuildings(); i++) {
+//        // We are using two separate loops to update the building and building
+//        // text entities for performance reasons. Doing this will ensure that
+//        // there will be more cache hits than cache misses.
+//        entt::entity e = this->registry.create();
+//        this->registry.emplace<corex::core::Position>(
+//          e,
+//          this->currentSolution->getBuildingXPos(i),
+//          this->currentSolution->getBuildingYPos(i),
+//          0.f,
+//          static_cast<int8_t>(5));
+//        this->registry.emplace<corex::core::Renderable>(
+//          e,
+//          corex::core::RenderableType::TEXT);
+//        this->registry.emplace<corex::core::Text>(
+//          e,
+//          eastl::to_string(i),
+//          this->assetManager.getFont("liberation-sans-regular-font", 15),
+//          SDL_Color{ 255, 255, 255, 255 });
+//
+//        this->buildingTextEntities.push_back(e);
+//      }
 
       this->currentSolution->setFitness(computeSolutionFitness(
         *(this->currentSolution),
@@ -1587,6 +1541,26 @@ namespace bpt
       ImGui::Text("W (new):");
       this->drawGWOSolBuildingData(runData.newWolves[currIter][currIterSolIdx],
                                    buildingIdx);
+
+      // Draw the minimum building X value.
+      ImGui::Text(
+        "Min. Building X: %f",
+        runData.minBuildingXPoses[currIter][currIterSolIdx][buildingIdx]);
+
+      // Draw the minimum building Y value.
+      ImGui::Text(
+        "Min. Building Y: %f",
+        runData.minBuildingYPoses[currIter][currIterSolIdx][buildingIdx]);
+
+      // Draw the maximum building X value.
+      ImGui::Text(
+        "Max. Building X: %f",
+        runData.maxBuildingXPoses[currIter][currIterSolIdx][buildingIdx]);
+
+      // Draw the maximum building Y value.
+      ImGui::Text(
+        "Max. Building Y: %f",
+        runData.maxBuildingYPoses[currIter][currIterSolIdx][buildingIdx]);
     }
 
     ImGui::EndChild();

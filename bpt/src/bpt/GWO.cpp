@@ -79,6 +79,10 @@ namespace bpt
     this->recentRunData.X3s.clear();
     this->recentRunData.oldWolves.clear();
     this->recentRunData.newWolves.clear();
+    this->recentRunData.minBuildingXPoses.clear();
+    this->recentRunData.minBuildingYPoses.clear();
+    this->recentRunData.maxBuildingXPoses.clear();
+    this->recentRunData.maxBuildingYPoses.clear();
 
     this->runTimer.start();
 
@@ -205,6 +209,15 @@ namespace bpt
 
       cx::reorderVector(this->recentRunData.oldWolves.back(), dataIndices);
       cx::reorderVector(this->recentRunData.newWolves.back(), dataIndices);
+
+      cx::reorderVector(this->recentRunData.minBuildingXPoses.back(),
+                        dataIndices);
+      cx::reorderVector(this->recentRunData.minBuildingYPoses.back(),
+                        dataIndices);
+      cx::reorderVector(this->recentRunData.maxBuildingXPoses.back(),
+                        dataIndices);
+      cx::reorderVector(this->recentRunData.maxBuildingYPoses.back(),
+                        dataIndices);
 #pragma endregion GWO_Add_Debug_Data_3
 
       // Sort the wolves now. We could do this earlier, but it looks cleaner
@@ -234,17 +247,7 @@ namespace bpt
 
       solutions.push_back(wolves);
 
-      float mu = 1.3f;
-      float p = 6.f;
-
-//      alpha = 2.f
-//              - std::pow(
-//                  std::log(
-//                    1.f + (mu * std::pow(std::tan(i / numIterations), 3.f))
-//                  ),
-//                  p);
       alpha = 2.f - (2.f * (static_cast<float>(i) / numIterations));
-//      alpha = std::cos((static_cast<float>(i) / numIterations) * cx::pi) + 1;
     }
 
     double elapsedTime = this->runTimer.getElapsedTime();
@@ -391,6 +394,11 @@ namespace bpt
 
     eastl::vector<cx::VecN> oldWolves;
     eastl::vector<cx::VecN> newWolves;
+
+    eastl::vector<cx::VecN> minBuildingXPoses;
+    eastl::vector<cx::VecN> minBuildingYPoses;
+    eastl::vector<cx::VecN> maxBuildingXPoses;
+    eastl::vector<cx::VecN> maxBuildingYPoses;
 #pragma endregion GWO_Gen_Debug_Data
 
     cx::Point minBoundingPt = boundingArea.vertices[0];
@@ -487,6 +495,11 @@ namespace bpt
       cx::VecN XOrt2 = getBinX(betaOrtVecN, bStep2);
       cx::VecN XOrt3 = getBinX(deltaOrtVecN, bStep3);
 
+      cx::VecN minBuildingXPos(inputBuildings.size(), 0.f);
+      cx::VecN minBuildingYPos(inputBuildings.size(), 0.f);
+      cx::VecN maxBuildingXPos(inputBuildings.size(), 0.f);
+      cx::VecN maxBuildingYPos(inputBuildings.size(), 0.f);
+
       // Add orientations to the wolf VecN, and clamp building positions to the
       // bounding area too.
       for (int32_t i = 0; i < inputBuildings.size(); i++) {
@@ -517,14 +530,12 @@ namespace bpt
         float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
         float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
 
-        // We need a buffer since we do not buildings to be intersecting by
-        // exactly 1 pixel. Note also that we are in origin at this point.
-        float minBuildingXVal = minBoundingPt.x + (polyWidth / 2) + 1;
+        float minBuildingXVal = minBoundingPt.x + (polyWidth / 2);
         float maxBuildingXVal = minBoundingPt.x
-                                + (boundWidth - (polyWidth / 2)) - 1;
-        float minBuildingYVal = minBoundingPt.y + (polyHeight / 2) + 1;
+                                + (boundWidth - (polyWidth / 2));
+        float minBuildingYVal = minBoundingPt.y + (polyHeight / 2);
         float maxBuildingYVal = minBoundingPt.y
-                                + (boundHeight - (polyHeight / 2)) - 1;
+                                + (boundHeight - (polyHeight / 2));
 
         if (minBuildingXVal > maxBuildingXVal) {
           eastl::swap(minBuildingXVal, maxBuildingXVal);
@@ -534,6 +545,11 @@ namespace bpt
           eastl::swap(minBuildingYVal, maxBuildingYVal);
         }
 
+        minBuildingXPos[i] = minBuildingXVal;
+        minBuildingYPos[i] = minBuildingYVal;
+        maxBuildingXPos[i] = maxBuildingXVal;
+        maxBuildingYPos[i] = maxBuildingYVal;
+
         wolfSol[i * 3] = cx::clamp(wolfSol[i * 3],
                                    minBuildingXVal,
                                    maxBuildingXVal);
@@ -541,6 +557,11 @@ namespace bpt
                                          minBuildingYVal,
                                          maxBuildingYVal);
       }
+
+      minBuildingXPoses.push_back(minBuildingXPos);
+      minBuildingYPoses.push_back(minBuildingYPos);
+      maxBuildingXPoses.push_back(maxBuildingXPos);
+      maxBuildingYPoses.push_back(maxBuildingYPos);
 
       newWolves.push_back(wolfSol);
       wolf = convertVecNToSolution(wolfSol);
@@ -573,6 +594,11 @@ namespace bpt
 
     this->recentRunData.oldWolves.push_back(oldWolves);
     this->recentRunData.newWolves.push_back(newWolves);
+
+    this->recentRunData.minBuildingXPoses.push_back(minBuildingXPoses);
+    this->recentRunData.minBuildingYPoses.push_back(minBuildingYPoses);
+    this->recentRunData.maxBuildingXPoses.push_back(maxBuildingXPoses);
+    this->recentRunData.maxBuildingYPoses.push_back(maxBuildingYPoses);
 #pragma endregion GWO_Add_Debug_Data_2
   }
 
@@ -644,7 +670,7 @@ namespace bpt
       tempSolution = solution;
       //const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
       //  0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 3;
+      const int32_t mutationFuncIndex = 0;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,

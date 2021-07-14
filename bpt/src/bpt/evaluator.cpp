@@ -59,7 +59,7 @@ namespace bpt
           inputBuildings[j].length,
           solution.getBuildingAngle(j)
         };
-        if (corex::core::areTwoRectsIntersecting(building0, building1)) {
+        if (corex::core::areTwoRectsAABBIntersecting(building0, building1)) {
           // Let's penalize buildings based on how much of the smaller building
           // is being intersected by the bigger building.
           auto intersectingPoly = cx::getIntersectingRectAABB(building0,
@@ -78,49 +78,6 @@ namespace bpt
                                                             : building1Area;
           fitness += (penaltyVal * (intersectionArea / baseArea)) + penaltyVal;
         }
-      }
-    }
-
-    // Check if the building is not inside the bounding area.
-    for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
-      if (!solution.isBuildingDataUsable(i)) {
-        continue;
-      }
-
-      corex::core::Rectangle buildingRect{
-        solution.getBuildingXPos(i),
-        solution.getBuildingYPos(i),
-        inputBuildings[i].width,
-        inputBuildings[i].length,
-        solution.getBuildingAngle(i)
-      };
-
-      if (!cx::isRectWithinNPolygonAABB(buildingRect, boundingArea)) {
-        constexpr double penaltyVal = 1000000.0;
-        // We just get a percentage of the penalty value based on how much
-        // of the area of the building is outside of the bounding area.
-        float boundingWidth = boundingArea.vertices[1].x
-                              - boundingArea.vertices[0].x;
-        float boundingHeight = boundingArea.vertices[2].y
-                               - boundingArea.vertices[0].y;
-        auto boundingRect = cx::Rectangle{
-          boundingArea.vertices[0].x,
-          boundingArea.vertices[0].y,
-          boundingWidth,
-          boundingHeight,
-          0.f
-        };
-        auto intersectingPoly = cx::getIntersectingRectAABB(buildingRect,
-                                                            boundingRect);
-        cx::Point& interMinPt = intersectingPoly.vertices[0];
-        cx::Point& interMaxPt = intersectingPoly.vertices[2];
-        float interWidth = interMaxPt.x - interMinPt.x;
-        float interHeight = interMaxPt.y - interMinPt.y;
-        double intersectionArea = interWidth * interHeight;
-        double buildingArea = buildingRect.width * buildingRect.height;
-        double outsideArea = buildingArea - intersectionArea;
-
-        fitness += (penaltyVal * (outsideArea / buildingArea)) + penaltyVal;
       }
     }
 

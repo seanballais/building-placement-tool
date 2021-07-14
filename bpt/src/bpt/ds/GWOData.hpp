@@ -43,6 +43,11 @@ namespace bpt
 
     eastl::vector<eastl::vector<cx::VecN>> oldWolves;
     eastl::vector<eastl::vector<cx::VecN>> newWolves;
+
+    eastl::vector<eastl::vector<cx::VecN>> minBuildingXPoses;
+    eastl::vector<eastl::vector<cx::VecN>> minBuildingYPoses;
+    eastl::vector<eastl::vector<cx::VecN>> maxBuildingXPoses;
+    eastl::vector<eastl::vector<cx::VecN>> maxBuildingYPoses;
   };
 }
 
