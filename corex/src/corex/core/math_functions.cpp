@@ -652,6 +652,38 @@ namespace corex::core {
            || isRectWithinRectAABB(rect1, rect0);
   }
 
+  bool areTwoRectsAABBSharingABorder(const Rectangle& rect0,
+                                     const Rectangle& rect1)
+  {
+    Polygon<4> rectangle0 = rotateRectangle(rect0);
+    Polygon<4> rectangle1 = rotateRectangle(rect1);
+
+    float rect0TopLeftX = rectangle0.vertices[0].x;
+    float rect0TopLeftY = rectangle0.vertices[0].y;
+    float rect1TopLeftX = rectangle1.vertices[0].x;
+    float rect1TopLeftY = rectangle1.vertices[0].y;
+    float rect0Width = rectangle0.vertices[1].x - rect0TopLeftX;
+    float rect0Height = rectangle0.vertices[3].y - rect0TopLeftY;
+    float rect1Width = rectangle1.vertices[1].x - rect1TopLeftX;
+    float rect1Height = rectangle1.vertices[3].y - rect1TopLeftY;
+
+    // TODO: Continue this.
+    if (rect0TopLeftX + rect0Width == rect1TopLeftX
+        || rect0TopLeftX == rect1TopLeftX + rect1Width) {
+      // From the x-axis, rect0's right edge and rect1's left edge
+      // or rect0's left edge and rect1's right edge are shared.
+      // Need to add tests for the y-axis to be sure.
+      return rect0TopLeftY <= rect1TopLeftY + rect1Height
+             && rect0TopLeftY + rect0Height >= rect1TopLeftY;
+    } else {
+      // The left and right edges of both rectangles are not being shared.
+      // That means that we have to check if the x components of the two
+      // rectangles are intersecting with respect to the x-axis to see if there
+      // is a possibility that the top and bottom edges of the rectangles are
+      // being shared.
+    }
+  }
+
   ReturnValue<Point> intersectionOfTwoInfLines(const Line& line0,
                                                const Line& line1)
   {
