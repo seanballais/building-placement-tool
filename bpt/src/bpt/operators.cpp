@@ -528,7 +528,10 @@ namespace bpt
   {
     int32_t buildingIdx = cx::getRandomIntUniformly(0,
                                                     inputBuildings.size() - 1);
-    if (cx::floatEquals(solution.getBuildingAngle(buildingIdx), 0.f)) {
+    float normAngle = solution.getBuildingAngle(buildingIdx) / 90.f;
+    float randValue = cx::getRandomRealNormDistrib(0.f, 1.f);
+
+    if (cx::floatGreEqual(normAngle + randValue, 0.5f)) {
       solution.setBuildingAngle(buildingIdx, 90.f);
     } else {
       solution.setBuildingAngle(buildingIdx, 0.f);

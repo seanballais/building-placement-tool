@@ -45,6 +45,11 @@ namespace corex::core
     return eastl::string(str.c_str());
   }
 
+  float getRandomRealNormDistrib(float mean, float stddev)
+  {
+    return generateRandomReal(std::normal_distribution<float>{mean, stddev});
+  }
+
   float getRandomRealUniformly(float a, float b)
   {
     return generateRandomReal(std::uniform_real_distribution<float>{ a, b });

@@ -646,13 +646,12 @@ namespace bpt
                                  const corex::core::NPolygon&,
                                  const eastl::vector<InputBuilding>&,
                                  const bool&)>,
-                 3> mutationFunctions = {
+                 4> mutationFunctions = {
       [](Solution& solution,
          const corex::core::NPolygon& boundingArea,
          const eastl::vector<InputBuilding>& inputBuildings,
          const bool& keepInfeasibleSolutions)
       {
-        std::cout << "Run Buddy-Buddy Mutation.\n";
         applyBuddyBuddyOperator(solution, boundingArea,
                                 inputBuildings, -1, -1,
                                 keepInfeasibleSolutions);
@@ -662,7 +661,6 @@ namespace bpt
          const eastl::vector<InputBuilding>& inputBuildings,
          const bool& keepInfeasibleSolutions)
       {
-        std::cout << "Run Shaking Mutation.\n";
         applyShakingOperator(solution, boundingArea,
                              inputBuildings, keepInfeasibleSolutions);
       },
@@ -671,18 +669,23 @@ namespace bpt
          const eastl::vector<InputBuilding>& inputBuildings,
          const bool& keepInfeasibleSolutions)
       {
-        std::cout << "Run Jiggle Mutation.\n";
         applyJiggleOperator(solution, boundingArea,
                             inputBuildings, keepInfeasibleSolutions);
+      },
+      [](Solution& solution,
+         const corex::core::NPolygon& boundingArea,
+         const eastl::vector<InputBuilding>& inputBuildings,
+         const bool& keepInfeasibleSolutions)
+      {
+        applyOrientationFlipping(solution, boundingArea,
+                                 inputBuildings, keepInfeasibleSolutions);
       }
     };
 
     Solution tempSolution;
     do {
       tempSolution = solution;
-//      const int32_t mutationFuncIndex = cx::getRandomIntUniformly(
-//        0, static_cast<int32_t>(mutationFunctions.size() - 1));
-      const int32_t mutationFuncIndex = 0;
+      const int32_t mutationFuncIndex = 3;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,

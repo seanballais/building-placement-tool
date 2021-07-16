@@ -68,6 +68,17 @@ namespace corex::core
     return distribution(rng);
   }
 
+  template <class T>
+  T generateRandomReal(std::normal_distribution<T> distribution)
+  {
+    pcg_extras::seed_seq_from<std::random_device> seedSource;
+    pcg32 rng(seedSource);
+
+    return distribution(rng);
+  }
+
+  float getRandomRealNormDistrib(float mean, float stddev);
+
   float getRandomRealUniformly(float a, float b);
   double getRandomRealUniformly(double a, double b);
   int32_t getRandomIntUniformly(int32_t a, int32_t b);

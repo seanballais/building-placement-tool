@@ -31,8 +31,6 @@ namespace bpt
       }
     }
 
-    fitness *= buildingDistanceWeight;
-
     // Compute penalty for infeasible solutions.
     for (int32_t i = 0; i < solution.getNumBuildings(); i++) {
       if (!solution.isBuildingDataUsable(i)) {
