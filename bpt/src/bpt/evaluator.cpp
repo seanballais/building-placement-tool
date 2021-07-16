@@ -59,6 +59,7 @@ namespace bpt
           inputBuildings[j].length,
           solution.getBuildingAngle(j)
         };
+
         if (corex::core::areTwoRectsAABBIntersecting(building0, building1)) {
           // Let's penalize buildings based on how much of the smaller building
           // is being intersected by the bigger building.

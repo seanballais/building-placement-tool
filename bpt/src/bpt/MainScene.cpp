@@ -324,6 +324,13 @@ namespace bpt
     }
 
     returnState = this->settings
+      .getFloatVariable("gwoCValue")
+      .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("gwoCValue", 4.f);
+    }
+
+    returnState = this->settings
                        .getFloatVariable("gwoFloodPenalty")
                        .returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
@@ -829,6 +836,8 @@ namespace bpt
           this->settings.getIntegerVariable("gwoNumIterations").value;
         static float alphaDecayRate =
           this->settings.getFloatVariable("gwoAlphaDecayRate").value;
+        static float cValue =
+          this->settings.getFloatVariable("gwoCValue").value;
         static float floodProneAreasPenalty =
           this->settings.getFloatVariable("gwoFloodPenalty").value;
         static float landslideProneAreasPenalty =
@@ -845,6 +854,7 @@ namespace bpt
         ImGui::InputInt("No. of Wolves", &numWolves);
         ImGui::InputInt("No. of Iterations", &numIterations);
         ImGui::SliderFloat("Alpha Decay Rate", &alphaDecayRate, 0.f, 1.f);
+        ImGui::InputFloat("C Value", &cValue);
         ImGui::InputFloat("Flood Penalty", &floodProneAreasPenalty);
         ImGui::InputFloat("Landslide Penalty", &landslideProneAreasPenalty);
         ImGui::InputFloat("Building Distance Weight", &buildingDistanceWeight);
@@ -858,6 +868,7 @@ namespace bpt
         this->settings.setVariable("gwoNumWolves", numWolves);
         this->settings.setVariable("gwoNumIterations", numIterations);
         this->settings.setVariable("gwoAlphaDecayRate", alphaDecayRate);
+        this->settings.setVariable("gwoCValue", cValue);
         this->settings.setVariable("gwoFloodPenalty", floodProneAreasPenalty);
         this->settings.setVariable("gwoLandslidePenalty",
                                    landslideProneAreasPenalty);
@@ -1007,6 +1018,7 @@ namespace bpt
                   landslideProneAreasCopy,
                   this->settings.getIntegerVariable("gwoNumWolves").value,
                   this->settings.getIntegerVariable("gwoNumIterations").value,
+                  this->settings.getFloatVariable("gwoCValue").value,
                   this->settings.getFloatVariable("gwoAlphaDecayRate").value,
                   this->settings.getFloatVariable("gwoFloodPenalty").value,
                   this->settings.getFloatVariable("gwoLandslidePenalty").value,
@@ -1541,26 +1553,6 @@ namespace bpt
       ImGui::Text("W (new):");
       this->drawGWOSolBuildingData(runData.newWolves[currIter][currIterSolIdx],
                                    buildingIdx);
-
-      // Draw the minimum building X value.
-      ImGui::Text(
-        "Min. Building X: %f",
-        runData.minBuildingXPoses[currIter][currIterSolIdx][buildingIdx]);
-
-      // Draw the minimum building Y value.
-      ImGui::Text(
-        "Min. Building Y: %f",
-        runData.minBuildingYPoses[currIter][currIterSolIdx][buildingIdx]);
-
-      // Draw the maximum building X value.
-      ImGui::Text(
-        "Max. Building X: %f",
-        runData.maxBuildingXPoses[currIter][currIterSolIdx][buildingIdx]);
-
-      // Draw the maximum building Y value.
-      ImGui::Text(
-        "Max. Building Y: %f",
-        runData.maxBuildingYPoses[currIter][currIterSolIdx][buildingIdx]);
     }
 
     ImGui::EndChild();

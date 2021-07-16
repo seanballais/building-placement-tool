@@ -29,6 +29,7 @@ namespace bpt
       const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
       const int32_t numWolves,
       const int32_t numIterations,
+      const float cValue,
       const float alphaDecayRate,
       const float floodProneAreaPenalty,
       const float landslideProneAreaPenalty,
@@ -53,6 +54,7 @@ namespace bpt
     void updateWolves(
       eastl::vector<Solution>& wolves,
       const float& alpha,
+      const float cValue,
       const corex::core::NPolygon& boundingArea,
       const eastl::vector<InputBuilding>& inputBuildings,
       const bool& keepInfeasibleSolutions);
@@ -72,6 +74,7 @@ namespace bpt
                                       const cx::VecN randomVector,
                                       const float alpha);
     cx::VecN createCCoefficientVector(const int32_t vectorSize,
+                                      const float cValue,
                                       const cx::VecN randomVector);
     cx::VecN getNormalizedSolutionOrientations(const Solution& solution);
     cx::VecN getVecNItemMultiples(const cx::VecN& p,

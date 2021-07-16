@@ -39,6 +39,7 @@ namespace bpt
     const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
     const int32_t numWolves,
     const int32_t numIterations,
+    const float cValue,
     const float alphaDecayRate,
     const float floodProneAreaPenalty,
     const float landslideProneAreaPenalty,
@@ -79,10 +80,6 @@ namespace bpt
     this->recentRunData.X3s.clear();
     this->recentRunData.oldWolves.clear();
     this->recentRunData.newWolves.clear();
-    this->recentRunData.minBuildingXPoses.clear();
-    this->recentRunData.minBuildingYPoses.clear();
-    this->recentRunData.maxBuildingXPoses.clear();
-    this->recentRunData.maxBuildingYPoses.clear();
 
     this->runTimer.start();
 
@@ -139,30 +136,12 @@ namespace bpt
       this->updateWolves(
         wolves,
         alpha,
+        cValue,
         boundingArea,
         inputBuildings,
         keepInfeasibleSolutions);
 
       // Evaluate individual fitness and mutation rate.
-      this->computeWolfValues(
-        wolves,
-        wolfMutationRates,
-        inputBuildings,
-        boundingArea,
-        flowRates,
-        floodProneAreas,
-        landslideProneAreas,
-        floodProneAreaPenalty,
-        landslideProneAreaPenalty,
-        buildingDistanceWeight);
-
-      this->mutateWolves(
-        wolves,
-        wolfMutationRates,
-        boundingArea,
-        inputBuildings,
-        keepInfeasibleSolutions);
-
       this->computeWolfValues(
         wolves,
         wolfMutationRates,
@@ -209,15 +188,6 @@ namespace bpt
 
       cx::reorderVector(this->recentRunData.oldWolves.back(), dataIndices);
       cx::reorderVector(this->recentRunData.newWolves.back(), dataIndices);
-
-      cx::reorderVector(this->recentRunData.minBuildingXPoses.back(),
-                        dataIndices);
-      cx::reorderVector(this->recentRunData.minBuildingYPoses.back(),
-                        dataIndices);
-      cx::reorderVector(this->recentRunData.maxBuildingXPoses.back(),
-                        dataIndices);
-      cx::reorderVector(this->recentRunData.maxBuildingYPoses.back(),
-                        dataIndices);
 #pragma endregion GWO_Add_Debug_Data_3
 
       // Sort the wolves now. We could do this earlier, but it looks cleaner
@@ -320,6 +290,7 @@ namespace bpt
   void GWO::updateWolves(
     eastl::vector<Solution>& wolves,
     const float& alpha,
+    const float cValue,
     const corex::core::NPolygon& boundingArea,
     const eastl::vector<InputBuilding>& inputBuildings,
     const bool& keepInfeasibleSolutions)
@@ -346,25 +317,6 @@ namespace bpt
     eastl::array<cx::VecN, numLeaders> CLeaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r1Leaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r2Leaders{ defVecN, defVecN, defVecN };
-
-    // Building orientations data.
-    cx::VecN alphaOrtVecN = getNormalizedSolutionOrientations(wolves[0]);
-    cx::VecN betaOrtVecN = getNormalizedSolutionOrientations(wolves[1]);
-    cx::VecN deltaOrtVecN = getNormalizedSolutionOrientations(wolves[2]);
-
-    cx::VecN defOrtVecN(inputBuildings.size(), 0.f);
-    eastl::array<cx::VecN, numLeaders> AOrtLeaders{
-      defOrtVecN, defOrtVecN, defOrtVecN
-    };
-    eastl::array<cx::VecN, numLeaders> COrtLeaders{
-      defOrtVecN, defOrtVecN, defOrtVecN
-    };
-    eastl::array<cx::VecN, numLeaders> r1OrtLeaders{
-      defOrtVecN, defOrtVecN, defOrtVecN
-    };
-    eastl::array<cx::VecN, numLeaders> r2OrtLeaders{
-      defOrtVecN, defOrtVecN, defOrtVecN
-    };
 
 #pragma region GWO_Gen_Debug_Data
     // For the GWO debugging data.
@@ -409,26 +361,15 @@ namespace bpt
                         - boundingArea.vertices[0].y;
 
     for (Solution& wolf : wolves) {
-      // Set up necessary auxiliary data.
       for (int32_t n = 0; n < numLeaders; n++) {
-        // Building x and y positions auxiliary data.
         r1Leaders[n] = this->createRandomVector(defVecN.size());
         r2Leaders[n] = this->createRandomVector(defVecN.size(), -1.f, 1.f);
         ALeaders[n] = this->createACoefficientVector(defVecN.size(),
                                                      r1Leaders[n],
                                                      alpha);
         CLeaders[n] = this->createCCoefficientVector(defVecN.size(),
+                                                     cValue,
                                                      r2Leaders[n]);
-
-        // Building orientations auxiliary data.
-        r1OrtLeaders[n] = this->createRandomVector(defOrtVecN.size());
-        r2OrtLeaders[n] = this->createRandomVector(defOrtVecN.size(),
-                                                   -1.f, 1.f);
-        AOrtLeaders[n] = this->createACoefficientVector(defOrtVecN.size(),
-                                                        r1OrtLeaders[n],
-                                                        alpha);
-        COrtLeaders[n] = this->createCCoefficientVector(defOrtVecN.size(),
-                                                        r2OrtLeaders[n]);
       }
 
 #pragma region GWO_Add_Debug_Data_1
@@ -472,50 +413,12 @@ namespace bpt
 
       wolfSol = (X1 + X2 + X3) / 3.f;
 
-      // Compute the building orientations. Remember that these are either 0
-      // or 1.
-      cx::VecN wolfOrts = getNormalizedSolutionOrientations(wolf);
-
-      auto DOrta = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[0], alphaOrtVecN)
-                               - wolfOrts);
-      auto DOrtb = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[1], betaOrtVecN)
-                               - wolfOrts);
-      auto DOrtd = cx::vecNAbs(cx::pairwiseMult(COrtLeaders[2], deltaOrtVecN)
-                               - wolfOrts);
-
-      cx::VecN s1 = applySigmoid(AOrtLeaders[0], DOrta);
-      cx::VecN s2 = applySigmoid(AOrtLeaders[1], DOrtb);
-      cx::VecN s3 = applySigmoid(AOrtLeaders[2], DOrtd);
-
-      cx::VecN bStep1 = getBStep(s1);
-      cx::VecN bStep2 = getBStep(s2);
-      cx::VecN bStep3 = getBStep(s3);
-
-      cx::VecN XOrt1 = getBinX(alphaOrtVecN, bStep1);
-      cx::VecN XOrt2 = getBinX(betaOrtVecN, bStep2);
-      cx::VecN XOrt3 = getBinX(deltaOrtVecN, bStep3);
-
-      cx::VecN minBuildingXPos(inputBuildings.size(), 0.f);
-      cx::VecN minBuildingYPos(inputBuildings.size(), 0.f);
-      cx::VecN maxBuildingXPos(inputBuildings.size(), 0.f);
-      cx::VecN maxBuildingYPos(inputBuildings.size(), 0.f);
-
       // Add orientations to the wolf VecN, and clamp building positions to the
       // bounding area too.
       for (int32_t i = 0; i < inputBuildings.size(); i++) {
         // Crossover to get orientation.
-        float crossoverRand = cx::getRandomRealUniformly(0.f, 1.f);
-        if (cx::floatLessThan(crossoverRand, 1.f / 3.f)) {
-          wolfSol[(i * 3) + 2] = XOrt1[i];
-        } else if (cx::isFloatIncExcBetween(1.f / 3.f,
-                                            crossoverRand,
-                                            2.f / 3.f)) {
-          wolfSol[(i * 3) + 2] = XOrt2[i];
-        } else {
-          wolfSol[(i * 3) + 2] = XOrt3[i];
-        }
-
-        wolfSol[(i * 3) + 2] *= 90.f;
+        int32_t partnerIdx = cx::selectItemRandomly(eastl::vector{ 0, 1, 2 });
+        wolfSol[(i * 3) + 2] = leadingWolves[partnerIdx].getBuildingAngle(i);
 
         cx::Rectangle buildingRect {
           wolf.getBuildingXPos(i),
@@ -545,11 +448,6 @@ namespace bpt
           eastl::swap(minBuildingYVal, maxBuildingYVal);
         }
 
-        minBuildingXPos[i] = minBuildingXVal;
-        minBuildingYPos[i] = minBuildingYVal;
-        maxBuildingXPos[i] = maxBuildingXVal;
-        maxBuildingYPos[i] = maxBuildingYVal;
-
         wolfSol[i * 3] = cx::clamp(wolfSol[i * 3],
                                    minBuildingXVal,
                                    maxBuildingXVal);
@@ -557,11 +455,6 @@ namespace bpt
                                          minBuildingYVal,
                                          maxBuildingYVal);
       }
-
-      minBuildingXPoses.push_back(minBuildingXPos);
-      minBuildingYPoses.push_back(minBuildingYPos);
-      maxBuildingXPoses.push_back(maxBuildingXPos);
-      maxBuildingYPoses.push_back(maxBuildingYPos);
 
       newWolves.push_back(wolfSol);
       wolf = convertVecNToSolution(wolfSol);
@@ -594,11 +487,6 @@ namespace bpt
 
     this->recentRunData.oldWolves.push_back(oldWolves);
     this->recentRunData.newWolves.push_back(newWolves);
-
-    this->recentRunData.minBuildingXPoses.push_back(minBuildingXPoses);
-    this->recentRunData.minBuildingYPoses.push_back(minBuildingYPoses);
-    this->recentRunData.maxBuildingXPoses.push_back(maxBuildingXPoses);
-    this->recentRunData.maxBuildingYPoses.push_back(maxBuildingYPoses);
 #pragma endregion GWO_Add_Debug_Data_2
   }
 
@@ -706,11 +594,12 @@ namespace bpt
   }
 
   cx::VecN GWO::createCCoefficientVector(const int32_t vectorSize,
+                                         const float cValue,
                                          const cx::VecN randomVector2)
   {
     cx::VecN cCoefficient{vectorSize};
     for (int32_t i = 0; i < vectorSize; i++ ) {
-      cCoefficient[i] = 2 * randomVector2[i];
+      cCoefficient[i] = cValue * randomVector2[i];
     }
 
     return cCoefficient;

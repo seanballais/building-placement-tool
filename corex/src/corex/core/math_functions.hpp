@@ -151,8 +151,6 @@ namespace corex::core
   bool areTwoRectsIntersecting(const Rectangle& rect0, const Rectangle& rect1);
   bool areTwoRectsAABBIntersecting(const Rectangle& rect0,
                                    const Rectangle& rect1);
-  bool areTwoRectsAABBSharingABorder(const Rectangle& rect0,
-                                     const Rectangle& rect1);
   ReturnValue<Point> intersectionOfTwoInfLines(const Line& line0,
                                                const Line& line1);
   ReturnValue<Point> intersectionOfLineandInfLine(const Line& line,
