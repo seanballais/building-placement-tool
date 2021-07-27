@@ -685,7 +685,7 @@ namespace bpt
     Solution tempSolution;
     do {
       tempSolution = solution;
-      const int32_t mutationFuncIndex = 3;
+      const int32_t mutationFuncIndex = 0;
       mutationFunctions[mutationFuncIndex](tempSolution,
                                            boundingArea,
                                            inputBuildings,
