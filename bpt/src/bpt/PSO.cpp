@@ -6,11 +6,11 @@
 #include <corex/core/Timer.hpp>
 #include <corex/core/math_functions.hpp>
 #include <corex/core/ds/NPolygon.hpp>
+#include <corex/core/ds/Point.hpp>
 #include <corex/core/ds/VecN.hpp>
 
 #include <bpt/evaluator.hpp>
 #include <bpt/generator.hpp>
-#include <bpt/HC.hpp>
 #include <bpt/PSO.hpp>
 #include <bpt/utils.hpp>
 #include <bpt/ds/InputBuilding.hpp>
@@ -43,6 +43,13 @@ namespace bpt
     Solution gBest; // Can be improved by using a pointer instead.
                     // Not doing it right now, because we might break the
                     // algorithm.
+
+    cx::Point minBoundingPt = boundingArea.vertices[0];
+
+    float boundWidth = boundingArea.vertices[1].x
+                       - boundingArea.vertices[0].x;
+    float boundHeight = boundingArea.vertices[3].y
+                        - boundingArea.vertices[0].y;
 
     this->runTimer.start();
 
@@ -121,14 +128,51 @@ namespace bpt
 
         auto XVecN = currSolVecN + particle.velocity;
 
-        // Correct orientations
+        // Correct orientations, and clamp the buildings.
         for (int32_t j = 0; j < vecSize / 3; j++) {
+          // Fix orientation.
           float orientation = cx::mod(cx::abs(XVecN[(j * 3) + 2]), 360.f);
           if (cx::floatLessEqual(orientation, 180.f)) {
             XVecN[(j * 3) + 2] = 0.f;
           } else {
             XVecN[(j * 3) + 2] = 90.f;
           }
+
+          // Clamp buildings.
+          cx::Rectangle buildingRect {
+            XVecN[(j * 3)],
+            XVecN[(j * 3) + 1],
+            inputBuildings[j].width,
+            inputBuildings[j].length,
+            XVecN[(j * 3) + 2]
+          };
+
+          cx::Polygon<4> poly = cx::rotateRectangle(buildingRect);
+
+          float polyWidth = poly.vertices[1].x - poly.vertices[0].x;
+          float polyHeight = poly.vertices[3].y - poly.vertices[0].y;
+
+          float minBuildingXVal = minBoundingPt.x + (polyWidth / 2);
+          float maxBuildingXVal = minBoundingPt.x
+                                  + (boundWidth - (polyWidth / 2));
+          float minBuildingYVal = minBoundingPt.y + (polyHeight / 2);
+          float maxBuildingYVal = minBoundingPt.y
+                                  + (boundHeight - (polyHeight / 2));
+
+          if (minBuildingXVal > maxBuildingXVal) {
+            eastl::swap(minBuildingXVal, maxBuildingXVal);
+          }
+
+          if (minBuildingYVal > maxBuildingYVal) {
+            eastl::swap(minBuildingYVal, maxBuildingYVal);
+          }
+
+          XVecN[j * 3] = cx::clamp(XVecN[j * 3],
+                                   minBuildingXVal,
+                                   maxBuildingXVal);
+          XVecN[(j * 3) + 1] = cx::clamp(XVecN[(j * 3) + 1],
+                                         minBuildingYVal,
+                                         maxBuildingYVal);
         }
 
         particle.currSol = convertVecNToSolution(XVecN);
