@@ -24,8 +24,6 @@ namespace bpt
       const eastl::vector<InputBuilding> &inputBuildings,
       const corex::core::NPolygon &boundingArea,
       const eastl::vector<eastl::vector<float>> &flowRates,
-      const eastl::vector<corex::core::NPolygon> &floodProneAreas,
-      const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
       const float buildingDistanceWeight,
       const int32_t numIterations,
       const int32_t numParticles,

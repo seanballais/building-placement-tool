@@ -61,6 +61,7 @@ namespace bpt
     : currentContext(Context::NO_ACTION)
     , geneticAlgo()
     , gwoAlgo()
+    , psoAlgo()
     , hillClimbingAlgo()
     , currentAlgorithm(AlgorithmType::GA)
     , gaSettings({
@@ -370,6 +371,42 @@ namespace bpt
                        .returnState;
     if (returnState == cx::ReturnState::RETURN_FAIL) {
       this->settings.setVariable("gwoNumLSIters", 300);
+    }
+
+    // PSO Settings
+    returnState = this->settings
+                       .getIntegerVariable("psoNumIterations")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("psoNumIterations", 400);
+    }
+
+    returnState = this->settings
+                       .getIntegerVariable("psoNumParticles")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("psoNumParticles", 50);
+    }
+
+    returnState = this->settings
+                       .getFloatVariable("psoW")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("psoW", 0.05f);
+    }
+
+    returnState = this->settings
+                       .getFloatVariable("psoC1")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("psoC1", 2.f);
+    }
+
+    returnState = this->settings
+                       .getFloatVariable("psoC2")
+                       .returnState;
+    if (returnState == cx::ReturnState::RETURN_FAIL) {
+      this->settings.setVariable("psoC2", 2.f);
     }
   }
 
@@ -763,9 +800,10 @@ namespace bpt
     ImGui::BeginChild("Algorithms Controls List");
 
     // TODO: Implement templated function that computes enum length.
-    constexpr int32_t numAlgoItems = 3;
+    constexpr int32_t numAlgoItems = 4;
     static const AlgorithmType algoItems[numAlgoItems] = {
-      AlgorithmType::GA, AlgorithmType::GWO, AlgorithmType::HC
+      AlgorithmType::GA, AlgorithmType::GWO,
+      AlgorithmType::PSO, AlgorithmType::HC
     };
     drawComboBox("Algorithm", this->currentAlgorithm, algoItems);
 
@@ -880,6 +918,27 @@ namespace bpt
                                    isLocalSearchEnabled);
         this->settings.setVariable("gwoNumLSIters", numLSIters);
       } break;
+      case AlgorithmType::PSO: {
+        static int32_t numParticles =
+          this->settings.getIntegerVariable("psoNumParticles").value;
+        static int32_t numIterations =
+          this->settings.getIntegerVariable("psoNumIterations").value;
+        static float w = this->settings.getFloatVariable("psoW").value;
+        static float c1 = this->settings.getFloatVariable("psoC1").value;
+        static float c2 = this->settings.getFloatVariable("psoC2").value;
+
+        ImGui::InputInt("No. of Particles", &numParticles);
+        ImGui::InputInt("No. of Iterations", &numIterations);
+        ImGui::InputFloat("w", &w);
+        ImGui::InputFloat("c1", &c1);
+        ImGui::InputFloat("c2", &c2);
+
+        this->settings.setVariable("psoNumParticles", numParticles);
+        this->settings.setVariable("psoNumIterations", numIterations);
+        this->settings.setVariable("psoW", w);
+        this->settings.setVariable("psoC1", c1);
+        this->settings.setVariable("psoC2", c2);
+      } break;
       case AlgorithmType::HC: {
         ImGui::Text("WIP");
       } break;
@@ -921,6 +980,12 @@ namespace bpt
                         this->settings.getIntegerVariable("gwoNumIterations")
                              .value);
           }
+        } break;
+        case AlgorithmType::PSO: {
+          ImGui::Text("Progress: Iteration %d out of %d",
+                      this->psoAlgo.getCurrentRunIterationNumber() + 1,
+                      this->settings.getIntegerVariable("psoNumIterations")
+                           .value);
         } break;
       }
     } else {
@@ -1071,6 +1136,59 @@ namespace bpt
             };
 
             gwoThread.detach();
+          } break;
+          case AlgorithmType::PSO: {
+            std::thread psoThread{
+              [this]() {
+                // We need to copy the following vectors to this thread, because
+                // they somehow get modified as the thread executes.
+                auto inputBuildingsCopy = this->inputBuildings;
+                auto boundingAreaCopy = this->boundingArea;
+                auto flowRatesCopy = this->flowRates;
+
+                PSOResult result = this->psoAlgo.generateSolutions(
+                  inputBuildingsCopy,
+                  boundingAreaCopy,
+                  flowRatesCopy,
+                  1.f,
+                  this->settings.getIntegerVariable("psoNumIterations").value,
+                  this->settings.getIntegerVariable("psoNumParticles").value,
+                  this->settings.getFloatVariable("psoW").value,
+                  this->settings.getFloatVariable("psoC1").value,
+                  this->settings.getFloatVariable("psoC2").value);
+
+                std::cout << "Finished optimizing!\n";
+
+                this->solutionBuffer = result.solutions;
+                this->recentRunAvgFitnesses = eastl::vector<double>(
+                  result.averageFitnesses);
+                this->recentRunBestFitnesses = eastl::vector<double>(
+                  result.bestFitnesses);
+                this->recentRunWorstFitnesses = eastl::vector<double>(
+                  result.worstFitnesses);
+                this->recentRunElapsedTime = result.elapsedTime;
+
+                auto time = std::chrono::system_clock::to_time_t(
+                  std::chrono::system_clock::now());
+                std::stringstream resultsFileRelPath;
+                resultsFileRelPath << "pso-results-" << std::to_string(time);
+                result.saveToCSV(cx::stdStrToEAStr(resultsFileRelPath.str()));
+
+                // NOTE: There's a weird bug that occurs when we don't subtract
+                //       the solution size by one when assigning the value o
+                //       the currently selected generation.
+                //
+                //       I could fix this now, but it's not a priority. Too bad.
+                this->currSelectedIter = this->solutionBuffer.size() - 1;
+                this->currSelectedIterSolution = 0;
+                this->hasSolutionBeenSetup = false;
+                this->areNewSolutionsReady = true;
+
+                this->isAlgoThreadRunning = false;
+              }
+            };
+
+            psoThread.detach();
           } break;
           case AlgorithmType::HC:
             break;

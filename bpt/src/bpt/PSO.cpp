@@ -26,8 +26,6 @@ namespace bpt
     const eastl::vector<InputBuilding> &inputBuildings,
     const corex::core::NPolygon &boundingArea,
     const eastl::vector<eastl::vector<float>> &flowRates,
-    const eastl::vector<corex::core::NPolygon> &floodProneAreas,
-    const eastl::vector<corex::core::NPolygon> &landslideProneAreas,
     const float buildingDistanceWeight,
     const int32_t numIterations,
     const int32_t numParticles,
@@ -122,6 +120,17 @@ namespace bpt
           + cx::pairwiseMult(c2 * r2, gBestVecN - currSolVecN);
 
         auto XVecN = currSolVecN + particle.velocity;
+
+        // Correct orientations
+        for (int32_t j = 0; j < vecSize / 3; j++) {
+          float orientation = cx::mod(cx::abs(XVecN[(j * 3) + 2]), 360.f);
+          if (cx::floatLessEqual(orientation, 180.f)) {
+            XVecN[(j * 3) + 2] = 0.f;
+          } else {
+            XVecN[(j * 3) + 2] = 90.f;
+          }
+        }
+
         particle.currSol = convertVecNToSolution(XVecN);
       }
 
@@ -163,6 +172,12 @@ namespace bpt
       bestFitnesses.push_back(bestFitness);
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
+
+      currIterSolutions.clear();
+      eastl::transform(particles.begin(), particles.end(),
+                       eastl::back_inserter(currIterSolutions),
+                       [](Particle& p) -> Solution { return p.currSol; });
+      solutions.push_back(currIterSolutions);
     }
 
     double elapsedTime = this->runTimer.getElapsedTime();

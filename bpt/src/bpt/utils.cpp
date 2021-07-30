@@ -20,6 +20,8 @@ namespace bpt
         return "Genetic Algorithm";
       case AlgorithmType::GWO:
         return "Grey Wolf Optimization";
+      case AlgorithmType::PSO:
+        return "Particle Swarm Optimization";
       case AlgorithmType::HC:
         return "Naive Hill Climbing";
     }

@@ -5,7 +5,7 @@ namespace bpt
 {
   enum class AlgorithmType
   {
-    GA, GWO, HC
+    GA, GWO, PSO, HC
   };
 }
 

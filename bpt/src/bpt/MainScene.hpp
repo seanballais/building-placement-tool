@@ -25,6 +25,7 @@
 #include <bpt/GA.hpp>
 #include <bpt/GWO.hpp>
 #include <bpt/HC.hpp>
+#include <bpt/PSO.hpp>
 #include <bpt/ds/AlgorithmType.hpp>
 #include <bpt/ds/GASettings.hpp>
 #include <bpt/ds/InputBuilding.hpp>
@@ -66,6 +67,7 @@ namespace bpt
     Context currentContext;
     GA geneticAlgo;
     GWO gwoAlgo;
+    PSO psoAlgo;
     HC hillClimbingAlgo;
     AlgorithmType currentAlgorithm;
     GASettings gaSettings;
