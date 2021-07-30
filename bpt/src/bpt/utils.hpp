@@ -33,6 +33,8 @@ namespace bpt
                                   float minY,
                                   float maxX,
                                   float maxY);
+  cx::VecN createRandomVector(const int32_t vectorSize,
+                              float min = 0.f, float max = 1.f);
 }
 
 #endif

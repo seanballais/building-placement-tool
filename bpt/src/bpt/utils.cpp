@@ -154,4 +154,15 @@ namespace bpt
 
     return newVec;
   }
+
+  cx::VecN createRandomVector(const int32_t vectorSize,
+                              float min, float max)
+  {
+    cx::VecN randomVecN{vectorSize};
+    for (int32_t i = 0; i < vectorSize; i++) {
+      randomVecN[i] = cx::getRandomRealUniformly(min, max);
+    }
+
+    return randomVecN;
+  }
 }

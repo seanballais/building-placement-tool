@@ -11,12 +11,14 @@ add_executable(bpt
     generator.cpp
     evaluator.cpp
     HC.cpp
+    PSO.cpp
     operators.cpp
-    SA.cpp
     ds/AlgorithmType.hpp
     ds/GAResult.cpp
     ds/GWOData.hpp
     ds/GWOResult.cpp
+    ds/Particle.hpp
+    ds/PSOResult.cpp
     ds/Result.cpp
     ds/Solution.cpp
     ds/Time.cpp)
