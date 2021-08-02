@@ -1,7 +1,6 @@
 [requires]
-bzip2/1.0.8
 catch2/2.11.0
-glew/2.1.0@bincrafters/stable
+glew/2.1.0
 eastl/3.16.05
 entt/3.5.2
 imgui/1.76

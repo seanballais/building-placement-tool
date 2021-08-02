@@ -6,29 +6,38 @@ echo "[::] Switching to build directory..."
 mkdir -p build
 cd build
 
-# TODO: Add feature that will allow selecting the build type: debug or release.
 BUILD_ACTION_TYPE=""
-if [ -n "$1" ]
+if [[ -n "$1" && "$1" == "full" ]]
 then
-    BUILD_ACTION_TYPE=$1
+    BUILD_ACTION_TYPE="full"
 else
     BUILD_ACTION_TYPE="casual"
 fi
 
-# Conan time.
-if [ "$BUILD_ACTION_TYPE" = "full" ]
+BUILD_TYPE=""
+if [[ -n "$2" && "$2" == "release" ]]
 then
-    echo "[::] Performing a full build."
+    BUILD_TYPE="release"
+else
+    BUILD_TYPE="debug"
+fi
+
+# Conan time.
+if [ "$BUILD_ACTION_TYPE" == "full" ]
+then
+    echo "[::] Performing a full $BUILD_TYPE build."
     echo "[::] Running Conan..."
-    conan install -pr=$ROOT_DIR/conan_profiles/linux_debug.txt \
+    conan install -pr=$ROOT_DIR/conan_profiles/linux_$BUILD_TYPE.txt \
+                  -u \
                   --build missing \
                   ..
 
-    # Hello, CMake. And we gonna use Clang 10.
-    echo "[::] Running CMake for a debug build..."
+    # Hello, CMake. And we gonna use Clang 11.
+    echo "[::] Running CMake for a $BUILD_TYPE build..."
     export CC=/usr/bin/clang-11
     export CXX=/usr/bin/clang++-11
-    cmake -DCMAKE_BUILD_TYPE=Debug .. \
+
+    cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE^} .. \
         && echo "[::] CMake ran successfully. Time to compile..." \
         && make
     cd ..
@@ -41,6 +50,8 @@ else
              "first?"
         cd ..
     else
+        make
+
         cd ..
 
         echo "[::] Copying assets and the settings file to the build assets" \

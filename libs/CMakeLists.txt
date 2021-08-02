@@ -7,7 +7,8 @@ add_subdirectory(EAThread/)
 
 add_subdirectory(imgui_impls/)
 
-set(OpenGL_GL_PREFERENCE "GLVND")  # Make sure we use GLVND OpenGL drivers.
+set(OpenGL_GL_PREFERENCE "GLVND")
+option(BUILD_DEMOS "Build SDL_gpu demo programs" OFF)
 add_subdirectory(sdl_gpu/)
 
 set(BUILD_IMPLOT_SHARED OFF CACHE BOOL "Build implot shared library")
