@@ -31,8 +31,6 @@ add_subdirectory(libs/)
 add_subdirectory(corex/)
 add_subdirectory(bpt/)
 
-message(${CONAN_LIBS})
-
 target_link_libraries(bpt
     iprof
     corex-core

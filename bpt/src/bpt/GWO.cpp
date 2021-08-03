@@ -27,9 +27,7 @@ namespace bpt
 {
   GWO::GWO()
     : runTimer()
-    , currRunIterationNumber(0)
-    , hillClimbing()
-    , recentRunData() {}
+    , currRunIterationNumber(0) {}
 
   GWOResult GWO::generateSolutions(
     const eastl::vector<InputBuilding> &inputBuildings,
@@ -55,31 +53,6 @@ namespace bpt
     eastl::vector<double> bestFitnesses;
     eastl::vector<double> averageFitnesses;
     eastl::vector<double> worstFitnesses;
-
-    // Clear previous run data.
-    this->recentRunData.alphaWolves.clear();
-    this->recentRunData.betaWolves.clear();
-    this->recentRunData.deltaWolves.clear();
-    this->recentRunData.r1Alphas.clear();
-    this->recentRunData.r1Betas.clear();
-    this->recentRunData.r1Deltas.clear();
-    this->recentRunData.r2Alphas.clear();
-    this->recentRunData.r2Betas.clear();
-    this->recentRunData.r2Deltas.clear();
-    this->recentRunData.Aalphas.clear();
-    this->recentRunData.Abetas.clear();
-    this->recentRunData.Adeltas.clear();
-    this->recentRunData.Calphas.clear();
-    this->recentRunData.Cbetas.clear();
-    this->recentRunData.Cdeltas.clear();
-    this->recentRunData.Dalphas.clear();
-    this->recentRunData.Dbetas.clear();
-    this->recentRunData.Ddeltas.clear();
-    this->recentRunData.X1s.clear();
-    this->recentRunData.X2s.clear();
-    this->recentRunData.X3s.clear();
-    this->recentRunData.oldWolves.clear();
-    this->recentRunData.newWolves.clear();
 
     this->runTimer.start();
 
@@ -161,35 +134,6 @@ namespace bpt
       };
       eastl::vector<int32_t> dataIndices = cx::rankVectors(wolves, cmpFunc);
 
-#pragma region GWO_Add_Debug_Data_3
-      cx::reorderVector(this->recentRunData.r1Alphas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.r1Betas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.r1Deltas.back(), dataIndices);
-
-      cx::reorderVector(this->recentRunData.r2Alphas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.r2Betas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.r2Deltas.back(), dataIndices);
-
-      cx::reorderVector(this->recentRunData.Aalphas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.Abetas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.Adeltas.back(), dataIndices);
-
-      cx::reorderVector(this->recentRunData.Calphas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.Cbetas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.Cdeltas.back(), dataIndices);
-
-      cx::reorderVector(this->recentRunData.Dalphas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.Dbetas.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.Ddeltas.back(), dataIndices);
-
-      cx::reorderVector(this->recentRunData.X1s.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.X2s.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.X3s.back(), dataIndices);
-
-      cx::reorderVector(this->recentRunData.oldWolves.back(), dataIndices);
-      cx::reorderVector(this->recentRunData.newWolves.back(), dataIndices);
-#pragma endregion GWO_Add_Debug_Data_3
-
       // Sort the wolves now. We could do this earlier, but it looks cleaner
       // to just put it here.
       std::sort(
@@ -241,11 +185,6 @@ namespace bpt
   int32_t GWO::getCurrentRunIterationNumber()
   {
     return this->currRunIterationNumber;
-  }
-
-  const GWOData& GWO::getRecentRunData()
-  {
-    return this->recentRunData;
   }
 
   void GWO::computeWolfValues(
@@ -306,52 +245,12 @@ namespace bpt
     cx::VecN betaVecN = convertSolutionToVecN(leadingWolves[1]);
     cx::VecN deltaVecN = convertSolutionToVecN(leadingWolves[2]);
 
-    this->recentRunData.alphaWolves.push_back(alphaVecN);
-    this->recentRunData.betaWolves.push_back(betaVecN);
-    this->recentRunData.deltaWolves.push_back(deltaVecN);
-    this->recentRunData.alphaValues.push_back(alpha);
-
     // Coefficient values of the leading wolves.
     cx::VecN defVecN(inputBuildings.size() * 3, 0.f);
     eastl::array<cx::VecN, numLeaders> ALeaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> CLeaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r1Leaders{ defVecN, defVecN, defVecN };
     eastl::array<cx::VecN, numLeaders> r2Leaders{ defVecN, defVecN, defVecN };
-
-#pragma region GWO_Gen_Debug_Data
-    // For the GWO debugging data.
-    eastl::vector<cx::VecN> r1Alphas;
-    eastl::vector<cx::VecN> r1Betas;
-    eastl::vector<cx::VecN> r1Deltas;
-
-    eastl::vector<cx::VecN> r2Alphas;
-    eastl::vector<cx::VecN> r2Betas;
-    eastl::vector<cx::VecN> r2Deltas;
-
-    eastl::vector<cx::VecN> Aalphas;
-    eastl::vector<cx::VecN> Abetas;
-    eastl::vector<cx::VecN> Adeltas;
-
-    eastl::vector<cx::VecN> Calphas;
-    eastl::vector<cx::VecN> Cbetas;
-    eastl::vector<cx::VecN> Cdeltas;
-
-    eastl::vector<cx::VecN> Dalphas;
-    eastl::vector<cx::VecN> Dbetas;
-    eastl::vector<cx::VecN> Ddeltas;
-
-    eastl::vector<cx::VecN> X1s;
-    eastl::vector<cx::VecN> X2s;
-    eastl::vector<cx::VecN> X3s;
-
-    eastl::vector<cx::VecN> oldWolves;
-    eastl::vector<cx::VecN> newWolves;
-
-    eastl::vector<cx::VecN> minBuildingXPoses;
-    eastl::vector<cx::VecN> minBuildingYPoses;
-    eastl::vector<cx::VecN> maxBuildingXPoses;
-    eastl::vector<cx::VecN> maxBuildingYPoses;
-#pragma endregion GWO_Gen_Debug_Data
 
     cx::Point minBoundingPt = boundingArea.vertices[0];
 
@@ -372,24 +271,6 @@ namespace bpt
                                                      r2Leaders[n]);
       }
 
-#pragma region GWO_Add_Debug_Data_1
-      r1Alphas.push_back(r1Leaders[0]);
-      r1Betas.push_back(r1Leaders[1]);
-      r1Deltas.push_back(r1Leaders[2]);
-
-      r2Alphas.push_back(r2Leaders[0]);
-      r2Betas.push_back(r2Leaders[1]);
-      r2Deltas.push_back(r2Leaders[2]);
-
-      Aalphas.push_back(ALeaders[0]);
-      Abetas.push_back(ALeaders[1]);
-      Adeltas.push_back(ALeaders[2]);
-
-      Calphas.push_back(CLeaders[0]);
-      Cbetas.push_back(CLeaders[1]);
-      Cdeltas.push_back(CLeaders[2]);
-#pragma endregion GWO_Add_Debug_Data_1
-
       // Compute the building x and y positions.
       cx::VecN wolfSol = convertSolutionToVecN(wolf);
 
@@ -400,16 +281,6 @@ namespace bpt
       auto X1 = alphaVecN - cx::pairwiseMult(ALeaders[0], Da);
       auto X2 = betaVecN - cx::pairwiseMult(ALeaders[1], Db);
       auto X3 = deltaVecN - cx::pairwiseMult(ALeaders[2], Dd);
-
-      Dalphas.push_back(Da);
-      Dbetas.push_back(Db);
-      Ddeltas.push_back(Dd);
-
-      X1s.push_back(X1);
-      X2s.push_back(X2);
-      X3s.push_back(X3);
-
-      oldWolves.push_back(wolfSol);
 
       wolfSol = (X1 + X2 + X3) / 3.f;
 
@@ -456,38 +327,8 @@ namespace bpt
                                          maxBuildingYVal);
       }
 
-      newWolves.push_back(wolfSol);
       wolf = convertVecNToSolution(wolfSol);
     }
-
-#pragma region GWO_Add_Debug_Data_2
-    this->recentRunData.r1Alphas.push_back(r1Alphas);
-    this->recentRunData.r1Betas.push_back(r1Betas);
-    this->recentRunData.r1Deltas.push_back(r1Deltas);
-
-    this->recentRunData.r2Alphas.push_back(r2Alphas);
-    this->recentRunData.r2Betas.push_back(r2Betas);
-    this->recentRunData.r2Deltas.push_back(r2Deltas);
-
-    this->recentRunData.Aalphas.push_back(Aalphas);
-    this->recentRunData.Abetas.push_back(Abetas);
-    this->recentRunData.Adeltas.push_back(Adeltas);
-
-    this->recentRunData.Calphas.push_back(Calphas);
-    this->recentRunData.Cbetas.push_back(Cbetas);
-    this->recentRunData.Cdeltas.push_back(Cdeltas);
-
-    this->recentRunData.Dalphas.push_back(Dalphas);
-    this->recentRunData.Dbetas.push_back(Dbetas);
-    this->recentRunData.Ddeltas.push_back(Ddeltas);
-
-    this->recentRunData.X1s.push_back(X1s);
-    this->recentRunData.X2s.push_back(X2s);
-    this->recentRunData.X3s.push_back(X3s);
-
-    this->recentRunData.oldWolves.push_back(oldWolves);
-    this->recentRunData.newWolves.push_back(newWolves);
-#pragma endregion GWO_Add_Debug_Data_2
   }
 
   void GWO::mutateWolves(
