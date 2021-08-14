@@ -195,21 +195,21 @@ namespace bpt
         particles.begin(),
         particles.end(),
         [](Particle& a, Particle& b) {
-          return a.currSol.getFitness() < b.currSol.getFitness();
+          return a.pBest.getFitness() < b.pBest.getFitness();
         }
       );
 
-      if (particles[0].currSol.getFitness() < gBest.getFitness()) {
-        gBest = particles[0].currSol;
+      if (particles[0].pBest.getFitness() < gBest.getFitness()) {
+        gBest = particles[0].pBest;
       }
 
       // Gather run data.
-      double worstFitness = particles.back().currSol.getFitness();
-      double bestFitness = particles[0].currSol.getFitness();
+      double worstFitness = particles.back().pBest.getFitness();
+      double bestFitness = particles[0].pBest.getFitness();
 
       double averageFitness = 0.0;
       for (Particle& particle : particles) {
-        averageFitness += particle.currSol.getFitness();
+        averageFitness += particle.pBest.getFitness();
       }
       averageFitness /= particles.size();
 
@@ -220,7 +220,7 @@ namespace bpt
       currIterSolutions.clear();
       eastl::transform(particles.begin(), particles.end(),
                        eastl::back_inserter(currIterSolutions),
-                       [](Particle& p) -> Solution { return p.currSol; });
+                       [](Particle& p) -> Solution { return p.pBest; });
       solutions.push_back(currIterSolutions);
     }
 
