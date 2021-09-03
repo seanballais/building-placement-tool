@@ -46,13 +46,13 @@ namespace bpt
     const double timeLimit,
     const bool &keepInfeasibleSolutions)
   {
-    // TODO: Fix mutation.
     eastl::vector<eastl::vector<Solution>> solutions;
     eastl::vector<Solution> wolves;
     eastl::vector<double> wolfMutationRates;
     eastl::vector<double> bestFitnesses;
     eastl::vector<double> averageFitnesses;
     eastl::vector<double> worstFitnesses;
+    Solution globalBestWolf;
 
     this->runTimer.start();
 
@@ -85,6 +85,8 @@ namespace bpt
       }
     );
 
+    globalBestWolf = wolves[0];
+
     double worstFitness = wolves.back().getFitness();
     double bestFitness = wolves[0].getFitness();
 
@@ -93,13 +95,16 @@ namespace bpt
       averageFitness += wolf.getFitness();
     }
 
-    averageFitness /= wolves.size();
+    averageFitness /= static_cast<float>(wolves.size());
 
     bestFitnesses.push_back(bestFitness);
     averageFitnesses.push_back(averageFitness);
     worstFitnesses.push_back(worstFitness);
 
-    solutions.push_back(wolves);
+    eastl::vector<Solution> currWolves = wolves;
+    currWolves.insert(currWolves.begin(), globalBestWolf);
+
+    solutions.push_back(currWolves);
 
     float alpha = 2.f;
     for (int32_t i = 0; i < numIterations; i++) {
@@ -127,15 +132,6 @@ namespace bpt
         landslideProneAreaPenalty,
         buildingDistanceWeight);
 
-      // Sort GWO debugging data based on solution fitness.
-      // Rank wolves pre-sorting. Ranking starts at 0.
-      auto cmpFunc = [](Solution& a, Solution& b) -> bool {
-        return a.getFitness() < b.getFitness();
-      };
-      eastl::vector<int32_t> dataIndices = cx::rankVectors(wolves, cmpFunc);
-
-      // Sort the wolves now. We could do this earlier, but it looks cleaner
-      // to just put it here.
       std::sort(
         wolves.begin(),
         wolves.end(),
@@ -146,7 +142,11 @@ namespace bpt
 
       // Compute statistical data.
       worstFitness = wolves.back().getFitness();
-      bestFitness = wolves[0].getFitness();
+
+      if (wolves[0].getFitness() < globalBestWolf.getFitness()) {
+        globalBestWolf = wolves[0];
+        bestFitness = wolves[0].getFitness();
+      }
 
       averageFitness = 0.0;
       for (Solution& wolf : wolves) {
@@ -159,7 +159,10 @@ namespace bpt
       averageFitnesses.push_back(averageFitness);
       worstFitnesses.push_back(worstFitness);
 
-      solutions.push_back(wolves);
+      currWolves = wolves;
+      currWolves.insert(currWolves.begin(), globalBestWolf);
+
+      solutions.push_back(currWolves);
 
       alpha = 2.f - (2.f * (static_cast<float>(i) / numIterations));
     }
